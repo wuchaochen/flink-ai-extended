@@ -18,28 +18,14 @@
 #
 import unittest
 
-from ai_flow.application_master.master import AIFlowMaster
-
 from ai_flow.common.path_util import get_file_dir
 from ai_flow.project.project_description import get_project_description_from
-from ai_flow.api.configuration import set_project_config_file
 
 
 class TestProjectConfig(unittest.TestCase):
 
-    def setUp(self):
+    def test_load_project_desc(self):
         project_path = get_file_dir(__file__)
-        config_file = project_path + '/master.yaml'
-        self.master = AIFlowMaster(config_file=config_file)
-        self.master.start()
-
-    def tearDown(self):
-        self.master.stop()
-        self.master._clear_db()
-
-    def test_load_project_config(self):
-        project_path = get_file_dir(__file__)
-        set_project_config_file(project_path+"/project.yaml")
         project_desc = get_project_description_from(project_path)
         self.assertEqual(project_desc.project_config.get_master_uri(), "localhost:50051")
         self.assertIsNone(project_desc.project_config.get('ai_flow config', None))
@@ -47,6 +33,7 @@ class TestProjectConfig(unittest.TestCase):
         self.assertEqual(project_desc.project_config['ai_flow_job_master.host'], 'localhost')
         self.assertEqual(project_desc.project_config['ai_flow_job_master.port'], 8081)
         self.assertEqual(project_desc.project_config['ai_flow_conf'], 'taskmanager.slot=2')
+        self.assertEqual(2, len(project_desc.list_workflows()))
 
 
 if __name__ == '__main__':

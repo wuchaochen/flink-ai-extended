@@ -18,9 +18,8 @@
 #
 import os
 from typing import List, Text
-from ai_flow.project.project_config import ProjectConfig, _default_project_config
+from ai_flow.project.project_config import ProjectConfig
 from ai_flow.common.json_utils import Jsonable
-from pathlib import Path
 import logging
 
 
@@ -30,33 +29,75 @@ class ProjectDesc(Jsonable):
     A common ai flow project would follow the directory structure as bellow.
 
     SimpleProject
-    ├─ project.yaml
-    ├─ jar_dependencies
-    ├─ resources
-    ├─ temp
-    ├─ logs
-    └─ python_codes
-       ├─ __init__.py
-       ├─ my_ai_flow.py
-       └─ requirements.txt
+        |- workflows
+           |- workflow_name1
+           |- workflow_name2
+           |- workflow_name3
+              |- workflow_name3.py
+              |- workflow_name3.yaml
+        |- dependencies
+            |-python
+            |-jar
+            |-go
+        |- logs
+        |- temp
+        |- resources
+        └─ project.yaml
     """
     def __init__(self) -> None:
         super().__init__()
         self.project_name: Text = None
-        self.project_path = '/tmp'
-        self.python_dependencies: List[Text] = []
-        self.jar_dependencies: List[Text] = []
-        self.resources: List[Text] = []
-        self.project_temp_path: Text = 'temp'
-        self.log_path: Text = "logs"
+        self.project_path = None
         self.project_config: ProjectConfig = None
         self.python_paths: List[Text] = []
 
+    def set_python_paths(self, python_paths: List[Text]):
+        self.python_paths = python_paths
+
+    def get_python_paths(self):
+        return self.python_paths
+
     def get_absolute_temp_path(self)->Text:
-        return "{}/{}".format(self.project_path, self.project_temp_path)
+        return os.path.join(self.project_path, 'temp')
 
     def get_absolute_log_path(self)->Text:
-        return "{}/{}".format(self.project_path, self.log_path)
+        return os.path.join(self.project_path, 'logs')
+
+    def get_absolute_resources_path(self)->Text:
+        return os.path.join(self.project_path, 'resources')
+
+    def get_absolute_dependencies_path(self)->Text:
+        return os.path.join(self.project_path, 'dependencies')
+
+    def get_absolute_project_config_file(self)->Text:
+        return os.path.join(self.project_path, 'project.yaml')
+
+    def get_absolute_python_dependencies_path(self)->Text:
+        return os.path.join(self.get_absolute_dependencies_path(), 'python')
+
+    def get_absolute_jar_dependencies_path(self)->Text:
+        return os.path.join(self.get_absolute_dependencies_path(), 'jar')
+
+    def get_absolute_go_dependencies_path(self)->Text:
+        return os.path.join(self.get_absolute_dependencies_path(), 'go')
+
+    def get_absolute_workflows_path(self)->Text:
+        return os.path.join(self.project_path, 'workflows')
+
+    def list_workflows(self)->List[Text]:
+        return os.listdir(self.get_absolute_workflows_path())
+
+    def get_absolute_workflow_path(self, workflow_name)->Text:
+        return os.path.join(self.get_absolute_workflows_path(), workflow_name)
+
+    def get_absolute_workflow_config_file(self, workflow_name)->Text:
+        return os.path.join(self.get_absolute_workflow_path(workflow_name), '{}.yaml'.format(workflow_name))
+
+    def get_absolute_workflow_entry_file(self, workflow_name)->Text:
+        return os.path.join(self.get_absolute_workflow_path(workflow_name), '{}.py'.format(workflow_name))
+
+    def get_absolute_workflow_entry_module(self, workflow_name)->Text:
+        return '{}.{}'.format(workflow_name, workflow_name)
 
 
 def get_project_description_from(project_path: Text) -> ProjectDesc:
@@ -68,19 +109,10 @@ def get_project_description_from(project_path: Text) -> ProjectDesc:
     project_spec = ProjectDesc()
     project_path = os.path.abspath(project_path)
     project_spec.project_path = project_path
-    project_path_obj = Path(project_path)
-    project_spec.jar_dependencies = get_file_paths_from(str(project_path_obj / 'jar_dependencies'))
-    project_spec.python_dependencies = get_file_paths_from(str(project_path_obj / 'python_codes'))
-    project_spec.resources = get_file_paths_from(str(project_path_obj / 'resources'))
     if not os.path.exists(project_spec.get_absolute_temp_path()):
         os.makedirs(project_spec.get_absolute_temp_path())
     project_spec.project_config = ProjectConfig()
-    project_spec.project_config.load_from_file(os.path.join(project_path, 'project.yaml'))
-    # adapter to old scheduler
-    if _default_project_config.get_project_uuid() is not None:
-        project_spec.project_config.set_project_uuid(_default_project_config.get_project_uuid())
-    if 'entry_module_path' in _default_project_config:
-        project_spec.project_config['entry_module_path'] = _default_project_config['entry_module_path']
+    project_spec.project_config.load_from_file(project_spec.get_absolute_project_config_file())
     project_spec.project_name = project_spec.project_config.get_project_name()
     return project_spec
 
