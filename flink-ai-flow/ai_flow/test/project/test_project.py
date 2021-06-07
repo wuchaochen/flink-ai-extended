@@ -17,7 +17,7 @@
 # under the License.
 #
 import unittest
-
+import os
 from ai_flow.common.path_util import get_file_dir
 from ai_flow.project.project_description import get_project_description_from
 
@@ -27,6 +27,20 @@ class TestProjectConfig(unittest.TestCase):
     def test_load_project_desc(self):
         project_path = get_file_dir(__file__)
         project_desc = get_project_description_from(project_path)
+        self.assertTrue(project_desc.get_absolute_project_config_file().endswith('project.yaml'))
+        self.assertTrue(project_desc.get_absolute_temp_path().endswith('temp'))
+        self.assertTrue(project_desc.get_absolute_workflows_path().endswith('workflows'))
+        self.assertTrue(project_desc.get_absolute_resources_path().endswith('resources'))
+        self.assertTrue(project_desc.get_absolute_dependencies_path().endswith('dependencies'))
+        self.assertTrue(project_desc.get_absolute_log_path().endswith('logs'))
+        self.assertTrue(project_desc.get_absolute_python_dependencies_path().endswith('python'))
+        self.assertTrue(project_desc.get_absolute_go_dependencies_path().endswith('go'))
+        self.assertTrue(project_desc.get_absolute_jar_dependencies_path().endswith('jar'))
+        workflow_1_entry = project_desc.get_absolute_workflow_entry_file('workflow_1')
+        self.assertTrue(os.path.exists(workflow_1_entry))
+        self.assertTrue(os.path.isfile(workflow_1_entry))
+        print(project_desc.list_resources_paths())
+        self.assertEqual('workflow_1.workflow_1', project_desc.get_absolute_workflow_entry_module('workflow_1'))
         self.assertEqual(project_desc.project_config.get_master_uri(), "localhost:50051")
         self.assertIsNone(project_desc.project_config.get('ai_flow config', None))
         self.assertEqual(project_desc.project_config['ai_flow_home'], '/opt/ai_flow')

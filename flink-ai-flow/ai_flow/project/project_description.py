@@ -17,10 +17,10 @@
 # under the License.
 #
 import os
+import logging
 from typing import List, Text
 from ai_flow.project.project_config import ProjectConfig
 from ai_flow.common.json_utils import Jsonable
-import logging
 
 
 class ProjectDesc(Jsonable):
@@ -66,6 +66,9 @@ class ProjectDesc(Jsonable):
     def get_absolute_resources_path(self)->Text:
         return os.path.join(self.project_path, 'resources')
 
+    def list_resources_paths(self)->List:
+        return get_file_paths_from(self.get_absolute_resources_path())
+
     def get_absolute_dependencies_path(self)->Text:
         return os.path.join(self.project_path, 'dependencies')
 
@@ -77,6 +80,9 @@ class ProjectDesc(Jsonable):
 
     def get_absolute_jar_dependencies_path(self)->Text:
         return os.path.join(self.get_absolute_dependencies_path(), 'jar')
+
+    def list_jar_paths(self)->List:
+        return get_file_paths_from(self.get_absolute_jar_dependencies_path())
 
     def get_absolute_go_dependencies_path(self)->Text:
         return os.path.join(self.get_absolute_dependencies_path(), 'go')
