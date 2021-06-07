@@ -17,12 +17,12 @@
 # under the License.
 #
 from typing import Text, Optional
-import os
 from ai_flow.project.project_description import get_project_description_from, ProjectDesc
 
-from ai_flow.project.project_config import ProjectConfig, _default_project_config
+from ai_flow.project.project_config import ProjectConfig
 from ai_flow.rest_endpoint.service.client.aiflow_client import AIFlowClient
 
+_default_project_config = ProjectConfig()
 _default_project_config_set_flag = False
 
 
@@ -47,7 +47,6 @@ def project_config() -> Optional[ProjectConfig]:
     """
     :return: project configuration
     """
-    ensure_project_registered()
     return _default_project_config
 
 
@@ -103,6 +102,5 @@ def project_description()->ProjectDesc:
 
 def set_project_path(path):
     global _default_project_desc
-    set_project_config_file(os.path.join(path, 'project.yaml'))
     _default_project_desc = get_project_description_from(path)
-    _default_project_desc.project_config = _default_project_config
+    set_default_project_config(_default_project_desc.project_config)
