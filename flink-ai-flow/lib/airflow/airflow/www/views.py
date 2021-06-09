@@ -35,6 +35,7 @@ import lazy_object_proxy
 import nvd3
 import sqlalchemy as sqla
 import yaml
+from airflow.contrib.jobs.scheduler_factory import SchedulerFactory
 from flask import (
     Markup,
     Response,
@@ -193,9 +194,9 @@ def task_group_to_dict(task_group):
     """
     if isinstance(task_group, BaseOperator):
         nodes = []
-        subscribed_events = task_group.get_subscribed_events()
-        if subscribed_events:
-            for event_namespace, event_key, event_type, from_task_id in BaseSerialization._deserialize(subscribed_events):
+        if task_group.get_subscribed_events():
+            for event_namespace, event_key, event_type, from_task_id in BaseSerialization._deserialize(
+                task_group.get_subscribed_events()):
                 event = '{},{},{}'.format(event_namespace, event_key, event_type)
                 nodes.append({
                     'id': event,
@@ -355,14 +356,13 @@ def dag_edges(dag):
                 get_downstream(child)
         subscribed_events = task.get_subscribed_events()
         if subscribed_events:
-            for event_namespace, event_key, event_type, from_task_id in BaseSerialization._deserialize(subscribed_events):
+            for event_namespace, event_key, event_type, from_task_id in BaseSerialization._deserialize(
+                subscribed_events):
                 to_edge = ('{},{},{}'.format(event_namespace, event_key, event_type), task.task_id)
+                from_edge = ('', '{},{},{}'.format(event_namespace, event_key, event_type))
                 if to_edge not in edges:
                     edges.add(to_edge)
-                if from_task_id:
-                    from_edge = (from_task_id, '{},{},{}'.format(event_namespace, event_key, event_type))
-                    if from_edge not in edges:
-                        edges.add(from_edge)
+                    edges.add(from_edge)
 
     for root in dag.roots:
         get_downstream(root)
@@ -427,10 +427,11 @@ class AirflowBaseView(BaseView):  # noqa: D101
     }
 
     def render_template(self, *args, **kwargs):
+        scheduler_class = SchedulerFactory.get_default_scheduler()
         return super().render_template(
             *args,
             # Cache this at most once per request, not for the lifetime of the view instance
-            scheduler_job=lazy_object_proxy.Proxy(SchedulerJob.most_recent_job),
+            scheduler_job=lazy_object_proxy.Proxy(scheduler_class.most_recent_job),
             **kwargs,
         )
 
@@ -456,7 +457,8 @@ class Airflow(AirflowBaseView):  # noqa: D101  pylint: disable=too-many-public-m
         scheduler_status = 'unhealthy'
         payload['metadatabase'] = {'status': 'healthy'}
         try:
-            scheduler_job = SchedulerJob.most_recent_job()
+            scheduler_class = SchedulerFactory.get_default_scheduler()
+            scheduler_job = scheduler_class.most_recent_job()
 
             if scheduler_job:
                 latest_scheduler_heartbeat = scheduler_job.latest_heartbeat.isoformat()
@@ -1986,17 +1988,12 @@ class Airflow(AirflowBaseView):  # noqa: D101  pylint: disable=too-many-public-m
                 for event_namespace, event_key, event_type, from_task_id in BaseSerialization._deserialize(
                     t.get_subscribed_events()):
                     downstream_task = dag.get_task(t.task_id)
-                    if from_task_id and from_task_id == '*':
+                    if from_task_id:
                         event_tuple = (event_namespace, event_key, event_type)
                         if event_tuple in event_tasks:
                             event_tasks[event_tuple].add(downstream_task)
                         else:
                             event_tasks[event_tuple] = {downstream_task}
-                    else:
-                        if from_task_id in upstream_tasks:
-                            upstream_tasks[from_task_id].add(downstream_task)
-                        else:
-                            upstream_tasks[from_task_id] = {downstream_task}
 
         downstream_tasks = set()
         for key, value in event_tasks.items():
@@ -2198,7 +2195,7 @@ class Airflow(AirflowBaseView):  # noqa: D101  pylint: disable=too-many-public-m
 
         node_edges = set()
         for e in edges:
-            if e['source_id'] == '*':
+            if e['source_id'] == '':
                 for event_meta in event_senders[e['target_id']]:
                     if event_meta.sender in dag.task_ids:
                         node_edges.add((event_meta.sender, e['target_id']))
