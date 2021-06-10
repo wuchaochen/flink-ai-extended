@@ -18,24 +18,22 @@
 #
 from ai_flow.graph.node import BaseNode
 from ai_flow.graph.channel import Channel
-from ai_flow.graph.ai_node import AINode
+from ai_flow.ai_graph.ai_node import AINode
 from typing import Dict, List, Text, Optional
-from ai_flow.graph.edge import Edge, DataEdge, ControlEdge
-from ai_flow.common.json_utils import Jsonable, loads, dumps
-import networkx as nx
-import matplotlib.pyplot as plt
-from ai_flow.api.ai_flow_context import default_af_job_context, ENGINE_NAME
-from ai_flow.workflow.job_config import BaseJobConfig
+from ai_flow.graph.edge import Edge, DataEdge
+from ai_flow.common.json_utils import Jsonable, loads
+from ai_flow.context.workflow_context import workflow_config
+from ai_flow.context.job_context import current_job_name
 
-_id_generator_map = {}
+__id_generator_map__ = {}
 
 
-def _get_id_generator(graph: object):
-    if graph in _id_generator_map:
-        return _id_generator_map[graph]
+def get_id_generator(graph: object):
+    if graph in __id_generator_map__:
+        return __id_generator_map__[graph]
     else:
-        _id_generator_map[graph] = _IdGenerator()
-        return _id_generator_map[graph]
+        __id_generator_map__[graph] = _IdGenerator()
+        return __id_generator_map__[graph]
 
 
 class _IdGenerator(Jsonable):
@@ -62,7 +60,7 @@ class Graph(BaseNode):
         self.edges: Dict[Text, List[Edge]] = {}
 
     def add_node(self, node: BaseNode):
-        instance_id = _get_id_generator(self).generate_id(node)
+        instance_id = get_id_generator(self).generate_id(node)
         node.set_instance_id(instance_id)
         self.nodes[instance_id] = node
 
@@ -97,10 +95,9 @@ class AIGraph(Graph):
         self.nodes: Dict[Text, AINode] = {}
 
     def add_node(self, node: AINode):
-        instance_id = _get_id_generator(self).generate_id(node)
+        instance_id = get_id_generator(self).generate_id(node)
         node.set_instance_id(instance_id)
-        node.config = default_af_job_context().merge_config()
-        node.properties[ENGINE_NAME] = node.config.engine
+        node.config = workflow_config().job_configs.get(current_job_name())
         self.nodes[instance_id] = node
 
     def get_node_by_id(self, node_id: Text) -> Optional[AINode]:
@@ -114,59 +111,6 @@ class AIGraph(Graph):
         self.add_edge(instance_id=instance_id, edge=edge)
 
 
-_default_ai_graph = AIGraph()
-
-
-def compile_graph(graph: Graph = _default_ai_graph) -> str:
-    return dumps(graph)
-
-
-def show_graph(graph: Graph = _default_ai_graph) -> None:
-    g = nx.Graph()
-    for n in graph.edges:
-        for e in graph.edges[n]:
-            g.add_edge(n, e.target_node_id)
-
-    pos = nx.kamada_kawai_layout(g)  # positions for all ai_nodes
-    # ai_nodes
-    nx.draw_networkx_nodes(g, pos)
-    # edges
-    nx.draw_networkx_edges(g, pos, width=1, edge_color='r', arrowsize=10, arrows=True)
-    # labels
-    nx.draw_networkx_labels(g, pos, font_size=5, font_family='sans-serif')
-    plt.axis('off')
-    plt.show()
-
-
 def load_graph(json_text: str) -> Graph:
     graph: Graph = loads(json_text)
     return graph
-
-
-def default_graph() -> AIGraph:
-    return _default_ai_graph
-
-
-class AISubGraph(AIGraph):
-
-    def __init__(self,
-                 config: BaseJobConfig,
-                 ) -> None:
-        super().__init__()
-        self.config: BaseJobConfig = config
-        self.edges: Dict[Text, List[DataEdge]] = {}
-
-    def add_node(self, node: AINode):
-        self.nodes[node.instance_id] = node
-
-
-class SplitGraph(AIGraph):
-    def __init__(self) -> None:
-        super().__init__()
-        self.nodes: Dict[Text, AISubGraph] = {}
-        self.edges: Dict[Text, List[ControlEdge]] = {}
-
-    def add_node(self, node: AISubGraph):
-        instance_id = _get_id_generator(self).generate_id(node)
-        node.set_instance_id(instance_id)
-        self.nodes[instance_id] = node

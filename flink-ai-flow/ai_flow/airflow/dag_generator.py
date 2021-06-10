@@ -20,13 +20,13 @@ from abc import ABC
 from datetime import datetime
 from typing import Text, List
 
-from ai_flow.workflow.job import BaseJob
+from ai_flow.workflow.job import Job
 
 from ai_flow.common import json_utils
 from ai_flow.common.registry import BaseRegistry
 from ai_flow.graph.edge import MetConfig, MetCondition, EventLife, MetValueCondition, TaskAction
 from ai_flow.plugins.engine import DummyEngine
-from ai_flow.workflow.job_config import PeriodicConfig
+from ai_flow.workflow.periodic_config import PeriodicConfig
 from ai_flow.workflow.workflow import Workflow
 
 
@@ -193,7 +193,7 @@ class DAGGenerator(object):
                         if met_config.sender is None or '' == met_config.sender:
                             target_node_id = edge.target_node_id
                             if target_node_id is not None and '' != target_node_id:
-                                target_job: BaseJob = workflow.jobs.get(target_node_id)
+                                target_job: Job = workflow.jobs.get(target_node_id)
                                 if target_job.job_name is not None:
                                     met_config.sender = job_name_to_task_id(target_job.job_name)
                             else:

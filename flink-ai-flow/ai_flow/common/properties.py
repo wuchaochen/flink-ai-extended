@@ -27,23 +27,5 @@ class Properties(Dict[Text, Jsonable]):
 EMPTY_PROPERTIES = Properties()
 
 
-class ExecuteProperties(Jsonable):
-    def __init__(self,
-                 batch_properties: Properties = None,
-                 stream_properties: Properties = None,
-                 common_properties: Properties = None) -> None:
-        super().__init__()
-        if batch_properties is None:
-            self.batch_properties = {}
-        else:
-            self.batch_properties = batch_properties
-
-        if stream_properties is None:
-            self.stream_properties = {}
-        else:
-            self.stream_properties = stream_properties
-
-        if common_properties is None:
-            self.common_properties = {}
-        else:
-            self.common_properties = common_properties
+class ExecuteProperties(Properties):
+    pass

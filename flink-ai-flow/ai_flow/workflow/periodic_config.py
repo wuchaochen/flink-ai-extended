@@ -1,4 +1,3 @@
-#
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -15,27 +14,23 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-#
-from typing import Text
-from ai_flow.common.properties import ExecuteProperties
-from ai_flow.meta.artifact_meta import ArtifactMeta
-from ai_flow.executor.executor import BaseExecutor
-from ai_flow.graph.ai_nodes.executable import ExecutableNode
+from ai_flow.common.json_utils import Jsonable
+from typing import Text, Dict
 
 
-class ExampleValidator(ExecutableNode):
+class PeriodicConfig(Jsonable):
+    """
+    Set period semantics for job. Jobs with periodic semantics will restart at regular intervals.
+    """
+    def __init__(self, periodic_type: Text,
+                 args: Dict[Text, Jsonable] = None) -> None:
+        """
+        :param periodic_type: ``interval`` or ``cron``
+        link apscheduler.schedulers.background.BackgroundScheduler add_job
 
-    def __init__(self,
-                 executor: BaseExecutor,
-                 properties: ExecuteProperties = None,
-                 name: Text = None,
-                 instance_id: Text = None,
-                 output_num: int = 1) -> None:
-        super().__init__(
-            executor=executor,
-            properties=properties,
-            name=name,
-            instance_id=instance_id,
-            output_num=output_num)
-        self.executor_config = executor
-
+        """
+        super().__init__()
+        self.periodic_type = periodic_type
+        if args is None:
+            args = {}
+        self.args = args

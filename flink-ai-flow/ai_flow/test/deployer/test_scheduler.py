@@ -32,7 +32,7 @@ from ai_flow.rest_endpoint.service.server import AIFlowServer
 from ai_flow.store.db.base_model import base
 from ai_flow.store.sqlalchemy_store import SqlAlchemyStore
 from ai_flow.test.rest_endpoint.test_client import _SQLITE_DB_FILE, _PORT, _SQLITE_DB_URI
-from ai_flow.workflow.job import BaseJob, BaseJobConfig
+from ai_flow.workflow.job import Job, JobConfig
 from ai_flow.workflow.job_config import PeriodicConfig
 from ai_flow.workflow.job_context import JobContext
 from ai_flow.workflow.workflow import Workflow
@@ -70,8 +70,8 @@ class TestScheduler(unittest.TestCase):
         self.assertIsNone(res)
 
     @staticmethod
-    def create_job(index, sleep_time=5) -> BaseJob:
-        job: BaseJob = LocalCMDJob(exec_cmd='echo "hello {}\n" && sleep {}'.format(str(index), str(sleep_time)))
+    def create_job(index, sleep_time=5) -> Job:
+        job: Job = LocalCMDJob(exec_cmd='echo "hello {}\n" && sleep {}'.format(str(index), str(sleep_time)))
         job.job_context = JobContext()
         job.job_context.workflow_execution_id = 1
         job.instance_id = str(index) + "_job"
@@ -160,9 +160,9 @@ class TestScheduler(unittest.TestCase):
         self.assertEqual(0, res)
 
     @staticmethod
-    def create_periodic_job(index, sleep_time=1) -> BaseJob:
-        job: BaseJob = LocalCMDJob(exec_cmd='echo "hello {}\n" && sleep {}'.format(str(index), str(sleep_time)),
-                                   job_config=BaseJobConfig(platform="local", engine="cmd_line"))
+    def create_periodic_job(index, sleep_time=1) -> Job:
+        job: Job = LocalCMDJob(exec_cmd='echo "hello {}\n" && sleep {}'.format(str(index), str(sleep_time)),
+                               job_config=JobConfig(platform="local", engine="cmd_line"))
         job.uuid = index
         job.job_name = job.instance_id
         job.job_config.periodic_config = PeriodicConfig(periodic_type='interval', args={'seconds': 5})

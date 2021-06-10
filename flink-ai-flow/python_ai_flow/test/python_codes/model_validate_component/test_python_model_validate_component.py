@@ -202,7 +202,7 @@ class TestModelValidateComponent(unittest.TestCase):
                                                  support_type=ExampleSupportType.EXAMPLE_BOTH)
         model_meta = af.register_model(model_name='mnist_model',
                                        model_type=ModelType.SAVED_MODEL)
-        with af.config(af.BaseJobConfig(platform='local', engine='python', job_name='evaluate')):
+        with af.config(af.JobConfig(platform='local', engine='python', job_name='evaluate')):
             input_example = af.read_example(example_info=input_example_meta,
                                             executor=PythonObjectExecutor(python_object=ReadBatchExample()))
 

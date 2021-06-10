@@ -24,13 +24,13 @@ def run_project(project_root_path):
 
     af.set_project_config_file(project_root_path + '/project.yaml')
     # Config command line job, we set platform to local and engine to cmd_line here
-    cmd_job_config = af.BaseJobConfig(platform=LocalPlatform.platform(), engine=CMDEngine().engine())
+    cmd_job_config = af.JobConfig(platform=LocalPlatform.platform(), engine=CMDEngine().engine())
     with af.config(cmd_job_config):
         # Command line job executor
         cmd_job = af.user_define_operation(executor=CmdExecutor(cmd_line="echo Start AI flow"))
 
     # Config python job, we set platform to local and engine to python here
-    python_job_config = af.BaseJobConfig(platform=LocalPlatform.platform(), engine=PythonEngine.engine())
+    python_job_config = af.JobConfig(platform=LocalPlatform.platform(), engine=PythonEngine.engine())
 
     # Set execution mode of this python job to BATCH,
     # which indicates jobs with this config is running in the form of batch.

@@ -21,7 +21,7 @@ import unittest
 from ai_flow.project.project_description import get_project_description_from
 from ai_flow.application_master.master import AIFlowMaster
 from ai_flow.test import test_util
-from ai_flow.workflow.job_config import PeriodicConfig
+from ai_flow.workflow.periodic_config import PeriodicConfig
 from ai_flow.graph.graph import default_graph
 import ai_flow as af
 from ai_flow.executor.executor import CmdExecutor
@@ -362,13 +362,13 @@ class TestTranslator(unittest.TestCase):
 
     def test_periodic_job(self):
         periodic_config = PeriodicConfig(periodic_type='interval', args={'seconds': 5})
-        job_config = af.BaseJobConfig(platform='local', engine='cmd_line')
+        job_config = af.JobConfig(platform='local', engine='cmd_line')
         job_config.job_name = 'test_periodic'
         job_config.periodic_config = periodic_config
         with af.config(job_config):
             job = af.user_define_operation(executor=af.CmdExecutor(cmd_line="echo 'hello world!'"))
 
-        job_config_2 = af.BaseJobConfig(platform='local', engine='cmd_line')
+        job_config_2 = af.JobConfig(platform='local', engine='cmd_line')
         job_config_2.job_name = 'test_job'
         with af.config(job_config_2):
             job2 = af.user_define_operation(executor=af.CmdExecutor(cmd_line="echo 'hello world!'"))
@@ -382,13 +382,13 @@ class TestTranslator(unittest.TestCase):
 
     def test_not_validated_periodic_job(self):
         periodic_config = PeriodicConfig(periodic_type='interval', args={'seconds': 5})
-        job_config_1 = af.BaseJobConfig(platform='local', engine='cmd_line')
+        job_config_1 = af.JobConfig(platform='local', engine='cmd_line')
         job_config_1.job_name = 'test_periodic_1'
         job_config_1.periodic_config = periodic_config
         with af.config(job_config_1):
             job1 = af.user_define_operation(executor=af.CmdExecutor(cmd_line="echo 'hello world!'"))
 
-        job_config_2 = af.BaseJobConfig(platform='local', engine='cmd_line')
+        job_config_2 = af.JobConfig(platform='local', engine='cmd_line')
         job_config_2.job_name = 'test_job'
         with af.config(job_config_2):
             job2 = af.user_define_operation(executor=af.CmdExecutor(cmd_line="echo 'hello world!'"))

@@ -1,4 +1,3 @@
-#
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -15,14 +14,25 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-#
-from ai_flow.graph.ai_nodes.example import Example
-from ai_flow.graph.ai_nodes.transformer import Transformer
-from ai_flow.graph.ai_nodes.trainer import Trainer
-from ai_flow.graph.ai_nodes.predictor import Predictor
-from ai_flow.graph.ai_nodes.evaluator import Evaluator
-from ai_flow.graph.ai_nodes.example_validator import ExampleValidator
-from ai_flow.graph.ai_nodes.model_validator import ModelValidator
-from ai_flow.graph.ai_nodes.pusher import Pusher
-from ai_flow.graph.ai_nodes.executable import ExecutableNode
+from typing import Text
 
+from ai_flow.context.project_context import project_description
+from ai_flow.workflow.workflow_config import WorkFlowConfig, load_workflow_config
+
+
+class WorkflowContext(object):
+    def __init__(self) -> None:
+        self.workflow_config: WorkFlowConfig = None
+
+
+__default_workflow_context__ = WorkflowContext()
+
+
+def init_workflow_context(workflow_name: Text):
+    project_desc = project_description()
+    __default_workflow_context__.workflow_config \
+        = load_workflow_config(project_desc.get_absolute_workflow_config_file(workflow_name))
+
+
+def workflow_config() -> WorkFlowConfig:
+    return __default_workflow_context__.workflow_config

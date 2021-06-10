@@ -20,8 +20,8 @@ from typing import List, Dict, Text
 from ai_flow.meta.job_meta import State
 from ai_flow.graph.node import BaseNode
 from ai_flow.graph.edge import JobControlEdge
-from ai_flow.workflow.job import BaseJob
-from ai_flow.graph.graph import _get_id_generator
+from ai_flow.workflow.job import Job
+from ai_flow.graph.graph import get_id_generator
 from ai_flow.project.project_description import ProjectDesc
 
 
@@ -32,16 +32,16 @@ class Workflow(BaseNode):
         self.workflow_id: int = None
         self.workflow_name: Text = None
         self.execution_name: Text = None
-        self.jobs: Dict[Text, BaseJob] = {}
+        self.jobs: Dict[Text, Job] = {}
         self.edges: Dict[Text, List[JobControlEdge]] = {}
         self.workflow_phase = None
         self.start_time = None
         self.end_time = None
         self.project_desc: ProjectDesc = None
 
-    def add_job(self, job: BaseJob):
+    def add_job(self, job: Job):
         if job.instance_id is None:
-            instance_id = _get_id_generator(self).generate_id(job)
+            instance_id = get_id_generator(self).generate_id(job)
             job.set_instance_id(instance_id)
         self.jobs[job.instance_id] = job
 

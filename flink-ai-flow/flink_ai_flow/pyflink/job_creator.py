@@ -24,7 +24,7 @@ from pyflink.table import TableEnvironment, StatementSet
 from pyflink.table.table import Table
 
 from ai_flow.common import serialization_utils
-from ai_flow.graph.ai_nodes.executable import ExecutableNode
+from ai_flow.ai_graph.ai_nodes.executable import ExecutableNode
 from ai_flow.graph.edge import DataEdge
 from ai_flow.graph.graph import AISubGraph
 from flink_ai_flow.flink_executor import FlinkPythonExecutor

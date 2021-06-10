@@ -1,4 +1,3 @@
-#
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -15,20 +14,3 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-#
-# from ai_flow.plugins.job_plugin import register_job_plugin
-# from ai_flow.plugins.platform import register_platform
-# from ai_flow.plugins.local_platform import LocalPlatform
-# from ai_flow.plugins.kubernetes_platform import KubernetesPlatform
-# from ai_flow.plugins.local_cmd_job_plugin import LocalCMDJobPlugin
-# from ai_flow.plugins.kubernetes_cmd_job_plugin import KubernetesCMDJobPlugin
-# from ai_flow.plugins.local_dummy_job_plugin import LocalDummyJobPlugin
-
-
-# register_platform(LocalPlatform)
-# register_platform(KubernetesPlatform)
-#
-# register_job_plugin(LocalCMDJobPlugin())
-# register_job_plugin(KubernetesCMDJobPlugin())
-# register_job_plugin(LocalDummyJobPlugin())
-

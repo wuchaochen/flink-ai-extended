@@ -18,9 +18,8 @@
 #
 from typing import Optional, Text, List, Tuple, Union
 
-from ai_flow.api.configuration import get_default_project_config
 from ai_flow.api.execution import get_workflow_execution_id
-from ai_flow.client.ai_flow_client import get_ai_flow_client, get_airflow_operation_client
+from ai_flow.client.ai_flow_client import get_ai_flow_client
 from ai_flow.common.properties import Properties
 from ai_flow.common.status import Status
 from ai_flow.meta.artifact_meta import ArtifactMeta
@@ -132,8 +131,9 @@ def get_model_by_name(model_name) -> Optional[ModelMeta]:
 
 
 def register_model(model_name, model_type, model_desc=None) -> ModelMeta:
-    project_config = get_default_project_config()
-    project_id = int(project_config.get_project_uuid())
+    from ai_flow.context.project_context import project_config
+    project_config_ = project_config()
+    project_id = int(project_config_.get_project_uuid())
     return get_ai_flow_client().register_model(model_name, project_id, model_type, model_desc)
 
 

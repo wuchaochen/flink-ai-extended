@@ -16,7 +16,7 @@
 # specific language governing permissions and limitations
 # under the License.
 #
-from ai_flow.api.configuration import _default_project_config, ensure_project_registered
+from ai_flow.context.project_context import project_config
 from ai_flow.api.execution import AirflowOperation
 from ai_flow.rest_endpoint.service.client.aiflow_client import AIFlowClient
 
@@ -30,24 +30,23 @@ def get_ai_flow_client():
     """ Get AI flow Client. """
 
     global _default_ai_flow_client, _default_master_uri
-    ensure_project_registered()
     if _default_ai_flow_client is None:
-        current_uri = _default_project_config.get_master_uri()
+        current_uri = project_config().get_master_uri()
         if current_uri is None:
             return None
         else:
             _default_master_uri = current_uri
             _default_ai_flow_client \
                 = AIFlowClient(server_uri=_default_master_uri,
-                               notification_service_uri=_default_project_config.get_notification_service_uri())
+                               notification_service_uri=project_config().get_notification_service_uri())
             return _default_ai_flow_client
     else:
-        current_uri = _default_project_config.get_master_uri()
+        current_uri = project_config().get_master_uri()
         if current_uri != _default_master_uri:
             _default_master_uri = current_uri
             _default_ai_flow_client \
                 = AIFlowClient(server_uri=_default_master_uri,
-                               notification_service_uri=_default_project_config.get_notification_service_uri())
+                               notification_service_uri=project_config().get_notification_service_uri())
 
         return _default_ai_flow_client
 
@@ -55,8 +54,7 @@ def get_ai_flow_client():
 def get_airflow_operation_client():
     """ Get a client to operate airflow dags and tasks. """
     global _default_airflow_operation_client
-    ensure_project_registered()
     if _default_airflow_operation_client:
         return _default_airflow_operation_client
     else:
-        return AirflowOperation(_default_project_config.get_notification_service_uri())
+        return AirflowOperation(project_config().get_notification_service_uri())

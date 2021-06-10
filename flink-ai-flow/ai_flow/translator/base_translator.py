@@ -19,13 +19,12 @@
 from ai_flow.common.time_utils import generate_time_str
 from ai_flow.meta.job_meta import State, ExecutionMode
 from ai_flow.rest_endpoint.service.client.aiflow_client import AIFlowClient
-from ai_flow.api.configuration import project_config
+from ai_flow.context.project_context import project_config
 from ai_flow.meta.workflow_execution_meta import WorkflowExecutionMeta
 from ai_flow.workflow.workflow import Workflow
-from ai_flow.workflow.job import BaseJob, BaseJobConfig
-from ai_flow.graph.graph import AIGraph, SplitGraph, AISubGraph
-from ai_flow.graph.ai_node import AINode
-from ai_flow.api.ai_flow_context import ENGINE_NAME
+from ai_flow.workflow.job import Job, JobConfig
+from ai_flow.ai_graph.ai_graph import AIGraph, SplitGraph, AISubGraph
+from ai_flow.ai_graph.ai_node import AINode
 from ai_flow.graph.edge import ControlEdge, DataEdge, JobControlEdge, control_edge_to_job_edge
 from ai_flow.common.json_utils import dumps
 from ai_flow.project.project_description import ProjectDesc
@@ -53,10 +52,10 @@ class BaseJobGenerator(ABC):
         super().__init__()
 
     @abstractmethod
-    def generate(self, sub_graph: AISubGraph, project_desc: ProjectDesc) -> BaseJob:
+    def generate(self, sub_graph: AISubGraph, project_desc: ProjectDesc) -> Job:
         pass
 
-    def generate_job_resource(self, job: BaseJob) -> None:
+    def generate_job_resource(self, job: Job) -> None:
         pass
 
 
@@ -110,9 +109,9 @@ class DefaultGraphSplitter(BaseGraphSplitter):
             if len(ai_sub_graph.nodes) <= 0:
                 raise Exception("AISubGraph is Empty!")
             nodes = list(ai_sub_graph.nodes.values())
-            engine_name = nodes[0].properties[ENGINE_NAME]
+            engine_name = nodes[0].config.engine
             for node in ai_sub_graph.nodes.values():
-                engine = node.properties[ENGINE_NAME]
+                engine = node.config.engine
                 if engine_name != engine:
                     raise Exception("AISubGraph engine name not same:{}!={} graph:{}"
                                     .format(engine_name, engine, dumps(ai_sub_graph)))
@@ -234,7 +233,7 @@ class DefaultWorkflowConstructor(BaseWorkflowConstructor):
                                 .format(sub.config.platform, sub.config.engine))
             generator: BaseJobGenerator = self.job_generator_registry \
                 .get_object((sub.config.platform, sub.config.engine))
-            job: BaseJob = generator.generate(sub_graph=sub, project_desc=project_desc)
+            job: Job = generator.generate(sub_graph=sub, project_desc=project_desc)
             job.job_config.project_desc = project_desc
             if job.job_name is None:
                 job.job_name = job.job_config.job_name
@@ -612,7 +611,7 @@ class DefaultTranslator(BaseTranslator):
 
     def check_periodic_job_validated(self, workflow: Workflow):
         for node_id, job in workflow.jobs.items():
-            job_config: BaseJobConfig = job.job_config
+            job_config: JobConfig = job.job_config
             if job_config.periodic_config is not None:
                 if node_id in workflow.edges:
                     raise Exception('Periodic job: {} can not have upstream job or upstream event.'

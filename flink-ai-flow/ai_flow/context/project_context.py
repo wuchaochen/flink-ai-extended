@@ -1,4 +1,3 @@
-#
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -15,9 +14,30 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-#
-from ai_flow.graph.ai_nodes.executable import ExecutableNode
+from typing import Text
+from ai_flow.project.project_config import ProjectConfig
+from ai_flow.project.project_description import ProjectDesc, get_project_description_from
 
 
-class Transformer(ExecutableNode):
-    pass
+class ProjectContext(object):
+    def __init__(self) -> None:
+        self.project_desc: ProjectDesc = None
+
+
+__default_project_context__ = ProjectContext()
+
+
+def init_project_context(project_path: Text):
+    project_desc = get_project_description_from(project_path)
+    __default_project_context__.project_desc = project_desc
+
+
+def project_description() -> ProjectDesc:
+    return __default_project_context__.project_desc
+
+
+def project_config() -> ProjectConfig:
+    """
+    :return: project configuration
+    """
+    return __default_project_context__.project_desc.project_config

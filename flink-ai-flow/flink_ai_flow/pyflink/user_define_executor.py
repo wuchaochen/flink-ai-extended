@@ -18,11 +18,11 @@
 #
 from typing import List
 from abc import ABC, abstractmethod
-from ai_flow.graph.ai_node import AINode
+from ai_flow.ai_graph.ai_node import AINode
 from ai_flow.workflow.job_context import JobContext
 from ai_flow.udf.function_context import FunctionContext
 from ai_flow.meta.example_meta import ExampleMeta
-from ai_flow.graph.ai_nodes.example import Example
+from ai_flow.ai_graph.ai_nodes.example import Example
 from pyflink.table.table import Table
 from pyflink.dataset import ExecutionEnvironment
 from pyflink.table import TableConfig, BatchTableEnvironment, TableEnvironment, StatementSet

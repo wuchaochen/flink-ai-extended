@@ -31,15 +31,15 @@ from ai_flow.workflow.job_config import PeriodicConfig
 
 from ai_flow.graph.edge import DataEdge
 from ai_flow.plugins.local_cmd_job_plugin import LocalJobHandler
-from ai_flow.graph.ai_node import AINode
-from ai_flow.graph.ai_nodes import Example
+from ai_flow.ai_graph.ai_node import AINode
+from ai_flow.ai_graph.ai_nodes import Example
 from ai_flow.log import log_path_utils
 from ai_flow.plugins.job_plugin import AISubGraph, ProjectDesc, JobContext, \
     AbstractJobConfig, AbstractJob, AbstractEngine, AbstractPlatform
 from ai_flow.plugins.local_cmd_job_plugin import LocalJobPlugin
 from ai_flow.plugins.local_platform import LocalPlatform
 from ai_flow.meta.job_meta import ExecutionMode
-from ai_flow.graph.ai_nodes.executable import ExecutableNode
+from ai_flow.ai_graph.ai_nodes.executable import ExecutableNode
 from ai_flow.project.blob_manager import BlobManagerFactory
 from ai_flow.common.serialization_utils import serialize
 from python_ai_flow.user_define_funcs import Executor

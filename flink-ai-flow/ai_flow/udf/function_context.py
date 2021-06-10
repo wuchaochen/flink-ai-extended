@@ -17,7 +17,7 @@
 # under the License.
 #
 from ai_flow.common.json_utils import Jsonable
-from ai_flow.graph.ai_node import AINode
+from ai_flow.ai_graph.ai_node import AINode
 from ai_flow.workflow.job_context import JobContext
 
 

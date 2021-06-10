@@ -60,7 +60,7 @@ class TestBaseExampleComponent(unittest.TestCase):
                                                   support_type=ExampleSupportType.EXAMPLE_BATCH,
                                                   batch_uri=os.path.abspath(os.path.dirname(__file__)
                                                                             + '/pandas_output.csv'))
-        with af.config(af.BaseJobConfig(platform='local', engine='python', job_name='test_csv')):
+        with af.config(af.JobConfig(platform='local', engine='python', job_name='test_csv')):
             example_channel = af.read_example(example_info=input_example_meta)
             af.write_example(input_data=example_channel, example_info=output_example_meta)
         workflow_id = af.run(test_util.get_project_path())
@@ -82,7 +82,7 @@ class TestBaseExampleComponent(unittest.TestCase):
                                                   support_type=ExampleSupportType.EXAMPLE_BATCH,
                                                   batch_uri=os.path.abspath(os.path.dirname(__file__)
                                                                             + '/numpy_output.npy'))
-        with af.config(af.BaseJobConfig(platform='local', engine='python', job_name='test_npy')):
+        with af.config(af.JobConfig(platform='local', engine='python', job_name='test_npy')):
             example_channel = af.read_example(example_info=input_example_meta)
             af.write_example(input_data=example_channel, example_info=output_example_meta)
         workflow_id = af.run(test_util.get_project_path())
@@ -104,7 +104,7 @@ class TestBaseExampleComponent(unittest.TestCase):
                                                   support_type=ExampleSupportType.EXAMPLE_BATCH,
                                                   batch_uri=os.path.abspath(os.path.dirname(__file__)
                                                                             + '/numpy_output.txt'))
-        with af.config(af.BaseJobConfig(platform='local', engine='python', job_name='test_txt')):
+        with af.config(af.JobConfig(platform='local', engine='python', job_name='test_txt')):
             example_channel = af.read_example(example_info=input_example_meta)
             af.write_example(input_data=example_channel, example_info=output_example_meta)
         workflow_id = af.run(test_util.get_project_path())
@@ -132,7 +132,7 @@ class TestBaseExampleComponent(unittest.TestCase):
                                                          support_type=ExampleSupportType.EXAMPLE_BATCH,
                                                          batch_uri=os.path.abspath(os.path.dirname(__file__)
                                                                                    + '/numpy_output_2.npz'))
-        with af.config(af.BaseJobConfig(platform='local', engine='python', job_name='test_npz')):
+        with af.config(af.JobConfig(platform='local', engine='python', job_name='test_npz')):
             example_channel = af.read_example(example_info=input_example_meta)
             transform_channel = af.transform(input_data_list=[example_channel],
                                              executor=PythonObjectExecutor(python_object=TransformTrainData()),

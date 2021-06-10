@@ -1,4 +1,3 @@
-#
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -15,4 +14,17 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-#
+import unittest
+from ai_flow.ai_graph.ai_node import CustomAINode
+
+
+class TestCustomAINode(unittest.TestCase):
+
+    def test_custom_ai_node(self):
+        node = CustomAINode(executor=None, arg1='arg1', arg2='arg2')
+        self.assertEqual('arg1', node.arg1)
+        self.assertEqual('arg2', node.arg2)
+
+
+if __name__ == '__main__':
+    unittest.main()

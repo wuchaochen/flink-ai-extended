@@ -24,8 +24,8 @@ from ai_flow.meta.job_meta import State
 from ai_flow.plugins.local_cmd_job_plugin import LocalCMDJob
 from ai_flow.plugins.local_dummy_job_plugin import LocalDummyJob, SendEventJobConfig
 from ai_flow.project.project_description import ProjectDesc
-from ai_flow.workflow.job import BaseJob
-from ai_flow.workflow.job_config import BaseJobConfig, PeriodicConfig
+from ai_flow.workflow.job import Job
+from ai_flow.workflow.job_config import JobConfig, PeriodicConfig
 from ai_flow.workflow.workflow import Workflow
 from notification_service.base_notification import UNDEFINED_EVENT_TYPE
 
@@ -62,8 +62,8 @@ class TestDAGGenerator(unittest.TestCase):
         self.assertFalse('SendEventOperator' in dag)
 
     @staticmethod
-    def create_dummy_job(index) -> BaseJob:
-        job: BaseJob = LocalDummyJob()
+    def create_dummy_job(index) -> Job:
+        job: Job = LocalDummyJob()
         job.job_context.workflow_execution_id = 1
         job.instance_id = str(index) + "_job"
         job.uuid = index
@@ -110,13 +110,13 @@ class TestDAGGenerator(unittest.TestCase):
         return workflow
 
     @staticmethod
-    def create_bash_job(index) -> BaseJob:
-        job: BaseJob = LocalCMDJob(exec_cmd=['echo "{0} hello word!"'.format(index)])
+    def create_bash_job(index) -> Job:
+        job: Job = LocalCMDJob(exec_cmd=['echo "{0} hello word!"'.format(index)])
         job.job_context.workflow_execution_id = 1
         job.instance_id = str(index) + "-job"
         job.job_name = str(index) + "-job-name"
         job.uuid = index
-        job.job_config = BaseJobConfig()
+        job.job_config = JobConfig()
         if 0 == index:
             job.job_config.periodic_config = PeriodicConfig(periodic_type='cron', args='* * * * *')
         elif 1 == index:
@@ -147,13 +147,13 @@ class TestDAGGenerator(unittest.TestCase):
         return workflow
 
     @staticmethod
-    def create_simple_bash_job(index) -> BaseJob:
-        job: BaseJob = LocalCMDJob(exec_cmd=['echo "{0} hello word!"'.format(index)])
+    def create_simple_bash_job(index) -> Job:
+        job: Job = LocalCMDJob(exec_cmd=['echo "{0} hello word!"'.format(index)])
         job.job_context.workflow_execution_id = 1
         job.instance_id = str(index) + "-job"
         job.job_name = str(index) + "-job-name"
         job.uuid = index
-        job.job_config = BaseJobConfig()
+        job.job_config = JobConfig()
         return job
 
     @staticmethod

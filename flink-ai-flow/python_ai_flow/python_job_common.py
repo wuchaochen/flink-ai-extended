@@ -19,11 +19,11 @@
 from abc import ABC, abstractmethod
 from typing import List, Dict, Text, Optional
 from ai_flow.executor.executor import PythonObjectExecutor
-from ai_flow.graph.ai_nodes.executable import ExecutableNode
+from ai_flow.ai_graph.ai_nodes.executable import ExecutableNode
 from ai_flow.meta.example_meta import ExampleMeta
 from ai_flow.common.registry import BaseRegistry
-from ai_flow.graph.ai_node import AINode
-from ai_flow.graph.ai_nodes import Example
+from ai_flow.ai_graph.ai_node import AINode
+from ai_flow.ai_graph.ai_nodes import Example
 from ai_flow.graph.edge import DataEdge
 from ai_flow.common.json_utils import Jsonable
 from ai_flow.workflow.job_context import JobContext

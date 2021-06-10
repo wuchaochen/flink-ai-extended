@@ -29,7 +29,7 @@ from notification_service.base_notification import BaseEvent
 from ai_flow.workflow.workflow import Workflow
 from ai_flow.deployer.listener import ListenerManager, SimpleEvent, JobStatusEvent
 from ai_flow.deployer.job_submitter import JobSubmitterManager, get_default_job_submitter_manager
-from ai_flow.workflow.job import BaseJob
+from ai_flow.workflow.job import Job
 from ai_flow.workflow.job_handler import BaseJobHandler
 from ai_flow.graph.edge import JobControlEdge, MetCondition
 from ai_flow.meta.job_meta import State
@@ -58,7 +58,7 @@ class BaseScheduler(metaclass=ABCMeta):
         pass
 
 
-def is_periodic_job(job: BaseJob) -> bool:
+def is_periodic_job(job: Job) -> bool:
     if job.job_config.periodic_config is None:
         return False
     else:
@@ -68,7 +68,7 @@ def is_periodic_job(job: BaseJob) -> bool:
 PERIODIC_EVENT_VALUE = "schedule"
 
 
-def generate_periodic_key(job: BaseJob) -> Text:
+def generate_periodic_key(job: Job) -> Text:
     return "periodic_config_{}_key".format(job.instance_id)
 
 
@@ -118,7 +118,7 @@ class EventScheduler(BaseScheduler):
     def send_event(self, message):
         self.message_queue.send(message)
 
-    def can_schedule(self, job: BaseJob) -> bool:
+    def can_schedule(self, job: Job) -> bool:
         if job.instance_id in self.workflow.edges:
             edges: List[JobControlEdge] = self.workflow.edges[job.instance_id]
             has_necessary_edge = False
@@ -182,7 +182,7 @@ class EventScheduler(BaseScheduler):
             else:
                 return True
 
-    def register_job_meta(self, workflow_id: int, job: BaseJob):
+    def register_job_meta(self, workflow_id: int, job: Job):
         start_time = time.time()
         if job.job_config.job_name is None:
             name = job.instance_id
@@ -338,7 +338,7 @@ class EventScheduler(BaseScheduler):
                 self.kv_store.update(generate_periodic_key(job), None)
 
     def register_periodic_job(self):
-        def set_periodic_event(job: BaseJob):
+        def set_periodic_event(job: Job):
             self.send_event(SimpleEvent(key=generate_periodic_key(job),
                                         value=PERIODIC_EVENT_VALUE))
 

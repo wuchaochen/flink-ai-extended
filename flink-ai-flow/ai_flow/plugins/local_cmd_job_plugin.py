@@ -17,8 +17,11 @@
 # under the License.
 #
 from abc import ABC
-from typing import Text, Dict, Any
+from typing import Text, Dict
 from subprocess import Popen
+
+from ai_flow.airflow.dag_generator import job_name_to_task_id
+
 from ai_flow.workflow.job_context import JobContext
 from ai_flow.common.process_utils import get_all_children_pids
 import psutil
@@ -28,11 +31,11 @@ from pathlib import Path
 import tempfile
 from ai_flow.log import log_path_utils
 from ai_flow.plugins.job_plugin import AISubGraph, ProjectDesc, AbstractJobPlugin, \
-    AbstractJobConfig, AbstractJob, AbstractJobHandler, AbstractEngine, AbstractPlatform, job_name_to_task_id
+    AbstractJobConfig, AbstractJob, AbstractJobHandler, AbstractEngine, AbstractPlatform
 from ai_flow.plugins.engine import CMDEngine
 from ai_flow.plugins.local_platform import LocalPlatform, LocalJobHandler
 from ai_flow.meta.job_meta import ExecutionMode
-from ai_flow.graph.ai_nodes.executable import ExecutableNode
+from ai_flow.ai_graph.ai_nodes.executable import ExecutableNode
 from ai_flow.executor.executor import CmdExecutor
 
 

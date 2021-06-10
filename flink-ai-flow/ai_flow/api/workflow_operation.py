@@ -20,10 +20,10 @@ import os
 from typing import Text, List, Dict
 from ai_flow.project.blob_manager import BlobManagerFactory
 from ai_flow.common import json_utils
-from ai_flow.graph.graph import default_graph
+from ai_flow.ai_graph.ai_graph import default_graph
 from ai_flow.translator.base_translator import get_default_translator
 from ai_flow.client.ai_flow_client import get_ai_flow_client
-from ai_flow.api.configuration import project_config, project_description
+from ai_flow.context.project_context import project_config, project_description
 from ai_flow.workflow.workflow import JobInfo, WorkflowExecutionInfo, WorkflowInfo, Workflow
 from ai_flow.rest_endpoint.service.workflow_proto_utils import \
     proto_to_workflow, proto_to_workflow_list, proto_to_workflow_execution, proto_to_workflow_execution_list,\

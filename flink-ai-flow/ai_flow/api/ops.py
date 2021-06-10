@@ -19,50 +19,20 @@
 from typing import Union, Text, Tuple, Optional, List
 
 from notification_service.base_notification import UNDEFINED_EVENT_TYPE
-
-from ai_flow.api.ai_flow_context import config, BaseJobConfig
-from ai_flow.api.ai_flow_context import default_af_job_context, NONE_ENGINE
 from ai_flow.client.ai_flow_client import get_ai_flow_client
+from ai_flow.ai_graph.ai_node import CustomAINode
 from ai_flow.common.args import ExecuteArgs
-from ai_flow.executor.executor import BaseExecutor, CmdExecutor, PythonObjectExecutor
-from ai_flow.graph.ai_nodes import *
-from ai_flow.graph.ai_node import AINode
 from ai_flow.graph.channel import Channel, NoneChannel
-from ai_flow.graph.edge import StartBeforeControlEdge, StopBeforeControlEdge, RestartBeforeControlEdge, \
+from ai_flow.graph.edge import StopBeforeControlEdge, \
     ModelVersionControlEdge, ExampleControlEdge, UserDefineControlEdge, \
     TaskAction, EventLife, MetValueCondition, MetCondition, DEFAULT_NAMESPACE
-from ai_flow.graph.graph import _default_ai_graph
+from ai_flow.ai_graph.ai_graph import default_graph, add_ai_node_to_graph
 from ai_flow.meta.example_meta import ExampleMeta
 from ai_flow.meta.model_meta import ModelMeta, ModelVersionMeta
 
 
-def _add_execute_node_to_graph(executor, node, inputs: Union[None, Channel, List[Channel]]):
-    config = default_af_job_context().merge_config()
-    if config.engine == NONE_ENGINE:
-        if isinstance(executor, CmdExecutor):
-            default_af_job_context().job_config.engine = 'cmd_line'
-        else:
-            default_af_job_context().job_config.engine = 'python'
-    _default_ai_graph.add_node(node)
-    if isinstance(inputs, Channel):
-        _default_ai_graph.add_channel(instance_id=node.instance_id, channel=inputs)
-
-    elif isinstance(inputs, List):
-        for c in inputs:
-            _default_ai_graph.add_channel(instance_id=node.instance_id, channel=c)
-
-
-def _add_example_node_to_graph(node: Example, input_data: Optional[Channel] = None):
-    config = default_af_job_context().merge_config()
-    if config.engine == NONE_ENGINE:
-        default_af_job_context().job_config.engine_name = 'python'
-    _default_ai_graph.add_node(node)
-    if input_data is not None:
-        _default_ai_graph.add_channel(instance_id=node.instance_id, channel=input_data)
-
-
 def read_example(example_info: Union[ExampleMeta, Text, int],
-                 executor: Optional[PythonObjectExecutor] = None,
+                 executor=None,
                  exec_args: Optional[ExecuteArgs] = None) -> Channel:
     """
     Read example from the example operator. It can read example from external system.
@@ -83,18 +53,16 @@ def read_example(example_info: Union[ExampleMeta, Text, int],
     else:
         example_meta = get_ai_flow_client().get_example_by_id(example_info)
 
-    example_node = Example(example_meta=example_meta,
-                           properties=exec_args,
-                           is_source=True,
-                           executor=executor)
-    _add_example_node_to_graph(example_node, None)
-    output: Channel = example_node.outputs()[0]
-    return output
+    return user_define_operation(example_meta=example_meta,
+                                 properties=exec_args,
+                                 is_source=True,
+                                 executor=executor,
+                                 output_num=1)
 
 
 def write_example(input_data: Channel,
                   example_info: Union[ExampleMeta, Text, int],
-                  executor: Optional[PythonObjectExecutor] = None,
+                  executor=None,
                   exec_args: ExecuteArgs = None
                   ) -> NoneChannel:
     """
@@ -117,17 +85,16 @@ def write_example(input_data: Channel,
     else:
         example_meta = get_ai_flow_client().get_example_by_id(example_info)
 
-    example_node = Example(example_meta=example_meta,
-                           properties=exec_args,
-                           is_source=False,
-                           executor=executor)
-    _add_example_node_to_graph(example_node, input_data)
-    output: NoneChannel = example_node.outputs()[0]
-    return output
+    return user_define_operation(input_data=input_data,
+                                 example_meta=example_meta,
+                                 properties=exec_args,
+                                 is_source=False,
+                                 executor=executor,
+                                 output_num=0)
 
 
 def transform(input_data_list: List[Channel],
-              executor: BaseExecutor,
+              executor,
               exec_args: ExecuteArgs = None,
               output_num=1,
               name: Text = None) -> Union[Channel, Tuple[Channel]]:
@@ -144,25 +111,15 @@ def transform(input_data_list: List[Channel],
     :return: Channel or Tuple[Channel]. It returns Channel When the output_num is 1 and returns Tuple[Channel] when
              the output_num is bigger than 1, and the len(Tuple(Channel)) is output_num.
     """
-    node = Transformer(name=name,
-                       executor=executor,
-                       properties=exec_args,
-                       output_num=output_num)
-    _add_execute_node_to_graph(executor, node, inputs=input_data_list)
-    outputs = node.outputs()
-    if 1 == len(outputs):
-        output: Channel = outputs[0]
-        return output
-    else:
-        output: List[Channel] = []
-        for i in outputs:
-            tmp: Channel = i
-            output.append(tmp)
-        return tuple(output)
+    return user_define_operation(input_data_list=input_data_list,
+                                 name=name,
+                                 executor=executor,
+                                 properties=exec_args,
+                                 output_num=output_num)
 
 
 def train(input_data_list: List[Channel],
-          executor: BaseExecutor,
+          executor,
           model_info: Union[ModelMeta, Text, int],
           base_model_info: Union[ModelMeta, Text, int] = None,
           exec_args: ExecuteArgs = None,
@@ -204,31 +161,18 @@ def train(input_data_list: List[Channel],
     else:
         base_model_meta = None
 
-    node = Trainer(name=name,
-                   executor=executor,
-                   output_model=output_model_meta,
-                   base_model=base_model_meta,
-                   properties=exec_args,
-                   output_num=output_num)
-    _add_execute_node_to_graph(executor, node, inputs=input_data_list)
-    outputs = node.outputs()
-    if isinstance(outputs[0], NoneChannel):
-        output: NoneChannel = outputs[0]
-        return output
-    elif 1 == len(outputs):
-        output: Channel = outputs[0]
-        return output
-    else:
-        output: List[Channel] = []
-        for i in outputs:
-            tmp: Channel = i
-            output.append(tmp)
-        return tuple(output)
+    return user_define_operation(input_data_list=input_data_list,
+                                 name=name,
+                                 executor=executor,
+                                 output_model=output_model_meta,
+                                 base_model=base_model_meta,
+                                 properties=exec_args,
+                                 output_num=output_num)
 
 
 def predict(input_data_list: List[Channel],
             model_info: Union[ModelMeta, Text, int],
-            executor: BaseExecutor,
+            executor,
             model_version_info: Optional[Union[ModelVersionMeta, Text]] = None,
             exec_args: ExecuteArgs = None,
             output_num=1,
@@ -269,31 +213,18 @@ def predict(input_data_list: List[Channel],
     else:
         model_version_meta = None
 
-    node = Predictor(name=name,
-                     model=model_meta,
-                     executor=executor,
-                     model_version=model_version_meta,
-                     properties=exec_args,
-                     output_num=output_num)
-    _add_execute_node_to_graph(executor=executor, node=node, inputs=input_data_list)
-    outputs = node.outputs()
-    if isinstance(outputs[0], NoneChannel):
-        output: NoneChannel = outputs[0]
-        return output
-    elif 1 == len(outputs):
-        output: Channel = outputs[0]
-        return output
-    else:
-        output: List[Channel] = []
-        for i in outputs:
-            tmp: Channel = i
-            output.append(tmp)
-        return tuple(output)
+    return user_define_operation(input_data_list=input_data_list,
+                                 name=name,
+                                 model=model_meta,
+                                 executor=executor,
+                                 model_version=model_version_meta,
+                                 properties=exec_args,
+                                 output_num=output_num)
 
 
 def evaluate(input_data_list: List[Channel],
              model_info: Union[ModelMeta, Text, int],
-             executor: BaseExecutor,
+             executor,
              exec_args: ExecuteArgs = None,
              output_num=0,
              name: Text = None) -> Union[NoneChannel, Channel, Tuple[Channel]]:
@@ -319,29 +250,16 @@ def evaluate(input_data_list: List[Channel],
     else:
         model_meta = get_ai_flow_client().get_model_by_id(model_info)
 
-    node = Evaluator(name=name,
-                     model=model_meta,
-                     executor=executor,
-                     properties=exec_args,
-                     output_num=output_num)
-    _add_execute_node_to_graph(executor=executor, node=node, inputs=input_data_list)
-    outputs = node.outputs()
-    if isinstance(outputs[0], NoneChannel):
-        output: NoneChannel = outputs[0]
-        return output
-    elif 1 == len(outputs):
-        output: Channel = outputs[0]
-        return output
-    else:
-        output: List[Channel] = []
-        for i in outputs:
-            tmp: Channel = i
-            output.append(tmp)
-        return tuple(output)
+    return user_define_operation(input_data_list=input_data_list,
+                                 name=name,
+                                 model=model_meta,
+                                 executor=executor,
+                                 properties=exec_args,
+                                 output_num=output_num)
 
 
 def example_validate(input_data: Channel,
-                     executor: BaseExecutor,
+                     executor,
                      exec_args: ExecuteArgs = None,
                      name: Text = None
                      ) -> NoneChannel:
@@ -355,19 +273,17 @@ def example_validate(input_data: Channel,
     :param name: Name of the example validate operator.
     :return: NoneChannel.
     """
-    node = ExampleValidator(executor=executor,
-                            properties=exec_args,
-                            name=name
-                            )
-    _add_execute_node_to_graph(executor=executor, node=node, inputs=input_data)
-    outputs = node.outputs()
-    output: NoneChannel = outputs[0]
-    return output
+    return user_define_operation(input_data_list=input_data,
+                                 executor=executor,
+                                 properties=exec_args,
+                                 name=name,
+                                 output_num=0
+                                 )
 
 
 def model_validate(input_data_list: List[Channel],
                    model_info: Union[ModelMeta, Text, int],
-                   executor: BaseExecutor,
+                   executor,
                    model_version_info: Optional[Union[ModelVersionMeta, Text]] = None,
                    base_model_version_info: Optional[Union[ModelVersionMeta, Text]] = None,
                    exec_args: ExecuteArgs = None,
@@ -424,32 +340,19 @@ def model_validate(input_data_list: List[Channel],
     else:
         base_model_version_meta = None
 
-    node = ModelValidator(model=model_meta,
-                          executor=executor,
-                          properties=exec_args,
-                          name=name,
-                          model_version_meta=model_version_meta,
-                          base_model_version_meta=base_model_version_meta,
-                          output_num=output_num
-                          )
-    _add_execute_node_to_graph(executor=executor, node=node, inputs=input_data_list)
-    outputs = node.outputs()
-    if isinstance(outputs[0], NoneChannel):
-        output: NoneChannel = outputs[0]
-        return output
-    elif 1 == len(outputs):
-        output: Channel = outputs[0]
-        return output
-    else:
-        output: List[Channel] = []
-        for i in outputs:
-            tmp: Channel = i
-            output.append(tmp)
-        return tuple(output)
+    return user_define_operation(input_data_list=input_data_list,
+                                 model=model_meta,
+                                 executor=executor,
+                                 properties=exec_args,
+                                 name=name,
+                                 model_version_meta=model_version_meta,
+                                 base_model_version_meta=base_model_version_meta,
+                                 output_num=output_num
+                                 )
 
 
 def push_model(model_info: Union[ModelMeta, Text, int],
-               executor: BaseExecutor,
+               executor,
                model_version_info: Optional[Union[ModelVersionMeta, Text]] = None,
                exec_args: ExecuteArgs = None,
                name: Text = None) -> NoneChannel:
@@ -485,57 +388,37 @@ def push_model(model_info: Union[ModelMeta, Text, int],
         model_version_info = get_ai_flow_client().get_model_version_by_version(version=model_version_info,
                                                                                model_id=model_meta.uuid)
 
-    node = Pusher(model=model_meta,
-                  executor=executor,
-                  properties=exec_args,
-                  model_version=model_version_info,
-                  name=name)
-    _add_execute_node_to_graph(executor, node, inputs=[])
-    outputs = node.outputs()
-    output: NoneChannel = outputs[0]
-    return output
-
-
-def external_trigger(name: Text = None) -> NoneChannel:
-    """
-    External trigger channel. Essentially it is an infinite sleeping job and is used as the trigger dependency
-    in control dependencies. It can not be set in job config and only support stream mode.
-
-    :param name: Name of the trigger.
-    :return: NoneChannel: Identify external event triggers.
-    """
-    trigger_config = BaseJobConfig(platform='local', engine='dummy')
-    trigger_config.job_name = name
-    with config(trigger_config):
-
-        node = AINode(name=name, output_num=0)
-        _default_ai_graph.add_node(node)
-        output: NoneChannel = node.outputs()[0]
-        return output
+    return user_define_operation(model=model_meta,
+                                 executor=executor,
+                                 properties=exec_args,
+                                 model_version=model_version_info,
+                                 name=name)
 
 
 def user_define_operation(
-        executor: BaseExecutor,
+        executor,
         input_data_list: Union[None, Channel, List[Channel]] = None,
         exec_args: ExecuteArgs = None,
         output_num=1,
-        name: Text = None) -> Union[NoneChannel, Channel, Tuple[Channel]]:
+        name: Text = None,
+        **kwargs) -> Union[NoneChannel, Channel, Tuple[Channel]]:
     """
     User defined operator.
 
     :param executor: The user defined function in operator. User can write their own logic here.
     :param input_data_list: List of input data. It contains multiple channels from the operators which generate data.
-    :param exec_args: The properties of read example, there are batch properties, stream properties and
-                      common properties respectively.
+    :param exec_args: The properties of read example
     :param output_num: The output number of the operator. The default value is 1.
     :param name: Name of this operator.
+    :param kwargs:
     :return: NoneChannel or Channel or Tuple[Channel].
     """
-    node = ExecutableNode(name=name,
-                          executor=executor,
-                          properties=exec_args,
-                          output_num=output_num)
-    _add_execute_node_to_graph(executor, node, inputs=input_data_list)
+    node = CustomAINode(name=name,
+                        executor=executor,
+                        exec_args=exec_args,
+                        output_num=output_num,
+                        **kwargs)
+    add_ai_node_to_graph(node, inputs=input_data_list)
     outputs = node.outputs()
     if 0 == output_num:
         output: NoneChannel = outputs[0]
@@ -550,24 +433,6 @@ def user_define_operation(
                 tmp: Channel = i
                 output.append(tmp)
             return tuple(output)
-
-
-# def start_before_control_dependency(src: Channel,
-#                                     dependency: Channel,
-#                                     namespace: Text = DEFAULT_NAMESPACE
-#                                     ) -> None:
-#     """
-#     Add start-before control dependency. It means src channel will start when and only the dependency channel start.
-#
-#     :param namespace:
-#     :param src: The src channel depended on the dependency channel.
-#     :param dependency: The channel which is the dependency.
-#     :return: None.
-#     """
-#     tmp = StartBeforeControlEdge(source_node_id=src.node_id,
-#                                  target_node_id=dependency.node_id,
-#                                  namespace=namespace)
-#     _default_ai_graph.add_edge(src.node_id, tmp)
 
 
 def stop_before_control_dependency(src: Channel,
@@ -586,26 +451,7 @@ def stop_before_control_dependency(src: Channel,
     tmp = StopBeforeControlEdge(source_node_id=src.node_id,
                                 target_node_id=dependency.node_id,
                                 namespace=namespace)
-    _default_ai_graph.add_edge(src.node_id, tmp)
-
-
-# def restart_before_control_dependency(src: Channel,
-#                                       dependency: Channel,
-#                                       namespace: Text = DEFAULT_NAMESPACE
-#                                       ) -> None:
-#     """
-#     Add restart-before control dependency. It means src channel will restart when and only the dependency channel stop.
-#
-#     :param namespace:
-#     :param src: The src channel depended on the dependency channel.
-#     :param dependency: The channel which is the dependency.
-#     :return: None.
-#     """
-#
-#     tmp = RestartBeforeControlEdge(source_node_id=src.node_id,
-#                                    target_node_id=dependency.node_id,
-#                                    namespace=namespace)
-#     _default_ai_graph.add_edge(src.node_id, tmp)
+    default_graph().add_edge(src.node_id, tmp)
 
 
 def model_version_control_dependency(src: Channel,
@@ -630,7 +476,7 @@ def model_version_control_dependency(src: Channel,
                                   target_node_id=dependency.node_id,
                                   source_node_id=src.node_id,
                                   namespace=namespace)
-    _default_ai_graph.add_edge(src.node_id, tmp)
+    default_graph().add_edge(src.node_id, tmp)
 
 
 def example_control_dependency(src: Channel,
@@ -652,7 +498,7 @@ def example_control_dependency(src: Channel,
                              target_node_id=dependency.node_id,
                              source_node_id=src.node_id,
                              namespace=namespace)
-    _default_ai_graph.add_edge(src.node_id, tmp)
+    default_graph().add_edge(src.node_id, tmp)
 
 
 def user_define_control_dependency(src: Channel,
@@ -699,4 +545,4 @@ def user_define_control_dependency(src: Channel,
                                          namespace=namespace,
                                          sender=sender
                                          )
-    _default_ai_graph.add_edge(src.node_id, control_edge)
+    default_graph().add_edge(src.node_id, control_edge)

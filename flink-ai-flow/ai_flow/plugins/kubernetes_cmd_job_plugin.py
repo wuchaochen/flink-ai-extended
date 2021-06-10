@@ -27,7 +27,7 @@ from ai_flow.plugins.kubernetes_platform import DEFAULT_PROJECT_PATH, \
     ANNOTATION_WORKFLOW_ID, ANNOTATION_JOB_UUID, ANNOTATION_JOB_ID, ANNOTATION_WATCHED
 from ai_flow.plugins.kubernetes_job_plugin import KubernetesJob, KubernetesJobPlugin, KubernetesJobConfig
 from ai_flow.meta.job_meta import ExecutionMode
-from ai_flow.graph.ai_nodes.executable import ExecutableNode
+from ai_flow.ai_graph.ai_nodes.executable import ExecutableNode
 from ai_flow.executor.executor import CmdExecutor
 from ai_flow.common import json_utils
 

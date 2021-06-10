@@ -17,7 +17,7 @@
 # under the License.
 #
 from abc import ABC, abstractmethod
-from ai_flow.workflow.job import BaseJob
+from ai_flow.workflow.job import Job
 from ai_flow.workflow.job_handler import BaseJobHandler
 from ai_flow.common.registry import BaseRegistry
 
@@ -36,7 +36,7 @@ class BaseJobSubmitter(ABC):
         pass
 
     @abstractmethod
-    def submit_job(self, job: BaseJob) -> BaseJobHandler:
+    def submit_job(self, job: Job) -> BaseJobHandler:
         """
         submit an executable job to run.
 
@@ -46,14 +46,14 @@ class BaseJobSubmitter(ABC):
         pass
 
     @abstractmethod
-    def stop_job(self, job: BaseJob):
+    def stop_job(self, job: Job):
         """
         Stop a ai flow job.
         :param job: A base job object that contains the necessary information for an execution.
         """
         pass
 
-    def cleanup_job(self, job: BaseJob):
+    def cleanup_job(self, job: Job):
         """
         clean up temporary resources created during this execution.
         :param job: A base job object that contains the necessary information for an execution.
@@ -65,7 +65,7 @@ class JobSubmitterManager(BaseRegistry):
     def __init__(self) -> None:
         super().__init__()
 
-    def submit_job(self, job: BaseJob) -> BaseJobHandler:
+    def submit_job(self, job: Job) -> BaseJobHandler:
         job_submitter = self.get_job_submitter(job)
         return job_submitter.submit_job(job)
 
@@ -75,11 +75,11 @@ class JobSubmitterManager(BaseRegistry):
             raise Exception("job submitter platform {} engine {} not found!".format(job.platform, job.exec_engine))
         return job_submitter
 
-    def stop_job(self, job: BaseJob):
+    def stop_job(self, job: Job):
         job_submitter = self.get_job_submitter(job)
         job_submitter.stop_job(job)
 
-    def cleanup_job(self, job: BaseJob):
+    def cleanup_job(self, job: Job):
         job_submitter = self.get_job_submitter(job)
         job_submitter.cleanup_job(job=job)
 
