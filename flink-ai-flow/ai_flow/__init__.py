@@ -21,9 +21,7 @@ from ai_flow.context.project_context import project_description, project_config
 from ai_flow.context.workflow_context import workflow_config
 from ai_flow.context.job_context import job_config, current_job_name
 from ai_flow.api.ops import read_example, write_example, transform, train, predict, evaluate, example_validate, \
-    model_validate, push_model, user_define_operation, \
-    stop_before_control_dependency, model_version_control_dependency, \
-    example_control_dependency, user_define_control_dependency
+    model_validate, push_model, user_define_operation, action_on_event, action_on_status, action_with_periodic
 from ai_flow.application_master.master import AIFlowMaster, set_master_config
 from ai_flow.common.args import Args, ExecuteArgs
 from ai_flow.common.properties import Properties

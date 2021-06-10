@@ -129,7 +129,7 @@ def submit_flink_job(exec_env, t_env: TableEnvironment, statement_set: Statement
             ds = graph.dependencies[node.instance_id]
             params = []
             for d in ds:
-                params.append(value_map[d.target_node_id][d.port])
+                params.append(value_map[d.tail][d.port])
             value_map[node.instance_id] = c.execute(function_context, params)
         else:
             value_map[node.instance_id] = c.execute(function_context, [])

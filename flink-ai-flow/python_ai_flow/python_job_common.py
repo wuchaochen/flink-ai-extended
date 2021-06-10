@@ -121,7 +121,7 @@ def batch_run_func(context: JobContext, graph: RunGraph):
             ds = graph.dependencies[node.instance_id]
             params = []
             for d in ds:
-                params.append(value_map[d.target_node_id][d.port])
+                params.append(value_map[d.tail][d.port])
             value_map[node.instance_id] = c.execute(function_context, params)
         else:
             value_map[node.instance_id] = c.execute(function_context, [])
@@ -157,7 +157,7 @@ def stream_run_func(context: JobContext, graph: RunGraph):
             ds = graph.dependencies[node.instance_id]
             params = []
             for d in ds:
-                params.append(value_map[d.target_node_id][d.port])
+                params.append(value_map[d.tail][d.port])
             value_map[node.instance_id] = c.execute(contexts[i], params)
         else:
             value_map[node.instance_id] = c.execute(contexts[i], [])

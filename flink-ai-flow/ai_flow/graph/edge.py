@@ -20,30 +20,30 @@ from enum import Enum
 from typing import Text
 
 from ai_flow.common.json_utils import Jsonable
-from notification_service.base_notification import UNDEFINED_EVENT_TYPE, ANY_CONDITION, DEFAULT_NAMESPACE
+from notification_service.base_notification import UNDEFINED_EVENT_TYPE, DEFAULT_NAMESPACE
 
 
 class Edge(Jsonable):
     """ the edge connect tow node"""
 
     def __init__(self,
-                 target_node_id: Text,
-                 source_node_id: Text,
+                 tail: Text,
+                 head: Text,
                  ) -> None:
         """
 
-        :param target_node_id: the node dependent the other node output id
-        :param source_node_id: the node id
+        :param tail: the node dependent the other node output id
+        :param head: the node id
         """
         super().__init__()
-        if target_node_id is None or source_node_id is None:
+        if tail is None or head is None:
             raise Exception('target node id or source node id can not be None!')
-        self.target_node_id = target_node_id
-        self.source_node_id = source_node_id
+        self.tail = tail
+        self.head = head
 
     def __eq__(self, o: object) -> bool:
         if isinstance(o, Edge):
-            return self.source_node_id == o.source_node_id and self.target_node_id == o.target_node_id
+            return self.head == o.head and self.tail == o.tail
         else:
             return False
 
@@ -53,18 +53,18 @@ class Edge(Jsonable):
 
 class DataEdge(Edge):
     def __init__(self,
-                 target_node_id: Text,
-                 source_node_id: Text,
+                 tail: Text,
+                 head: Text,
                  port: int = 0,
                  data_config: Jsonable = None) -> None:
-        super().__init__(source_node_id=source_node_id, target_node_id=target_node_id)
+        super().__init__(head=head, tail=tail)
         self.port = port
         self.data_config = data_config
 
     def __eq__(self, o: object) -> bool:
         if isinstance(o, DataEdge):
-            return self.source_node_id == o.source_node_id \
-                   and self.target_node_id == o.target_node_id \
+            return self.head == o.head \
+                   and self.tail == o.tail \
                    and self.port == o.port
         else:
             return False
@@ -135,20 +135,9 @@ def generate_job_status_key(target_id) -> str:
 
 
 class ControlEdge(Edge):
-    def __init__(self, target_node_id: Text, source_node_id: Text, namespace=DEFAULT_NAMESPACE):
-        super().__init__(target_node_id, source_node_id)
-        self.namespace = namespace
 
-    def generate_met_config(self) -> MetConfig:
-        return MetConfig(event_key=generate_job_status_key(self.target_node_id),
-                         event_value="FINISHED",
-                         namespace=self.namespace)
-
-
-class UserDefineControlEdge(ControlEdge):
-
-    def __init__(self, target_node_id: Text,
-                 source_node_id: Text,
+    def __init__(self,
+                 head: Text,
                  event_key: Text,
                  event_value: Text,
                  event_type: Text = UNDEFINED_EVENT_TYPE,
@@ -159,7 +148,7 @@ class UserDefineControlEdge(ControlEdge):
                  namespace: Text = DEFAULT_NAMESPACE,
                  sender: Text = None
                  ) -> None:
-        super().__init__(target_node_id, source_node_id, namespace)
+        super().__init__(sender, head)
         self.event_key = event_key
         self.event_value = event_value
         self.event_type = event_type
@@ -167,6 +156,7 @@ class UserDefineControlEdge(ControlEdge):
         self.action = action
         self.life = life
         self.value_condition = value_condition
+        self.namespace = namespace
         self.sender = sender
 
     def generate_met_config(self) -> MetConfig:
@@ -183,31 +173,31 @@ class UserDefineControlEdge(ControlEdge):
 
 class JobControlEdge(Edge):
     def __init__(self,
-                 target_node_id: Text,
-                 source_node_id: Text = None,
+                 tail: Text,
+                 head: Text = None,
                  met_config: MetConfig = None,
                  namespace: Text = DEFAULT_NAMESPACE
                  ) -> None:
-        super().__init__(target_node_id, source_node_id)
+        super().__init__(tail, head)
         if met_config is None:
-            self.met_config = MetConfig(event_key=generate_job_status_key(target_node_id),
+            self.met_config = MetConfig(event_key=generate_job_status_key(tail),
                                         event_value="FINISHED",
                                         namespace=namespace,
-                                        sender=target_node_id)
+                                        sender=tail)
         else:
             self.met_config = met_config
 
 
 def control_edge_to_job_edge(control_edge: ControlEdge) -> JobControlEdge:
-    return JobControlEdge(source_node_id=control_edge.source_node_id,
-                          target_node_id=control_edge.target_node_id,
+    return JobControlEdge(head=control_edge.head,
+                          tail=control_edge.tail,
                           met_config=control_edge.generate_met_config())
 
 
 class StartBeforeControlEdge(ControlEdge):
 
     def generate_met_config(self) -> MetConfig:
-        return MetConfig(event_key=generate_job_status_key(self.target_node_id),
+        return MetConfig(event_key=generate_job_status_key(self.tail),
                          event_value="STARTING", namespace=self.namespace)
 
 
@@ -217,44 +207,7 @@ class StopBeforeControlEdge(ControlEdge):
 
 class RestartBeforeControlEdge(ControlEdge):
     def generate_met_config(self) -> MetConfig:
-        return MetConfig(event_key=generate_job_status_key(self.target_node_id),
+        return MetConfig(event_key=generate_job_status_key(self.tail),
                          event_value="FINISHED",
                          namespace=self.namespace,
                          action=TaskAction.RESTART)
-
-
-class ModelVersionControlEdge(ControlEdge):
-    def __init__(self, model_name: Text,
-                 model_type: Text,
-                 target_node_id: Text,
-                 source_node_id: Text = None,
-                 namespace: Text = DEFAULT_NAMESPACE) -> None:
-        super().__init__(target_node_id, source_node_id, namespace)
-        self.model_name = model_name
-        self.model_type = model_type
-
-    def generate_met_config(self) -> MetConfig:
-        return MetConfig(event_type=self.model_type,
-                         event_key=self.model_name,
-                         event_value="*",
-                         action=TaskAction.RESTART,
-                         life=EventLife.ONCE,
-                         value_condition=MetValueCondition.UPDATE,
-                         condition=MetCondition.SUFFICIENT,
-                         namespace=self.namespace,
-                         sender=ANY_CONDITION)
-
-
-class ExampleControlEdge(ControlEdge):
-    def __init__(self, example_name: Text,
-                 target_node_id: Text,
-                 source_node_id: Text = None,
-                 namespace: Text = DEFAULT_NAMESPACE) -> None:
-        super().__init__(target_node_id, source_node_id, namespace)
-        self.example_name = example_name
-
-    def generate_met_config(self) -> MetConfig:
-        return MetConfig(event_key="example." + self.example_name,
-                         event_value="created",
-                         namespace=self.namespace,
-                         sender=ANY_CONDITION)

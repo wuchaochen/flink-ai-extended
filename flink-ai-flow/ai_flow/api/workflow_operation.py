@@ -15,15 +15,14 @@
 # specific language governing permissions and limitations
 # under the License.
 import time
-import sys
-import os
 from typing import Text, List, Dict
 from ai_flow.project.blob_manager import BlobManagerFactory
 from ai_flow.common import json_utils
 from ai_flow.ai_graph.ai_graph import default_graph
-from ai_flow.translator.base_translator import get_default_translator
+from ai_flow.translator.translator import get_default_translator
 from ai_flow.client.ai_flow_client import get_ai_flow_client
 from ai_flow.context.project_context import project_config, project_description
+from ai_flow.context.workflow_context import workflow_config
 from ai_flow.workflow.workflow import JobInfo, WorkflowExecutionInfo, WorkflowInfo, Workflow
 from ai_flow.rest_endpoint.service.workflow_proto_utils import \
     proto_to_workflow, proto_to_workflow_list, proto_to_workflow_execution, proto_to_workflow_execution_list,\
@@ -37,15 +36,13 @@ def _upload_project_package(workflow: Workflow):
     :param workflow: The generated workflow.
     """
     project_desc = project_description()
-    workflow_json_file = os.path.join(project_desc.get_absolute_temp_path(),
-                                      project_desc.project_config.get_project_uuid() + "_workflow.json")
-    with open(workflow_json_file, 'w') as f:
-        f.write(json_utils.dumps(workflow))
-    blob_manager = BlobManagerFactory.get_blob_manager(project_desc.project_config['blob'])
+    blob_manager = BlobManagerFactory.get_blob_manager(project_config().get('blob'))
     uploaded_project_path = blob_manager.upload_blob(str(workflow.workflow_id), project_desc.project_path)
-    project_desc.project_config.set_uploaded_project_path(uploaded_project_path)
+    workflow.project_uri = uploaded_project_path
+    workflow.properties['blob'] = project_config().get('blob')
     for job in workflow.jobs.values():
-        job.job_config.project_path = uploaded_project_path
+        job.project_uri = uploaded_project_path
+        job.properties['blob'] = project_config().get('blob')
 
 
 def _register_job_meta(workflow_id: int, job):
@@ -76,15 +73,12 @@ def submit_workflow(workflow_name: Text = None,
     :param args: The arguments of the submit action.
     :return: The result of the submit action.
     """
-    call_path = os.path.abspath(sys._getframe(1).f_code.co_filename)
-    project_path = os.path.abspath(project_description().project_path)
-    # length /python_codes/ is 14; length .py is 3
-    entry_module_path = call_path[len(project_path)+14:-3].replace('/', '.')
+    entry_module_path = project_description().get_absolute_workflow_entry_module(workflow_name=workflow_name)
     namespace = project_config().get_project_name()
     translator = get_default_translator()
     workflow = translator.translate(graph=default_graph(), project_desc=project_description())
-    for job in workflow.jobs.values():
-        _register_job_meta(workflow_id=workflow.workflow_id, job=job)
+    workflow.workflow_config = workflow_config()
+    workflow.workflow_id = '{}.{}.{}'.format(project_description().project_name, workflow.workflow_name, time.time())
     _set_entry_module_path(workflow, entry_module_path)
     _upload_project_package(workflow)
     return proto_to_workflow(get_ai_flow_client()

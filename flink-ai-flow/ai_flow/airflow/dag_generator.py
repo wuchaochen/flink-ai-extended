@@ -191,7 +191,7 @@ class DAGGenerator(object):
 
                     def reset_met_config():
                         if met_config.sender is None or '' == met_config.sender:
-                            target_node_id = edge.target_node_id
+                            target_node_id = edge.tail
                             if target_node_id is not None and '' != target_node_id:
                                 target_job: Job = workflow.jobs.get(target_node_id)
                                 if target_job.job_name is not None:
@@ -201,12 +201,12 @@ class DAGGenerator(object):
                     reset_met_config()
 
                     if match_stop_before_config(met_config):
-                        dep_task_id = edge.target_node_id
+                        dep_task_id = edge.tail
                         code = self.generate_upstream(op_name, task_map[dep_task_id])
                         code_text += code
                     else:
-                        if edge.target_node_id in job_name_map:
-                            from_op_name = job_name_map[edge.target_node_id]
+                        if edge.tail in job_name_map:
+                            from_op_name = job_name_map[edge.tail]
                         else:
                             from_op_name = ''
                         code = self.generate_event_deps(op_name, job_name_to_task_id(from_op_name), met_config)

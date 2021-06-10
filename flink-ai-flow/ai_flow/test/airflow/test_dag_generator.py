@@ -84,25 +84,25 @@ class TestDAGGenerator(unittest.TestCase):
             elif i == 5:
                 job.job_config = SendEventJobConfig('localhost:50051', 'key_2', 'value_2', "STOP_SCHEDULER_CMD")
             workflow.add_job(job)
-        dependencies = [JobControlEdge(target_node_id='0_job', source_node_id='2_job',
+        dependencies = [JobControlEdge(tail='0_job', head='2_job',
                                        met_config=MetConfig(event_key=generate_job_status_key('0_job'),
                                                             event_value=State.FINISHED.value)),
-                        JobControlEdge(target_node_id='1_job', source_node_id='2_job',
+                        JobControlEdge(tail='1_job', head='2_job',
                                        met_config=MetConfig(event_key=generate_job_status_key('1_job'),
                                                             event_value=State.FINISHED.value))]
         workflow.add_edges("2_job", dependencies)
 
-        dependencies = [JobControlEdge(target_node_id='2_job', source_node_id='4_job',
+        dependencies = [JobControlEdge(tail='2_job', head='4_job',
                                        met_config=MetConfig(event_key='key_1',
                                                             event_value='value_1',
                                                             event_type=UNDEFINED_EVENT_TYPE)),
-                        JobControlEdge(target_node_id='3_job', source_node_id='4_job',
+                        JobControlEdge(tail='3_job', head='4_job',
                                        met_config=MetConfig(event_key='key_2',
                                                             event_value='value_2',
                                                             event_type=UNDEFINED_EVENT_TYPE))]
         workflow.add_edges("4_job", dependencies)
 
-        dependencies = [JobControlEdge(target_node_id='4_job', source_node_id='5_job',
+        dependencies = [JobControlEdge(tail='4_job', head='5_job',
                                        met_config=MetConfig(event_key=generate_job_status_key('5_job'),
                                                             event_value=State.FINISHED.value))]
         workflow.add_edges("5_job", dependencies)
@@ -132,11 +132,11 @@ class TestDAGGenerator(unittest.TestCase):
         for i in range(4):
             job = TestDAGGenerator.create_bash_job(i)
             workflow.add_job(job)
-        dependencies_1 = [JobControlEdge(target_node_id='', source_node_id='3-job',
+        dependencies_1 = [JobControlEdge(tail='', head='3-job',
                                          met_config=MetConfig(event_key='key_1',
                                                               event_value='value_1',
                                                               event_type=UNDEFINED_EVENT_TYPE))]
-        dependencies_2 = [JobControlEdge(target_node_id='1-job', source_node_id='2-job',
+        dependencies_2 = [JobControlEdge(tail='1-job', head='2-job',
                                          met_config=MetConfig(event_key='key_2',
                                                               event_value='value_2',
                                                               event_type=UNDEFINED_EVENT_TYPE))]
@@ -164,11 +164,11 @@ class TestDAGGenerator(unittest.TestCase):
         for i in range(3):
             job = TestDAGGenerator.create_simple_bash_job(i)
             workflow.add_job(job)
-        dependencies_1 = [JobControlEdge(target_node_id='', source_node_id='0-job',
+        dependencies_1 = [JobControlEdge(tail='', head='0-job',
                                          met_config=MetConfig(event_key='key_1',
                                                               event_value='value_1',
                                                               event_type=UNDEFINED_EVENT_TYPE))]
-        dependencies_2 = [JobControlEdge(target_node_id='1-job', source_node_id='2-job',
+        dependencies_2 = [JobControlEdge(tail='1-job', head='2-job',
                                          met_config=MetConfig(event_key='key_2',
                                                               event_value='value_2',
                                                               event_type=UNDEFINED_EVENT_TYPE))]

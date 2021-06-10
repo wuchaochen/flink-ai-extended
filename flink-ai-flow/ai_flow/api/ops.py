@@ -18,17 +18,21 @@
 #
 from typing import Union, Text, Tuple, Optional, List
 
-from notification_service.base_notification import UNDEFINED_EVENT_TYPE
+from notification_service.base_notification import UNDEFINED_EVENT_TYPE, ANY_CONDITION
+from ai_flow.workflow.periodic_config import PeriodicConfig
 from ai_flow.client.ai_flow_client import get_ai_flow_client
 from ai_flow.ai_graph.ai_node import CustomAINode
 from ai_flow.common.args import ExecuteArgs
+from ai_flow.common import json_utils
 from ai_flow.graph.channel import Channel, NoneChannel
-from ai_flow.graph.edge import StopBeforeControlEdge, \
-    ModelVersionControlEdge, ExampleControlEdge, UserDefineControlEdge, \
+from ai_flow.graph.edge import ControlEdge, \
     TaskAction, EventLife, MetValueCondition, MetCondition, DEFAULT_NAMESPACE
 from ai_flow.ai_graph.ai_graph import default_graph, add_ai_node_to_graph
 from ai_flow.meta.example_meta import ExampleMeta
 from ai_flow.meta.model_meta import ModelMeta, ModelVersionMeta
+from ai_flow.context.project_context import project_description
+from ai_flow.context.workflow_context import workflow_config
+from ai_flow.workflow.job_status import JobStatus
 
 
 def read_example(example_info: Union[ExampleMeta, Text, int],
@@ -435,114 +439,134 @@ def user_define_operation(
             return tuple(output)
 
 
-def stop_before_control_dependency(src: Channel,
-                                   dependency: Channel,
-                                   namespace: Text = DEFAULT_NAMESPACE
-                                   ) -> None:
+def action_on_event(job_name: Text,
+                    event_key: Text,
+                    event_value: Text,
+                    event_type: Text = UNDEFINED_EVENT_TYPE,
+                    condition: MetCondition = MetCondition.NECESSARY,
+                    action: TaskAction = TaskAction.START,
+                    life: EventLife = EventLife.ONCE,
+                    value_condition: MetValueCondition = MetValueCondition.EQUAL,
+                    namespace: Text = DEFAULT_NAMESPACE,
+                    sender: Text = None
+                    ):
     """
-    Add stop-before control dependency. It means src channel will start when and only the dependency channel stop.
+       Add user defined control logic.
+       :param job_name: The job name identify the job.
+       :param namespace: the project name
+       :param event_key: The key of the event.
+       :param event_value: The value of the event.
+       :param event_type: The Name of the event.
+       :param condition: The event condition. Sufficient or Necessary.
+       :param action: The action act on the src channel. Start or Restart.
+       :param life: The life of the event. Once or Repeated.
+       :param value_condition: The event value condition. Equal or Update. Equal means the src channel will start or
+                               restart only when in the condition that the notification service updates a value which
+                               equals to the event value under the specific event key, while update means src channel
+                               will start or restart when in the the condition that the notification service has a update
+                               operation on the event key which event value belongs to.
+       :param sender: The event sender identity. If sender is None, the sender will be dependency.
+       :return:None.
+       """
+    control_edge = ControlEdge(head=job_name,
+                               event_key=event_key,
+                               event_value=event_value,
+                               event_type=event_type,
+                               condition=condition,
+                               action=action,
+                               life=life,
+                               value_condition=value_condition,
+                               namespace=namespace,
+                               sender=sender
+                               )
+    default_graph().add_edge(job_name, control_edge)
 
-    :param namespace:
-    :param src: The src channel depended on the dependency channel.
-    :param dependency: The channel which is the dependency.
-    :return: None.
-    """
 
-    tmp = StopBeforeControlEdge(source_node_id=src.node_id,
-                                target_node_id=dependency.node_id,
-                                namespace=namespace)
-    default_graph().add_edge(src.node_id, tmp)
-
-
-def model_version_control_dependency(src: Channel,
-                                     model_name: Text,
-                                     model_version_event_type,
-                                     dependency: Channel,
-                                     namespace: Text = DEFAULT_NAMESPACE
-                                     ) -> None:
+def action_on_model_version_event(job_name: Text,
+                                  model_name: Text,
+                                  model_version_event_type: Text,
+                                  namespace: Text = DEFAULT_NAMESPACE,
+                                  action: TaskAction = TaskAction.RESTART,
+                                  ) -> None:
     """
     Add model version control dependency. It means src channel will start when and only a new model version of the
     specific model is updated in notification service.
 
+    :param action:
     :param namespace:
     :param model_version_event_type: one of ModelVersionEventType
-    :param src: The src channel depended on the new model version which is updated in notification service.
+    :param job_name: The job name
     :param model_name: Name of the model, refers to a specific model.
-    :param dependency: The channel which is the dependency.
     :return: None.
     """
-    tmp = ModelVersionControlEdge(model_name=model_name,
-                                  model_type=model_version_event_type,
-                                  target_node_id=dependency.node_id,
-                                  source_node_id=src.node_id,
-                                  namespace=namespace)
-    default_graph().add_edge(src.node_id, tmp)
+    action_on_event(job_name=job_name,
+                    event_key=model_name,
+                    event_value="*",
+                    event_type=model_version_event_type,
+                    action=action,
+                    life=EventLife.ONCE,
+                    value_condition=MetValueCondition.UPDATE,
+                    condition=MetCondition.SUFFICIENT,
+                    namespace=namespace,
+                    sender=ANY_CONDITION)
 
 
-def example_control_dependency(src: Channel,
-                               example_name: Text,
-                               dependency: Channel,
-                               namespace: Text = DEFAULT_NAMESPACE
-                               ) -> None:
+def action_on_example_event(job_name: Text,
+                            example_name: Text,
+                            action: TaskAction = TaskAction.START,
+                            namespace: Text = DEFAULT_NAMESPACE
+                            ) -> None:
     """
     Add example control dependency. It means src channel will start when and only the an new example of the specific
     example is updated in notification service.
-
     :param namespace: the namespace of the example
-    :param src: The src channel depended on the example which is updated in notification service.
+    :param job_name: The job name
     :param example_name: Name of the example, refers to a specific example.
-    :param dependency: The channel which is the dependency.
+    :param action:
     :return: None.
     """
-    tmp = ExampleControlEdge(example_name=example_name,
-                             target_node_id=dependency.node_id,
-                             source_node_id=src.node_id,
-                             namespace=namespace)
-    default_graph().add_edge(src.node_id, tmp)
+    action_on_event(job_name=job_name,
+                    event_key=example_name,
+                    event_value="created",
+                    event_type="EXAMPLE_TYPE",
+                    action=action,
+                    namespace=namespace,
+                    sender=ANY_CONDITION
+                    )
 
 
-def user_define_control_dependency(src: Channel,
-                                   dependency: Channel,
-                                   event_key: Text,
-                                   event_value: Text,
-                                   event_type: Text = UNDEFINED_EVENT_TYPE,
-                                   condition: MetCondition = MetCondition.NECESSARY,
-                                   action: TaskAction = TaskAction.START,
-                                   life: EventLife = EventLife.ONCE,
-                                   value_condition: MetValueCondition = MetValueCondition.EQUAL,
-                                   namespace: Text = DEFAULT_NAMESPACE,
-                                   sender: Text = None
-                                   ) -> None:
-    """
-    Add user defined control dependency.
+def action_on_status(job_name: Text,
+                     upstream_job_name: Text,
+                     upstream_job_status: Text,
+                     action: TaskAction):
+    action_on_event(job_name=job_name,
+                    event_key=workflow_config().workflow_name,
+                    event_type='JOB_STATUS_CHANGED',
+                    sender=upstream_job_name,
+                    event_value=upstream_job_status,
+                    action=action,
+                    namespace=project_description().project_name,
+                    condition=MetCondition.SUFFICIENT
+                    )
 
-    :param namespace: the project name
-    :param src: The src channel depended the event which is updated in notification service.
-    :param dependency: The channel which is the dependency.
-    :param event_key: The key of the event.
-    :param event_value: The value of the event.
-    :param event_type: The Name of the event.
-    :param condition: The event condition. Sufficient or Necessary.
-    :param action: The action act on the src channel. Start or Restart.
-    :param life: The life of the event. Once or Repeated.
-    :param value_condition: The event value condition. Equal or Update. Equal means the src channel will start or
-                            restart only when in the condition that the notification service updates a value which
-                            equals to the event value under the specific event key, while update means src channel
-                            will start or restart when in the the condition that the notification service has a update
-                            operation on the event key which event value belongs to.
-    :param sender: The event sender identity. If sender is None, the sender will be dependency.
-    :return:None.
-    """
-    control_edge = UserDefineControlEdge(target_node_id=dependency.node_id,
-                                         source_node_id=src.node_id,
-                                         event_key=event_key,
-                                         event_value=event_value,
-                                         event_type=event_type,
-                                         condition=condition,
-                                         action=action,
-                                         life=life,
-                                         value_condition=value_condition,
-                                         namespace=namespace,
-                                         sender=sender
-                                         )
-    default_graph().add_edge(src.node_id, control_edge)
+
+def start_on_job_succeed(job_name: Text,
+                         upstream_job_name: Text) -> None:
+    action_on_status(job_name=job_name,
+                     upstream_job_name=upstream_job_name,
+                     upstream_job_status=JobStatus.SUCCESS,
+                     action=TaskAction.START)
+
+
+def action_with_periodic(job_name: Text,
+                         periodic_config: PeriodicConfig):
+
+    action_on_event(job_name=job_name,
+                    event_key=workflow_config().workflow_name,
+                    event_type='PERIODIC_ACTION',
+                    sender=ANY_CONDITION,
+                    event_value=json_utils.dumps(periodic_config),
+                    action=TaskAction.START,
+                    condition=MetCondition.SUFFICIENT,
+                    namespace=project_description().project_name)
+

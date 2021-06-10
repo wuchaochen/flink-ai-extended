@@ -17,41 +17,39 @@
 # under the License.
 #
 from typing import List, Dict, Text
+from ai_flow.workflow.workflow_config import WorkFlowConfig
 from ai_flow.meta.job_meta import State
-from ai_flow.graph.node import BaseNode
 from ai_flow.graph.edge import JobControlEdge
 from ai_flow.workflow.job import Job
-from ai_flow.graph.graph import get_id_generator
-from ai_flow.project.project_description import ProjectDesc
+from ai_flow.graph.graph import Graph
 
 
-class Workflow(BaseNode):
+class Workflow(Graph):
 
     def __init__(self) -> None:
         super().__init__()
-        self.workflow_id: int = None
-        self.workflow_name: Text = None
-        self.execution_name: Text = None
-        self.jobs: Dict[Text, Job] = {}
-        self.edges: Dict[Text, List[JobControlEdge]] = {}
-        self.workflow_phase = None
-        self.start_time = None
-        self.end_time = None
-        self.project_desc: ProjectDesc = None
+        self.workflow_config: WorkFlowConfig = None
+        self.workflow_id: Text = None
+        self.project_uri = None
+
+    @property
+    def workflow_name(self):
+        return self.workflow_config.workflow_name
+
+    @property
+    def jobs(self)->Dict[Text, Job]:
+        return self.nodes
 
     def add_job(self, job: Job):
-        if job.instance_id is None:
-            instance_id = get_id_generator(self).generate_id(job)
-            job.set_instance_id(instance_id)
-        self.jobs[job.instance_id] = job
+        self.nodes[job.job_config.job_name] = job
 
-    def add_edges(self, job_instance_id: Text, dependencies: List[JobControlEdge]):
-        self.edges[job_instance_id] = dependencies
+    def add_edges(self, job_name: Text, dependencies: List[JobControlEdge]):
+        self.edges[job_name] = dependencies
 
-    def add_edge(self, job_instance_id: Text, edge: JobControlEdge):
-        if job_instance_id not in self.edges:
-            self.edges[job_instance_id] = []
-        self.edges[job_instance_id].append(edge)
+    def add_edge(self, job_name: Text, edge: JobControlEdge):
+        if job_name not in self.edges:
+            self.edges[job_name] = []
+        self.edges[job_name].append(edge)
 
 
 class WorkflowInfo(object):

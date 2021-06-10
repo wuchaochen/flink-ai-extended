@@ -45,7 +45,7 @@ class AIGraph(Graph):
             return None
 
     def add_channel(self, instance_id: Text, channel: Channel):
-        edge = DataEdge(source_node_id=instance_id, target_node_id=channel.node_id, port=channel.port)
+        edge = DataEdge(head=instance_id, tail=channel.node_id, port=channel.port)
         self.add_edge(instance_id=instance_id, edge=edge)
 
 
@@ -56,7 +56,7 @@ def show_graph(graph: Graph = __default_ai_graph__) -> None:
     g = nx.Graph()
     for n in graph.edges:
         for e in graph.edges[n]:
-            g.add_edge(n, e.target_node_id)
+            g.add_edge(n, e.tail)
 
     pos = nx.kamada_kawai_layout(g)  # positions for all ai_nodes
     # ai_nodes
@@ -103,6 +103,4 @@ class SplitGraph(AIGraph):
         self.edges: Dict[Text, List[ControlEdge]] = {}
 
     def add_node(self, node: AISubGraph):
-        instance_id = get_id_generator(self).generate_id(node)
-        node.set_instance_id(instance_id)
-        self.nodes[instance_id] = node
+        self.nodes[node.config.job_name] = node

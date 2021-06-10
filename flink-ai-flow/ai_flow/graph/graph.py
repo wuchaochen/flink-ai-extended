@@ -107,7 +107,7 @@ class AIGraph(Graph):
             return None
 
     def add_channel(self, instance_id: Text, channel: Channel):
-        edge = DataEdge(source_node_id=instance_id, target_node_id=channel.node_id, port=channel.port)
+        edge = DataEdge(head=instance_id, tail=channel.node_id, port=channel.port)
         self.add_edge(instance_id=instance_id, edge=edge)
 
 

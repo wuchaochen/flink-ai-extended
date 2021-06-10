@@ -86,10 +86,10 @@ class TestScheduler(unittest.TestCase):
             job = TestScheduler.create_job(i, 1)
             workflow.add_job(job)
         deps = []
-        deps.append(JobControlEdge(target_node_id='0_job', source_node_id='2_job',
+        deps.append(JobControlEdge(tail='0_job', head='2_job',
                                    met_config=MetConfig(event_key=generate_job_status_key('0_job'),
                                                         event_value=State.FINISHED.value)))
-        deps.append(JobControlEdge(target_node_id='1_job', source_node_id='2_job',
+        deps.append(JobControlEdge(tail='1_job', head='2_job',
                                    met_config=MetConfig(event_key=generate_job_status_key('1_job'),
                                                         event_value=State.FINISHED.value)))
         workflow.add_edges("2_job", deps)
@@ -111,10 +111,10 @@ class TestScheduler(unittest.TestCase):
             job = TestScheduler.create_job(i, 5)
             workflow.add_job(job)
         deps = []
-        deps.append(JobControlEdge(target_node_id='0_job', source_node_id='2_job',
+        deps.append(JobControlEdge(tail='0_job', head='2_job',
                                    met_config=MetConfig(event_key=generate_job_status_key('0_job'),
                                                         event_value=State.FINISHED.value)))
-        deps.append(JobControlEdge(target_node_id='1_job', source_node_id='2_job',
+        deps.append(JobControlEdge(tail='1_job', head='2_job',
                                    met_config=MetConfig(event_key=generate_job_status_key('1_job'),
                                                         event_value=State.FINISHED.value)))
         workflow.add_edges("2_job", deps)
@@ -123,7 +123,7 @@ class TestScheduler(unittest.TestCase):
         job = TestScheduler.create_job(3, 1)
         workflow.add_job(job)
         dep2 = []
-        dep2.append(JobControlEdge(target_node_id='0_job', source_node_id='3_job',
+        dep2.append(JobControlEdge(tail='0_job', head='3_job',
                                    met_config=MetConfig(event_key='key1',
                                                         event_value='value1')))
         workflow.add_edges('3_job', dep2)
@@ -180,10 +180,10 @@ class TestScheduler(unittest.TestCase):
                 job.job_config.periodic_config = None
             workflow.add_job(job)
         deps = []
-        deps.append(JobControlEdge(target_node_id='0_job', source_node_id='2_job',
+        deps.append(JobControlEdge(tail='0_job', head='2_job',
                                    met_config=MetConfig(event_key=generate_job_status_key('0_job'),
                                                         event_value=State.FINISHED.value)))
-        deps.append(JobControlEdge(target_node_id='1_job', source_node_id='2_job',
+        deps.append(JobControlEdge(tail='1_job', head='2_job',
                                    met_config=MetConfig(event_key=generate_job_status_key('1_job'),
                                                         event_value=State.FINISHED.value)))
         workflow.add_edges("2_job", deps)
@@ -215,11 +215,11 @@ class TestScheduler(unittest.TestCase):
         job.job_config.periodic_config = None
         workflow.add_job(job)
         deps = []
-        deps.append(JobControlEdge(target_node_id='0_job', source_node_id='2_job',
+        deps.append(JobControlEdge(tail='0_job', head='2_job',
                                    met_config=MetConfig(event_key=generate_job_status_key('0_job'),
                                                         event_value=State.FINISHED.value,
                                                         action=TaskAction.RESTART)))
-        deps.append(JobControlEdge(target_node_id='1_job', source_node_id='2_job',
+        deps.append(JobControlEdge(tail='1_job', head='2_job',
                                    met_config=MetConfig(event_key=generate_job_status_key('1_job'),
                                                         event_value=State.FINISHED.value,
                                                         action=TaskAction.RESTART)))
@@ -257,7 +257,7 @@ class TestScheduler(unittest.TestCase):
         job_1 = TestScheduler.create_job(1, 1)
         workflow.add_job(job_1)
         deps = []
-        deps.append(JobControlEdge(target_node_id='1_job', source_node_id='0_job',
+        deps.append(JobControlEdge(tail='1_job', head='0_job',
                                    met_config=MetConfig(event_key='key_1',
                                                         event_value='value_1',
                                                         event_type='stop',

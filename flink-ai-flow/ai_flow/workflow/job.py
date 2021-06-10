@@ -32,6 +32,7 @@ class Job(BaseNode):
         """
         super().__init__()
         self.job_config = job_config
+        self.project_uri = None
 
     @property
     def job_name(self):

@@ -28,7 +28,7 @@ class TestEdge(unittest.TestCase):
         channel = DataEdge("a", 0)
         json_text = json_utils.dumps(channel)
         c2: DataEdge = json_utils.loads(json_text)
-        self.assertEqual(channel.target_node_id, c2.target_node_id)
+        self.assertEqual(channel.tail, c2.tail)
         self.assertEqual(channel.port, c2.port)
 
 
