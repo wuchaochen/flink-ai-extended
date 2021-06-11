@@ -19,8 +19,9 @@ from typing import Text, List, Dict
 
 from ai_flow.project.project_description import ProjectDesc
 from ai_flow.scheduler.scheduler_factory import SchedulerFactory
-from ai_flow.scheduler.scheduler_interface import AbstractScheduler, SchedulerConfig
-from ai_flow.workflow.workflow import JobInfo, WorkflowExecutionInfo, WorkflowInfo, Workflow
+from ai_flow.plugin_interface.scheduler_interface import AbstractScheduler, SchedulerConfig, \
+    JobExecutionInfo, WorkflowExecutionInfo, WorkflowInfo
+from ai_flow.workflow.workflow import Workflow
 
 
 class UnitTestScheduler(AbstractScheduler):
@@ -57,19 +58,19 @@ class UnitTestScheduler(AbstractScheduler):
     def list_workflow_executions(self, project_name: Text, workflow_name: Text) -> List[WorkflowExecutionInfo]:
         pass
 
-    def start_job(self, job_name: Text, execution_id: Text) -> JobInfo:
+    def start_job(self, job_name: Text, execution_id: Text) -> JobExecutionInfo:
         pass
 
-    def stop_job(self, job_name: Text, execution_id: Text) -> JobInfo:
+    def stop_job(self, job_name: Text, execution_id: Text) -> JobExecutionInfo:
         pass
 
-    def restart_job(self, job_name: Text, execution_id: Text) -> JobInfo:
+    def restart_job(self, job_name: Text, execution_id: Text) -> JobExecutionInfo:
         pass
 
-    def get_job(self, job_name: Text, execution_id: Text) -> JobInfo:
+    def get_job(self, job_name: Text, execution_id: Text) -> JobExecutionInfo:
         pass
 
-    def list_jobs(self, execution_id: Text) -> List[JobInfo]:
+    def list_jobs(self, execution_id: Text) -> List[JobExecutionInfo]:
         pass
 
 

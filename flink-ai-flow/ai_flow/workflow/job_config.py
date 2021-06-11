@@ -29,19 +29,19 @@ class JobConfig(Jsonable):
 
     def __init__(self,
                  job_name: Text = None,
-                 engine: Text = None,
+                 job_type: Text = None,
                  exec_mode: Optional[ExecutionMode] = ExecutionMode.BATCH,
                  properties: Dict[Text, Jsonable] = None) -> None:
         """
         The job config
         :param job_name: Name of the configured job.
-        :param engine: The engine of the job.
+        :param job_type: The engine of the job.
         :param exec_mode: The mode(Batch or Stream) of the job.
         :param properties: Properties of the configured job.
         """
         super().__init__()
         self.job_name: Text = job_name
-        self.engine = engine
+        self.job_type = job_type
         self.exec_mode: Optional[ExecutionMode] = exec_mode
         if properties is None:
             self.properties: Dict[Text, Jsonable] = {}
@@ -51,11 +51,11 @@ class JobConfig(Jsonable):
     @staticmethod
     def from_dict(job_name: Text, data: Dict) -> 'JobConfig':
         return JobConfig(job_name=job_name,
-                         engine=data.get('engine', None),
+                         job_type=data.get('job_type', None),
                          exec_mode=ExecutionMode.value_of(data.get('exec_mode', ExecutionMode.BATCH.value)),
                          properties=data.get('properties', {}))
 
     @staticmethod
     def to_dict(job_config: 'JobConfig') -> Dict:
-        return {'engine': job_config.engine,
+        return {'job_type': job_config.job_type,
                 'exec_mode': job_config.exec_mode.value, 'properties': job_config.properties}

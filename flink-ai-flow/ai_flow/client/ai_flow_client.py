@@ -50,11 +50,3 @@ def get_ai_flow_client():
 
         return _default_ai_flow_client
 
-
-def get_airflow_operation_client():
-    """ Get a client to operate airflow dags and tasks. """
-    global _default_airflow_operation_client
-    if _default_airflow_operation_client:
-        return _default_airflow_operation_client
-    else:
-        return AirflowOperation(project_config().get_notification_service_uri())

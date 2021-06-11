@@ -26,8 +26,9 @@ from ai_flow.rest_endpoint.protobuf.message_pb2 import StateProto
 from ai_flow.rest_endpoint.service.client.scheduling_client import SchedulingClient
 from ai_flow.rest_endpoint.service.server import AIFlowServer
 from ai_flow.project.project_description import ProjectDesc
-from ai_flow.scheduler.scheduler_interface import AbstractScheduler, SchedulerConfig
-from ai_flow.workflow.workflow import JobInfo, WorkflowExecutionInfo, WorkflowInfo, Workflow
+from ai_flow.plugin_interface.scheduler_interface import AbstractScheduler, SchedulerConfig, \
+    JobExecutionInfo, WorkflowExecutionInfo, WorkflowInfo
+from ai_flow.workflow.workflow import Workflow
 
 _SQLITE_DB_FILE = 'aiflow.db'
 _SQLITE_DB_URI = '%s%s' % ('sqlite:///', _SQLITE_DB_FILE)
@@ -68,19 +69,19 @@ class MockScheduler(AbstractScheduler):
     def list_workflow_executions(self, project_name: Text, workflow_name: Text) -> List[WorkflowExecutionInfo]:
         pass
 
-    def start_job(self, job_name: Text, execution_id: Text) -> JobInfo:
+    def start_job(self, job_name: Text, execution_id: Text) -> JobExecutionInfo:
         pass
 
-    def stop_job(self, job_name: Text, execution_id: Text) -> JobInfo:
+    def stop_job(self, job_name: Text, execution_id: Text) -> JobExecutionInfo:
         pass
 
-    def restart_job(self, job_name: Text, execution_id: Text) -> JobInfo:
+    def restart_job(self, job_name: Text, execution_id: Text) -> JobExecutionInfo:
         pass
 
-    def get_job(self, job_name: Text, execution_id: Text) -> JobInfo:
+    def get_job(self, job_name: Text, execution_id: Text) -> JobExecutionInfo:
         pass
 
-    def list_jobs(self, execution_id: Text) -> List[JobInfo]:
+    def list_jobs(self, execution_id: Text) -> List[JobExecutionInfo]:
         pass
 
 
@@ -180,7 +181,7 @@ class TestSchedulingService(unittest.TestCase):
             self.server.scheduling_service._scheduler = instance
 
             instance.start_new_workflow_execution.return_value \
-                = WorkflowExecutionInfo(execution_id='id', state=State.INIT)
+                = WorkflowExecutionInfo(workflow_execution_id='id', state=State.INIT)
             client = SchedulingClient("localhost:{}".format(_PORT))
             workflow_execution = client.start_new_workflow_execution(namespace='namespace',
                                                                      workflow_name='test_workflow')
@@ -193,8 +194,8 @@ class TestSchedulingService(unittest.TestCase):
             self.server.scheduling_service._scheduler = instance
 
             instance.kill_all_workflow_execution.return_value \
-                = [WorkflowExecutionInfo(execution_id='id_1', state=State.INIT),
-                   WorkflowExecutionInfo(execution_id='id_2', state=State.INIT)]
+                = [WorkflowExecutionInfo(workflow_execution_id='id_1', state=State.INIT),
+                   WorkflowExecutionInfo(workflow_execution_id='id_2', state=State.INIT)]
             client = SchedulingClient("localhost:{}".format(_PORT))
             workflow_execution_list = client.kill_all_workflow_executions(namespace='namespace',
                                                                           workflow_name='test_workflow')
@@ -206,7 +207,7 @@ class TestSchedulingService(unittest.TestCase):
             self.server.scheduling_service._scheduler = instance
 
             instance.kill_workflow_execution.return_value \
-                = WorkflowExecutionInfo(execution_id='id', state=State.RUNNING)
+                = WorkflowExecutionInfo(workflow_execution_id='id', state=State.RUNNING)
             client = SchedulingClient("localhost:{}".format(_PORT))
             workflow_execution = client.kill_workflow_execution(execution_id='id')
             self.assertEqual('id', workflow_execution.execution_id)
@@ -218,7 +219,7 @@ class TestSchedulingService(unittest.TestCase):
             self.server.scheduling_service._scheduler = instance
 
             instance.get_workflow_execution.return_value \
-                = WorkflowExecutionInfo(execution_id='id', state=State.INIT)
+                = WorkflowExecutionInfo(workflow_execution_id='id', state=State.INIT)
             client = SchedulingClient("localhost:{}".format(_PORT))
             workflow_execution = client.get_workflow_execution(execution_id='id')
             self.assertEqual('id', workflow_execution.execution_id)
@@ -230,8 +231,8 @@ class TestSchedulingService(unittest.TestCase):
             self.server.scheduling_service._scheduler = instance
 
             instance.list_workflow_executions.return_value \
-                = [WorkflowExecutionInfo(execution_id='id_1', state=State.INIT),
-                   WorkflowExecutionInfo(execution_id='id_2', state=State.INIT)]
+                = [WorkflowExecutionInfo(workflow_execution_id='id_1', state=State.INIT),
+                   WorkflowExecutionInfo(workflow_execution_id='id_2', state=State.INIT)]
             client = SchedulingClient("localhost:{}".format(_PORT))
             workflow_execution_list = client.list_workflow_executions(namespace='namespace',
                                                                       workflow_name='test_workflow')
@@ -243,9 +244,9 @@ class TestSchedulingService(unittest.TestCase):
             self.server.scheduling_service._scheduler = instance
 
             instance.start_job.return_value \
-                = JobInfo(job_name='job_name',
-                          state=State.RUNNING,
-                          workflow_execution=WorkflowExecutionInfo(execution_id='id', state=State.INIT))
+                = JobExecutionInfo(job_name='job_name',
+                                   state=State.RUNNING,
+                                   workflow_execution=WorkflowExecutionInfo(workflow_execution_id='id', state=State.INIT))
             client = SchedulingClient("localhost:{}".format(_PORT))
             job = client.start_job(job_name='job_name', execution_id='id')
             self.assertEqual('job_name', job.name)
@@ -259,9 +260,9 @@ class TestSchedulingService(unittest.TestCase):
             self.server.scheduling_service._scheduler = instance
 
             instance.stop_job.return_value \
-                = JobInfo(job_name='job_name',
-                          state=State.RUNNING,
-                          workflow_execution=WorkflowExecutionInfo(execution_id='id', state=State.INIT))
+                = JobExecutionInfo(job_name='job_name',
+                                   state=State.RUNNING,
+                                   workflow_execution=WorkflowExecutionInfo(workflow_execution_id='id', state=State.INIT))
             client = SchedulingClient("localhost:{}".format(_PORT))
             job = client.stop_job(job_name='job_name', execution_id='id')
             self.assertEqual('job_name', job.name)
@@ -275,9 +276,9 @@ class TestSchedulingService(unittest.TestCase):
             self.server.scheduling_service._scheduler = instance
 
             instance.restart_job.return_value \
-                = JobInfo(job_name='job_name',
-                          state=State.RUNNING,
-                          workflow_execution=WorkflowExecutionInfo(execution_id='id', state=State.INIT))
+                = JobExecutionInfo(job_name='job_name',
+                                   state=State.RUNNING,
+                                   workflow_execution=WorkflowExecutionInfo(workflow_execution_id='id', state=State.INIT))
             client = SchedulingClient("localhost:{}".format(_PORT))
             job = client.restart_job(job_name='job_name', execution_id='id')
             self.assertEqual('job_name', job.name)
@@ -291,9 +292,9 @@ class TestSchedulingService(unittest.TestCase):
             self.server.scheduling_service._scheduler = instance
 
             instance.get_job.return_value \
-                = JobInfo(job_name='job_name',
-                          state=State.RUNNING,
-                          workflow_execution=WorkflowExecutionInfo(execution_id='id', state=State.INIT))
+                = JobExecutionInfo(job_name='job_name',
+                                   state=State.RUNNING,
+                                   workflow_execution=WorkflowExecutionInfo(workflow_execution_id='id', state=State.INIT))
             client = SchedulingClient("localhost:{}".format(_PORT))
             job = client.get_job(job_name='job_name', execution_id='id')
             self.assertEqual('job_name', job.name)
@@ -307,12 +308,12 @@ class TestSchedulingService(unittest.TestCase):
             self.server.scheduling_service._scheduler = instance
 
             instance.list_jobs.return_value \
-                = [JobInfo(job_name='job_name_1',
-                           state=State.RUNNING,
-                           workflow_execution=WorkflowExecutionInfo(execution_id='id', state=State.INIT)),
-                   JobInfo(job_name='job_name_2',
-                           state=State.RUNNING,
-                           workflow_execution=WorkflowExecutionInfo(execution_id='id', state=State.INIT))]
+                = [JobExecutionInfo(job_name='job_name_1',
+                                    state=State.RUNNING,
+                                    workflow_execution=WorkflowExecutionInfo(workflow_execution_id='id', state=State.INIT)),
+                   JobExecutionInfo(job_name='job_name_2',
+                                    state=State.RUNNING,
+                                    workflow_execution=WorkflowExecutionInfo(workflow_execution_id='id', state=State.INIT))]
             client = SchedulingClient("localhost:{}".format(_PORT))
             job_list = client.list_jobs(execution_id='id')
             self.assertEqual(2, len(job_list))

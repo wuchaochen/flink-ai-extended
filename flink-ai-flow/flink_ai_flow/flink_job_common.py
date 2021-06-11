@@ -42,7 +42,7 @@ class FlinkJobConfig(AbstractJobConfig):
         return config
 
     def __init__(self, platform: Text):
-        super().__init__(platform=platform, engine=FlinkEngine.engine())
+        super().__init__(platform=platform, job_type=FlinkEngine.engine())
         self.flink_home = None
         self.jm_host_port = 'localhost:8081'
         self.class_path = None

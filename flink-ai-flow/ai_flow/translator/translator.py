@@ -46,33 +46,6 @@ from ai_flow.graph.edge import ControlEdge, DataEdge, JobControlEdge, control_ed
 from ai_flow.project.project_description import ProjectDesc
 
 
-def compute_data_edges(graph: AIGraph) -> Dict[Text, List[Text]]:
-    res: Dict[Text, List[Text]] = {}
-    for es in graph.edges:
-        for e in graph.edges[es]:
-            if not isinstance(e, ControlEdge):
-                if es not in res:
-                    res[es] = []
-                res[es].append(e.tail)
-    return res
-
-
-def compute_r_data_edges(graph: AIGraph) -> Dict[Text, List[Text]]:
-    res: Dict[Text, List[Text]] = {}
-    for es in graph.edges:
-        for e in graph.edges[es]:
-            if not isinstance(e, ControlEdge):
-                if e.tail not in res:
-                    res[e.tail] = []
-                res[e.tail].append(es)
-    return res
-
-
-def generate_set_key(my_set: Set[Text]) -> Text:
-    sorted_list = sorted(list(my_set))
-    return sorted_list[0]
-
-
 class GraphSplitter(BaseGraphSplitter):
 
     def __init__(self) -> None:
@@ -131,11 +104,11 @@ class WorkflowConstructor(BaseWorkflowConstructor):
         workflow = Workflow()
         # add ai_nodes to workflow
         for sub in split_graph.nodes.values():
-            if sub.config.engine not in self.job_generator_registry.object_dict:
-                raise Exception("job generator not support engine {}"
-                                .format(sub.config.engine))
+            if sub.config.job_type not in self.job_generator_registry.object_dict:
+                raise Exception("job generator not support job_type {}"
+                                .format(sub.config.job_type))
             generator: BaseJobGenerator = self.job_generator_registry \
-                .get_object(sub.config.engine)
+                .get_object(sub.config.job_type)
             job: Job = generator.generate(sub_graph=sub, project_desc=project_desc)
             workflow.add_job(job)
 
@@ -148,7 +121,7 @@ class WorkflowConstructor(BaseWorkflowConstructor):
 
         for job in workflow.nodes.values():
             generator: BaseJobGenerator = self.job_generator_registry \
-                .get_object(job.job_config.engine)
+                .get_object(job.job_config.job_type)
             generator.generate_job_resource(job, project_desc)
         return workflow
 
@@ -178,5 +151,5 @@ def get_default_translator() -> BaseTranslator:
     return __default_translator__
 
 
-def register_job_generator(engine, generator: BaseJobGenerator) -> None:
-    __default_translator__.workflow_constructor.register_job_generator(engine, generator)
+def register_job_generator(job_type, generator: BaseJobGenerator) -> None:
+    __default_translator__.workflow_constructor.register_job_generator(job_type, generator)

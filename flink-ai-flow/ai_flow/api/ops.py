@@ -17,7 +17,6 @@
 # under the License.
 #
 from typing import Union, Text, Tuple, Optional, List
-
 from notification_service.base_notification import UNDEFINED_EVENT_TYPE, ANY_CONDITION
 from ai_flow.workflow.periodic_config import PeriodicConfig
 from ai_flow.client.ai_flow_client import get_ai_flow_client
@@ -32,7 +31,7 @@ from ai_flow.meta.example_meta import ExampleMeta
 from ai_flow.meta.model_meta import ModelMeta, ModelVersionMeta
 from ai_flow.context.project_context import project_description
 from ai_flow.context.workflow_context import workflow_config
-from ai_flow.workflow.job_status import JobStatus
+from ai_flow.workflow.job_state import JobState
 
 
 def read_example(example_info: Union[ExampleMeta, Text, int],
@@ -554,7 +553,7 @@ def start_on_job_succeed(job_name: Text,
                          upstream_job_name: Text) -> None:
     action_on_status(job_name=job_name,
                      upstream_job_name=upstream_job_name,
-                     upstream_job_status=JobStatus.SUCCESS,
+                     upstream_job_status=JobState.SUCCESS,
                      action=TaskAction.START)
 
 

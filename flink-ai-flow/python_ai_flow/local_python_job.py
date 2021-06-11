@@ -54,7 +54,7 @@ class LocalPythonJobConfig(AbstractJobConfig):
     def __init__(self, job_name: Text = None,
                  periodic_config: PeriodicConfig = None, exec_mode: Optional[ExecutionMode] = ExecutionMode.BATCH,
                  properties: Dict[Text, Jsonable] = None) -> None:
-        super().__init__(platform=LocalPlatform.platform(), engine=PythonEngine.engine(), job_name=job_name,
+        super().__init__(platform=LocalPlatform.platform(), job_type=PythonEngine.engine(), job_name=job_name,
                          periodic_config=periodic_config,
                          exec_mode=exec_mode, properties=properties)
 

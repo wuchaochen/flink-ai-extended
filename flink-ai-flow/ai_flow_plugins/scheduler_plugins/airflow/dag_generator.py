@@ -16,14 +16,10 @@
 # specific language governing permissions and limitations
 # under the License.
 #
-from abc import ABC
 from datetime import datetime
 from typing import Text, List
-
 from ai_flow.workflow.job import Job
-
 from ai_flow.common import json_utils
-from ai_flow.common.registry import BaseRegistry
 from ai_flow.graph.edge import MetConfig, MetCondition, EventLife, MetValueCondition, TaskAction
 from ai_flow.plugins.engine import DummyEngine
 from ai_flow.workflow.periodic_config import PeriodicConfig
@@ -41,58 +37,11 @@ def match_stop_before_config(met_config: MetConfig) -> bool:
         return False
 
 
-def job_name_to_task_id(job_name):
-    first_index = job_name.find('_')
-    last_index = job_name.rfind('_')
-    if -1 == first_index:
-        return job_name
-    elif first_index == last_index:
-        return job_name
-    else:
-        return job_name[first_index + 1: last_index]
-
-
-class AirflowCodeGenerator(ABC):
-
-    def generate_operator_code(self) -> Text:
-        """
-        run once.
-        :return:
-        """
-        return ""
-
-    def generate_code(self, op_index, job):
-        raise Exception("do not have AirflowCodeGenerator generate_code implement!")
-
-
-class AirflowCodeManager(BaseRegistry):
-
-    def register_generator(self, platform, engine, generator: AirflowCodeGenerator):
-        self.register((platform, engine), generator)
-
-    def get_generator(self, platform, engine) -> AirflowCodeGenerator:
-        return self.get_object((platform, engine))
-
-
-_default_airflow_code_generator_manager = AirflowCodeManager()
-
-
-def register_airflow_code_generator(platform, engine, generator: AirflowCodeGenerator):
-    _default_airflow_code_generator_manager.register_generator(platform, engine, generator)
-
-
-def get_airflow_code_manager() -> AirflowCodeManager:
-    return _default_airflow_code_generator_manager
-
-
 class DAGTemplate(object):
     AIRFLOW_IMPORT = """from airflow.models.dag import DAG
 import datetime
 from airflow.contrib.jobs.event_handlers import AIFlowHandler
 from airflow.operators.bash import BashOperator\n"""
-    # from ai_flow.deployer.utils.kubernetes_util import load_kubernetes_config
-    # import ai_flow as af
-    # load_kubernetes_config()\n"""
 
     SET_CONFIG = """af.set_project_config_file('{0}')\naf.set_master_config()\n"""
 
@@ -118,7 +67,6 @@ class DAGGenerator(object):
 
     def generate_op_code(self, job):
         self.op_count += 1
-        generator: AirflowCodeGenerator = get_airflow_code_manager().get_generator(job.platform, job.exec_engine)
         code_text = generator.generate_code(op_index=self.op_count, job=job)
         return job.instance_id, "op_{0}".format(self.op_count), code_text, job.job_name
 
@@ -151,8 +99,6 @@ class DAGGenerator(object):
         op_set = set()
         for name, job in workflow.jobs.items():
             if job.exec_engine != DummyEngine.engine():
-                generator: AirflowCodeGenerator = get_airflow_code_manager().get_generator(job.platform,
-                                                                                           job.exec_engine)
                 if generator not in op_set:
                     code_text += generator.generate_operator_code()
                     op_set.add(generator)

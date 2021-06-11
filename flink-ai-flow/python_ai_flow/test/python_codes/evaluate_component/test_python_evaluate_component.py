@@ -188,7 +188,7 @@ class TestEvaluateComponent(unittest.TestCase):
                                                   batch_uri=batch_output_file)
         if os.path.exists(batch_output_file):
             os.remove(batch_output_file)
-        with af.config(af.JobConfig(platform='local', engine='python', job_name='batch_evaluate')):
+        with af.config(af.JobConfig(platform='local', job_type='python', job_name='batch_evaluate')):
             input_example = af.read_example(example_info=input_example_meta,
                                             executor=PythonObjectExecutor(python_object=ReadBatchExample()))
 
@@ -219,7 +219,7 @@ class TestEvaluateComponent(unittest.TestCase):
                                                                   stream_uri=stream_output_file)
         if os.path.exists(stream_output_file):
             os.remove(stream_output_file)
-        with af.config(af.JobConfig(platform='local', engine='python', job_name='stream_evaluate')):
+        with af.config(af.JobConfig(platform='local', job_type='python', job_name='stream_evaluate')):
             input_example = af.read_example(example_info=input_example_meta,
                                             executor=PythonObjectExecutor(python_object=ReadBatchExample()))
 

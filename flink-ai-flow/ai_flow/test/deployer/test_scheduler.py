@@ -162,7 +162,7 @@ class TestScheduler(unittest.TestCase):
     @staticmethod
     def create_periodic_job(index, sleep_time=1) -> Job:
         job: Job = LocalCMDJob(exec_cmd='echo "hello {}\n" && sleep {}'.format(str(index), str(sleep_time)),
-                               job_config=JobConfig(platform="local", engine="cmd_line"))
+                               job_config=JobConfig(platform="local", job_type="cmd_line"))
         job.uuid = index
         job.job_name = job.instance_id
         job.job_config.periodic_config = PeriodicConfig(periodic_type='interval', args={'seconds': 5})

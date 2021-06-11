@@ -172,7 +172,7 @@ class TestTrainComponent(unittest.TestCase):
                                                  support_type=ExampleSupportType.EXAMPLE_BATCH)
         model_meta = af.register_model(model_name='mnist_model',
                                        model_type=ModelType.SAVED_MODEL)
-        with af.config(af.JobConfig(platform='local', engine='python', job_name='batch_train')):
+        with af.config(af.JobConfig(platform='local', job_type='python', job_name='batch_train')):
             input_example = af.read_example(example_info=input_example_meta,
                                             executor=PythonObjectExecutor(python_object=ReadBatchExample()))
             af.train(input_data_list=[input_example],
@@ -193,7 +193,7 @@ class TestTrainComponent(unittest.TestCase):
                                            batch_uri=os.path.abspath(os.path.dirname(__file__)
                                                                      + '/numpy_output.npz')
                                            )
-        with af.config(af.JobConfig(platform='local', engine='python', job_name='batch_train')):
+        with af.config(af.JobConfig(platform='local', job_type='python', job_name='batch_train')):
             input_example = af.read_example(example_info=input_example_meta,
                                             executor=PythonObjectExecutor(python_object=ReadBatchExample()))
             train_channel = af.train(input_data_list=[input_example],
@@ -213,7 +213,7 @@ class TestTrainComponent(unittest.TestCase):
                                        model_type=ModelType.SAVED_MODEL)
         stream_input_example_meta = af.register_example(name='stream_train_example',
                                                         support_type=ExampleSupportType.EXAMPLE_BOTH)
-        with af.config(af.JobConfig(platform='local', engine='python', job_name='stream_train')):
+        with af.config(af.JobConfig(platform='local', job_type='python', job_name='stream_train')):
             batch_input_example = af.read_example(example_info=batch_input_example_meta,
                                                   executor=PythonObjectExecutor(python_object=ReadBatchExample()))
             batch_train = af.train(input_data_list=[batch_input_example],

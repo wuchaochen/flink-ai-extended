@@ -189,7 +189,7 @@ class TestPredictComponent(unittest.TestCase):
                                                   batch_uri=batch_output_file)
         if os.path.exists(batch_output_file):
             os.remove(batch_output_file)
-        with af.config(af.JobConfig(platform='local', engine='python', job_name='batch_predict')):
+        with af.config(af.JobConfig(platform='local', job_type='python', job_name='batch_predict')):
             batch_example = af.read_example(example_info=input_example_meta,
                                             executor=PythonObjectExecutor(python_object=ReadBatchExample()))
             batch_train = af.train(input_data_list=[batch_example],
@@ -219,7 +219,7 @@ class TestPredictComponent(unittest.TestCase):
                                                                  stream_uri=stream_output_file)
         if os.path.exists(stream_output_file):
             os.remove(stream_output_file)
-        with af.config(af.JobConfig(platform='local', engine='python', job_name='stream_predict')):
+        with af.config(af.JobConfig(platform='local', job_type='python', job_name='stream_predict')):
             batch_example = af.read_example(example_info=batch_example_meta,
                                             executor=PythonObjectExecutor(python_object=ReadBatchExample()))
             stream_predict_example = af.read_example(example_info=stream_predict_example_meta,

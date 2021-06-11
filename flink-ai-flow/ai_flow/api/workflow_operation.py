@@ -16,14 +16,15 @@
 # under the License.
 import time
 from typing import Text, List, Dict
-from ai_flow.project.blob_manager import BlobManagerFactory
+from ai_flow.plugin_interface.blob_manager_interface import BlobManagerFactory
 from ai_flow.common import json_utils
 from ai_flow.ai_graph.ai_graph import default_graph
 from ai_flow.translator.translator import get_default_translator
 from ai_flow.client.ai_flow_client import get_ai_flow_client
 from ai_flow.context.project_context import project_config, project_description
 from ai_flow.context.workflow_context import workflow_config
-from ai_flow.workflow.workflow import JobInfo, WorkflowExecutionInfo, WorkflowInfo, Workflow
+from ai_flow.workflow.workflow import Workflow
+from ai_flow.plugin_interface.scheduler_interface import JobExecutionInfo, WorkflowExecutionInfo, WorkflowInfo
 from ai_flow.rest_endpoint.service.workflow_proto_utils import \
     proto_to_workflow, proto_to_workflow_list, proto_to_workflow_execution, proto_to_workflow_execution_list,\
     proto_to_job, proto_to_job_list
@@ -78,7 +79,8 @@ def submit_workflow(workflow_name: Text = None,
     translator = get_default_translator()
     workflow = translator.translate(graph=default_graph(), project_desc=project_description())
     workflow.workflow_config = workflow_config()
-    workflow.workflow_id = '{}.{}.{}'.format(project_description().project_name, workflow.workflow_name, time.time())
+    workflow.workflow_id = '{}.{}.{}'.format(project_description().project_name, workflow.workflow_name,
+                                             round(time.time()*1000))
     _set_entry_module_path(workflow, entry_module_path)
     _upload_project_package(workflow)
     return proto_to_workflow(get_ai_flow_client()
@@ -184,7 +186,7 @@ def list_workflow_executions(workflow_name: Text) -> List[WorkflowExecutionInfo]
 
 
 def start_job(job_name: Text,
-              execution_id: Text) -> JobInfo:
+              execution_id: Text) -> JobExecutionInfo:
     """
     Start a job defined in the ai flow workflow.
     :param job_name: The job name which task defined in workflow.
@@ -195,7 +197,7 @@ def start_job(job_name: Text,
 
 
 def stop_job(job_name: Text,
-             execution_id: Text) -> JobInfo:
+             execution_id: Text) -> JobExecutionInfo:
     """
     Stop a job defined in the ai flow workflow.
     :param job_name: The job name which task defined in workflow.
@@ -206,7 +208,7 @@ def stop_job(job_name: Text,
 
 
 def restart_job(job_name: Text,
-                execution_id: Text) -> JobInfo:
+                execution_id: Text) -> JobExecutionInfo:
     """
     Restart a task defined in the ai flow workflow.
     :param job_name: The job name which task defined in workflow.
@@ -217,7 +219,7 @@ def restart_job(job_name: Text,
 
 
 def get_job(job_name: Text,
-            execution_id: Text) -> JobInfo:
+            execution_id: Text) -> JobExecutionInfo:
     """
     Get job information by job name.
     :param job_name:
@@ -227,7 +229,7 @@ def get_job(job_name: Text,
     return proto_to_job(get_ai_flow_client().get_job(job_name, execution_id))
 
 
-def list_jobs(execution_id: Text) -> List[JobInfo]:
+def list_jobs(execution_id: Text) -> List[JobExecutionInfo]:
     """
     List the jobs of the workflow execution.
     :param execution_id:

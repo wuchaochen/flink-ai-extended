@@ -115,7 +115,7 @@ class TestPushComponent(unittest.TestCase):
                                                  support_type=ExampleSupportType.EXAMPLE_BOTH)
         model_meta = af.register_model(model_name='mnist_model',
                                        model_type=ModelType.SAVED_MODEL)
-        with af.config(af.JobConfig(platform='local', engine='python', job_name='push')):
+        with af.config(af.JobConfig(platform='local', job_type='python', job_name='push')):
             input_example = af.read_example(example_info=input_example_meta,
                                             executor=PythonObjectExecutor(python_object=ReadBatchExample()))
             batch_train = af.train(input_data_list=[input_example],

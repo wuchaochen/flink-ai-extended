@@ -14,13 +14,4 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from ai_flow.common.module_load import import_string
-from ai_flow.plugin_interface.scheduler_interface import AbstractScheduler, SchedulerConfig
-
-
-class SchedulerFactory(object):
-
-    @classmethod
-    def create_scheduler(cls, config: SchedulerConfig) -> AbstractScheduler:
-        class_object = import_string(config.scheduler_class_name())
-        return class_object(config)
+from ai_flow.plugin_interface.job_plugin_interface import register_job_plugin

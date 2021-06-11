@@ -45,7 +45,7 @@ class LocalCMDJobConfig(AbstractJobConfig):
         return AbstractJobConfig.from_dict(data, config)
 
     def __init__(self):
-        super().__init__(platform=LocalPlatform.platform(), engine=CMDEngine.engine())
+        super().__init__(platform=LocalPlatform.platform(), job_type=CMDEngine.engine())
 
 
 class LocalCMDJob(AbstractJob):

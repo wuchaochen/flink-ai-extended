@@ -79,13 +79,10 @@ class MetCondition(str, Enum):
 
 
 class TaskAction(str, Enum):
-    """
-    START: start init job
-    RESTART: start init job or stop running job and start the job
-    """
     START = "START"
     RESTART = "RESTART"
     STOP = "STOP"
+    NONE = "NONE"
 
 
 class EventLife(str, Enum):

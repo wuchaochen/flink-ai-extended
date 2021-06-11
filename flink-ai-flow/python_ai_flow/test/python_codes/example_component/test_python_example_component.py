@@ -131,7 +131,7 @@ class TestDataComponent(unittest.TestCase):
         output_example_meta = af.register_example(name='test_example_output',
                                                   support_type=ExampleSupportType.EXAMPLE_BOTH,
                                                   batch_uri=output_file)
-        with af.config(af.JobConfig(platform='local', engine='python', job_name='batch_example')):
+        with af.config(af.JobConfig(platform='local', job_type='python', job_name='batch_example')):
             input_example = af.read_example(example_info=input_example_meta,
                                             executor=PythonObjectExecutor(python_object=ReadBatchExample()))
             af.write_example(input_data=input_example,
@@ -150,7 +150,7 @@ class TestDataComponent(unittest.TestCase):
         output_example_meta = af.register_example(name='test_example_output',
                                                   support_type=ExampleSupportType.EXAMPLE_BOTH,
                                                   stream_uri=output_file)
-        with af.config(af.JobConfig(platform='local', engine='python', job_name='stream_example')):
+        with af.config(af.JobConfig(platform='local', job_type='python', job_name='stream_example')):
             input_example = af.read_example(example_info=input_example_meta,
                                             executor=PythonObjectExecutor(python_object=ReadStreamExample()))
             af.write_example(input_data=input_example,
@@ -169,7 +169,7 @@ class TestDataComponent(unittest.TestCase):
         output_example_meta = af.register_example(name='test_example_output',
                                                   support_type=ExampleSupportType.EXAMPLE_BOTH,
                                                   batch_uri=output_file)
-        with af.config(af.JobConfig(platform='local', engine='python', job_name='batch_transform')):
+        with af.config(af.JobConfig(platform='local', job_type='python', job_name='batch_transform')):
             input_example = af.read_example(example_info=input_example_meta,
                                             executor=PythonObjectExecutor(python_object=ReadBatchExample()))
             transform_example = af.transform(input_data_list=[input_example],
@@ -189,7 +189,7 @@ class TestDataComponent(unittest.TestCase):
         output_example_meta = af.register_example(name='test_example_output',
                                                   support_type=ExampleSupportType.EXAMPLE_BOTH,
                                                   stream_uri=output_file)
-        with af.config(af.JobConfig(platform='local', engine='python', job_name='stream_transform')):
+        with af.config(af.JobConfig(platform='local', job_type='python', job_name='stream_transform')):
             input_example = af.read_example(example_info=input_example_meta,
                                             executor=PythonObjectExecutor(python_object=ReadStreamExample()))
             transform_example = af.transform(input_data_list=[input_example],

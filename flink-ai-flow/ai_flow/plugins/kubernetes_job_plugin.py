@@ -36,7 +36,7 @@ class KubernetesJobConfig(AbstractJobConfig):
         return AbstractJobConfig.from_dict(data, config)
 
     def __init__(self, engine: Text):
-        super().__init__(platform=KubernetesPlatform.platform(), engine=engine)
+        super().__init__(platform=KubernetesPlatform.platform(), job_type=engine)
 
 
 class KubernetesJob(AbstractJob):

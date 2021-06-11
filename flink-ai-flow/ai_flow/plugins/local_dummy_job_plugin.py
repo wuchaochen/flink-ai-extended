@@ -30,7 +30,7 @@ class LocalDummyJobConfig(AbstractJobConfig):
         return AbstractJobConfig.from_dict(data, config)
 
     def __init__(self, operator_name: str = None):
-        super().__init__(platform=LocalPlatform.platform(), engine=DummyEngine.engine())
+        super().__init__(platform=LocalPlatform.platform(), job_type=DummyEngine.engine())
         self.properties['operator_name'] = operator_name
 
 

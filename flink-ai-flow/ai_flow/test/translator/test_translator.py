@@ -26,7 +26,7 @@ def build_ai_graph(node_number, job_number) -> AIGraph:
     graph = AIGraph()
     for i in range(node_number):
         j = i % job_number
-        config = JobConfig(job_name='job_{}'.format(j), engine='mock')
+        config = JobConfig(job_name='job_{}'.format(j), job_type='mock')
         ai_node = AINode(instance_id="node_" + str(i))
         ai_node.config = config
         graph.nodes[ai_node.instance_id] = ai_node

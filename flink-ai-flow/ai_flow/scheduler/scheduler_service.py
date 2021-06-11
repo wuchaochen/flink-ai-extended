@@ -16,7 +16,7 @@
 # under the License.
 from typing import Text
 import traceback
-from ai_flow.project.blob_manager import BlobManagerFactory
+from ai_flow.plugin_interface.blob_manager_interface import BlobManagerFactory
 
 from ai_flow.common import json_utils
 from ai_flow.project.project_description import ProjectDesc, get_project_description_from
@@ -33,13 +33,13 @@ from ai_flow.rest_endpoint.protobuf.scheduling_service_pb2 import \
      JobInfoResponse,
      ListJobInfoResponse)
 from ai_flow.scheduler.scheduler_factory import SchedulerFactory
-from ai_flow.scheduler.scheduler_interface import AbstractScheduler, SchedulerConfig
+from ai_flow.plugin_interface.scheduler_interface import AbstractScheduler, SchedulerConfig
 from ai_flow.workflow.workflow import Workflow
 from ai_flow.rest_endpoint.service.workflow_proto_utils import workflow_to_proto, workflow_list_to_proto, \
     workflow_execution_to_proto, workflow_execution_list_to_proto, job_to_proto, job_list_to_proto
 
 
-class SchedulingService(SchedulingServiceServicer):
+class SchedulerService(SchedulingServiceServicer):
     def __init__(self,
                  scheduler_config: SchedulerConfig):
         self._scheduler_config = scheduler_config

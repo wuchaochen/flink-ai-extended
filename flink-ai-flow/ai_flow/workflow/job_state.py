@@ -16,7 +16,7 @@
 # under the License.
 
 
-class JobStatus(object):
+class JobState(object):
     QUEUED = "queued"
     RUNNING = "running"
     SUCCESS = "success"
