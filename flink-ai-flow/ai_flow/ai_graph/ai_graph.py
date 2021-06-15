@@ -18,7 +18,8 @@ from ai_flow.graph.graph import Graph, get_id_generator
 from ai_flow.graph.channel import Channel
 from ai_flow.ai_graph.ai_node import AINode
 from typing import Dict, List, Text, Optional, Union
-from ai_flow.graph.edge import DataEdge, ControlEdge
+from ai_flow.ai_graph.data_edge import DataEdge
+from ai_flow.workflow.control_edge import ControlEdge
 import networkx as nx
 import matplotlib.pyplot as plt
 from ai_flow.workflow.job_config import JobConfig

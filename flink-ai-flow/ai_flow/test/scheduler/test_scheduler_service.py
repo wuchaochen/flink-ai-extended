@@ -85,10 +85,13 @@ class MockScheduler(AbstractScheduler):
         pass
 
 
+SCHEDULER_CLASS = "ai_flow.test.scheduler.test_scheduler_service.MockScheduler"
+
+
 class TestSchedulingService(unittest.TestCase):
     def setUp(self):
         config = SchedulerConfig()
-        config.set_scheduler_class_name('ai_flow.test.scheduler.test_scheduling_service.MockScheduler')
+        config.set_scheduler_class_name(SCHEDULER_CLASS)
         if os.path.exists(_SQLITE_DB_FILE):
             os.remove(_SQLITE_DB_FILE)
         self.server = AIFlowServer(store_uri=_SQLITE_DB_URI, port=_PORT,
@@ -97,7 +100,7 @@ class TestSchedulingService(unittest.TestCase):
                                    start_meta_service=False,
                                    start_metric_service=False,
                                    start_model_center_service=False,
-                                   start_scheduling_service=True,
+                                   start_scheder_service=True,
                                    scheduler_config=config)
         self.server.run()
 
@@ -107,17 +110,18 @@ class TestSchedulingService(unittest.TestCase):
             os.remove(_SQLITE_DB_FILE)
 
     # def test_submit_workflow(self):
-    #     with mock.patch('ai_flow.test.scheduler.test_scheduling_service.MockScheduler') as mockScheduler:
+    #     with mock.patch(SCHEDULER_CLASS) as mockScheduler:
     #         instance = mockScheduler.return_value
     #         instance.submit_workflow.return_value = WorkflowInfo(workflow_name='test_workflow')
     #         client = SchedulingClient("localhost:{}".format(_PORT))
-    #         workflow = client.submit_workflow_to_scheduler(namespace='namespace', workflow_name='test_workflow')
+    #         workflow = client.submit_workflow_to_scheduler(namespace='namespace', workflow_name='test_workflow',
+    #                                                        workflow_json='')
     #         print(workflow)
 
     def test_delete_none_workflow(self):
-        with mock.patch('ai_flow.test.scheduler.test_scheduling_service.MockScheduler') as mockScheduler:
+        with mock.patch(SCHEDULER_CLASS) as mockScheduler:
             instance = mockScheduler.return_value
-            self.server.scheduling_service._scheduler = instance
+            self.server.scheduler_service._scheduler = instance
 
             instance.delete_workflow.return_value = None
             client = SchedulingClient("localhost:{}".format(_PORT))
@@ -125,9 +129,9 @@ class TestSchedulingService(unittest.TestCase):
                 workflow = client.delete_workflow(namespace='namespace', workflow_name='test_workflow')
 
     def test_delete_workflow(self):
-        with mock.patch('ai_flow.test.scheduler.test_scheduling_service.MockScheduler') as mockScheduler:
+        with mock.patch(SCHEDULER_CLASS) as mockScheduler:
             instance = mockScheduler.return_value
-            self.server.scheduling_service._scheduler = instance
+            self.server.scheduler_service._scheduler = instance
 
             instance.delete_workflow.return_value = WorkflowInfo(workflow_name='test_workflow')
             client = SchedulingClient("localhost:{}".format(_PORT))
@@ -135,9 +139,9 @@ class TestSchedulingService(unittest.TestCase):
             self.assertTrue('test_workflow', workflow.name)
 
     def test_pause_workflow(self):
-        with mock.patch('ai_flow.test.scheduler.test_scheduling_service.MockScheduler') as mockScheduler:
+        with mock.patch(SCHEDULER_CLASS) as mockScheduler:
             instance = mockScheduler.return_value
-            self.server.scheduling_service._scheduler = instance
+            self.server.scheduler_service._scheduler = instance
 
             instance.pause_workflow_scheduling.return_value = WorkflowInfo(workflow_name='test_workflow')
             client = SchedulingClient("localhost:{}".format(_PORT))
@@ -145,9 +149,9 @@ class TestSchedulingService(unittest.TestCase):
             self.assertTrue('test_workflow', workflow.name)
 
     def test_resume_workflow(self):
-        with mock.patch('ai_flow.test.scheduler.test_scheduling_service.MockScheduler') as mockScheduler:
+        with mock.patch(SCHEDULER_CLASS) as mockScheduler:
             instance = mockScheduler.return_value
-            self.server.scheduling_service._scheduler = instance
+            self.server.scheduler_service._scheduler = instance
 
             instance.resume_workflow_scheduling.return_value = WorkflowInfo(workflow_name='test_workflow')
             client = SchedulingClient("localhost:{}".format(_PORT))
@@ -155,9 +159,9 @@ class TestSchedulingService(unittest.TestCase):
             self.assertTrue('test_workflow', workflow.name)
 
     def test_get_workflow(self):
-        with mock.patch('ai_flow.test.scheduler.test_scheduling_service.MockScheduler') as mockScheduler:
+        with mock.patch(SCHEDULER_CLASS) as mockScheduler:
             instance = mockScheduler.return_value
-            self.server.scheduling_service._scheduler = instance
+            self.server.scheduler_service._scheduler = instance
 
             instance.get_workflow.return_value = WorkflowInfo(workflow_name='test_workflow')
             client = SchedulingClient("localhost:{}".format(_PORT))
@@ -165,9 +169,9 @@ class TestSchedulingService(unittest.TestCase):
             self.assertTrue('test_workflow', workflow.name)
 
     def test_list_workflows(self):
-        with mock.patch('ai_flow.test.scheduler.test_scheduling_service.MockScheduler') as mockScheduler:
+        with mock.patch(SCHEDULER_CLASS) as mockScheduler:
             instance = mockScheduler.return_value
-            self.server.scheduling_service._scheduler = instance
+            self.server.scheduler_service._scheduler = instance
 
             instance.list_workflows.return_value = [WorkflowInfo(workflow_name='test_workflow_1'),
                                                     WorkflowInfo(workflow_name='test_workflow_2')]
@@ -176,9 +180,9 @@ class TestSchedulingService(unittest.TestCase):
             self.assertTrue(2, len(workflow_list))
 
     def test_start_new_workflow_execution(self):
-        with mock.patch('ai_flow.test.scheduler.test_scheduling_service.MockScheduler') as mockScheduler:
+        with mock.patch(SCHEDULER_CLASS) as mockScheduler:
             instance = mockScheduler.return_value
-            self.server.scheduling_service._scheduler = instance
+            self.server.scheduler_service._scheduler = instance
 
             instance.start_new_workflow_execution.return_value \
                 = WorkflowExecutionInfo(workflow_execution_id='id', state=State.INIT)
@@ -189,9 +193,9 @@ class TestSchedulingService(unittest.TestCase):
             self.assertEqual(StateProto.INIT, workflow_execution.execution_state)
 
     def test_kill_all_workflow_execution(self):
-        with mock.patch('ai_flow.test.scheduler.test_scheduling_service.MockScheduler') as mockScheduler:
+        with mock.patch(SCHEDULER_CLASS) as mockScheduler:
             instance = mockScheduler.return_value
-            self.server.scheduling_service._scheduler = instance
+            self.server.scheduler_service._scheduler = instance
 
             instance.kill_all_workflow_execution.return_value \
                 = [WorkflowExecutionInfo(workflow_execution_id='id_1', state=State.INIT),
@@ -202,9 +206,9 @@ class TestSchedulingService(unittest.TestCase):
             self.assertEqual(2, len(workflow_execution_list))
 
     def test_kill_workflow_execution(self):
-        with mock.patch('ai_flow.test.scheduler.test_scheduling_service.MockScheduler') as mockScheduler:
+        with mock.patch(SCHEDULER_CLASS) as mockScheduler:
             instance = mockScheduler.return_value
-            self.server.scheduling_service._scheduler = instance
+            self.server.scheduler_service._scheduler = instance
 
             instance.kill_workflow_execution.return_value \
                 = WorkflowExecutionInfo(workflow_execution_id='id', state=State.RUNNING)
@@ -214,9 +218,9 @@ class TestSchedulingService(unittest.TestCase):
             self.assertEqual(StateProto.RUNNING, workflow_execution.execution_state)
 
     def test_get_workflow_execution(self):
-        with mock.patch('ai_flow.test.scheduler.test_scheduling_service.MockScheduler') as mockScheduler:
+        with mock.patch(SCHEDULER_CLASS) as mockScheduler:
             instance = mockScheduler.return_value
-            self.server.scheduling_service._scheduler = instance
+            self.server.scheduler_service._scheduler = instance
 
             instance.get_workflow_execution.return_value \
                 = WorkflowExecutionInfo(workflow_execution_id='id', state=State.INIT)
@@ -226,9 +230,9 @@ class TestSchedulingService(unittest.TestCase):
             self.assertEqual(StateProto.INIT, workflow_execution.execution_state)
 
     def test_list_workflow_executions(self):
-        with mock.patch('ai_flow.test.scheduler.test_scheduling_service.MockScheduler') as mockScheduler:
+        with mock.patch(SCHEDULER_CLASS) as mockScheduler:
             instance = mockScheduler.return_value
-            self.server.scheduling_service._scheduler = instance
+            self.server.scheduler_service._scheduler = instance
 
             instance.list_workflow_executions.return_value \
                 = [WorkflowExecutionInfo(workflow_execution_id='id_1', state=State.INIT),
@@ -239,9 +243,9 @@ class TestSchedulingService(unittest.TestCase):
             self.assertEqual(2, len(workflow_execution_list))
 
     def test_start_job(self):
-        with mock.patch('ai_flow.test.scheduler.test_scheduling_service.MockScheduler') as mockScheduler:
+        with mock.patch(SCHEDULER_CLASS) as mockScheduler:
             instance = mockScheduler.return_value
-            self.server.scheduling_service._scheduler = instance
+            self.server.scheduler_service._scheduler = instance
 
             instance.start_job.return_value \
                 = JobExecutionInfo(job_name='job_name',
@@ -255,9 +259,9 @@ class TestSchedulingService(unittest.TestCase):
             self.assertEqual(StateProto.INIT, job.workflow_execution.execution_state)
 
     def test_stop_job(self):
-        with mock.patch('ai_flow.test.scheduler.test_scheduling_service.MockScheduler') as mockScheduler:
+        with mock.patch(SCHEDULER_CLASS) as mockScheduler:
             instance = mockScheduler.return_value
-            self.server.scheduling_service._scheduler = instance
+            self.server.scheduler_service._scheduler = instance
 
             instance.stop_job.return_value \
                 = JobExecutionInfo(job_name='job_name',
@@ -271,9 +275,9 @@ class TestSchedulingService(unittest.TestCase):
             self.assertEqual(StateProto.INIT, job.workflow_execution.execution_state)
 
     def test_restart_job(self):
-        with mock.patch('ai_flow.test.scheduler.test_scheduling_service.MockScheduler') as mockScheduler:
+        with mock.patch(SCHEDULER_CLASS) as mockScheduler:
             instance = mockScheduler.return_value
-            self.server.scheduling_service._scheduler = instance
+            self.server.scheduler_service._scheduler = instance
 
             instance.restart_job.return_value \
                 = JobExecutionInfo(job_name='job_name',
@@ -287,9 +291,9 @@ class TestSchedulingService(unittest.TestCase):
             self.assertEqual(StateProto.INIT, job.workflow_execution.execution_state)
 
     def test_get_job(self):
-        with mock.patch('ai_flow.test.scheduler.test_scheduling_service.MockScheduler') as mockScheduler:
+        with mock.patch(SCHEDULER_CLASS) as mockScheduler:
             instance = mockScheduler.return_value
-            self.server.scheduling_service._scheduler = instance
+            self.server.scheduler_service._scheduler = instance
 
             instance.get_job.return_value \
                 = JobExecutionInfo(job_name='job_name',
@@ -303,9 +307,9 @@ class TestSchedulingService(unittest.TestCase):
             self.assertEqual(StateProto.INIT, job.workflow_execution.execution_state)
 
     def test_list_jobs(self):
-        with mock.patch('ai_flow.test.scheduler.test_scheduling_service.MockScheduler') as mockScheduler:
+        with mock.patch(SCHEDULER_CLASS) as mockScheduler:
             instance = mockScheduler.return_value
-            self.server.scheduling_service._scheduler = instance
+            self.server.scheduler_service._scheduler = instance
 
             instance.list_jobs.return_value \
                 = [JobExecutionInfo(job_name='job_name_1',

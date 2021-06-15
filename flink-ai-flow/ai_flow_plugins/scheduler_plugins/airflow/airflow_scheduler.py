@@ -99,7 +99,7 @@ class AirFlowScheduler(AbstractScheduler):
 
     def submit_workflow(self, workflow: Workflow, project_desc: ProjectDesc, args: Dict = None) -> WorkflowInfo:
         dag_id = self.airflow_dag_id(project_desc.project_name, workflow.workflow_name)
-        code_text = self.dag_generator.generator(workflow, dag_id, args)
+        code_text = self.dag_generator.generate(workflow, dag_id, args)
         deploy_path = self.config.properties().get('airflow_deploy_path')
         if deploy_path is None:
             raise Exception("airflow_deploy_path config not set!")

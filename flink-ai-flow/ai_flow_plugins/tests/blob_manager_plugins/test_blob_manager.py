@@ -21,8 +21,7 @@ import os
 from typing import Text
 
 from ai_flow.common.path_util import get_file_dir
-from ai_flow.project.blob_manager import BlobManagerFactory, BlobManager
-from ai_flow.project.project_description import get_project_description_from
+from ai_flow.plugin_interface.blob_manager_interface import BlobManagerFactory, BlobManager
 
 
 class MockBlockManager(BlobManager):
@@ -40,10 +39,8 @@ class TestBlobManager(unittest.TestCase):
 
     def test_project_upload_download_local(self):
         project_path = get_file_dir(__file__)
-        project_desc = get_project_description_from(project_path + "/../")
-
-        # blob_server.type = local
-        blob_manager = BlobManagerFactory.get_blob_manager(project_desc.project_config)
+        config = {'blob_manager_class': 'ai_flow_plugins.blob_manager_plugins.local_blob_manager.LocalBlobManager'}
+        blob_manager = BlobManagerFactory.get_blob_manager(config)
         uploaded_path = blob_manager.upload_blob('1', project_path)
         self.assertEqual(uploaded_path, project_path)
 
@@ -52,14 +49,14 @@ class TestBlobManager(unittest.TestCase):
 
     def test_project_upload_download_local_2(self):
         project_path = get_file_dir(__file__)
-        config = {'local_repository': '/tmp', 'remote_repository': '/tmp'}
+        config = {'local_repository': '/tmp', 'remote_repository': '/tmp',
+                  'blob_manager_class': 'ai_flow_plugins.blob_manager_plugins.local_blob_manager.LocalBlobManager'}
 
-        # blob_server.type = local
         blob_manager = BlobManagerFactory.get_blob_manager(config)
         uploaded_path = blob_manager.upload_blob('1', project_path)
 
         downloaded_path = blob_manager.download_blob('1', uploaded_path)
-        self.assertEqual('/tmp/workflow_1_project/project', downloaded_path)
+        self.assertEqual('/tmp/workflow_1_project/blob_manager_plugins', downloaded_path)
 
     @unittest.skipUnless((os.environ.get('blob_server.endpoint') is not None
                           and os.environ.get('blob_server.access_key_id') is not None
@@ -69,13 +66,13 @@ class TestBlobManager(unittest.TestCase):
     def test_project_upload_download_oss(self):
         project_path = get_file_dir(__file__)
         config = {
-            'blob_server.type': 'oss',
+            'blob_manager_class': 'ai_flow_plugins.blob_manager_plugins.oss_blob_manager.OssBlobManager',
             'local_repository': '/tmp',
-            'blob_server.access_key_id': os.environ.get('blob_server.access_key_id'),
-            'blob_server.access_key_secret': os.environ.get('blob_server.access_key_secret'),
-            'blob_server.endpoint': os.environ.get('blob_server.endpoint'),
-            'blob_server.bucket': os.environ.get('blob_server.bucket'),
-            'blob_server.repo_name': os.environ.get('blob_server.repo_name')
+            'access_key_id': os.environ.get('access_key_id'),
+            'access_key_secret': os.environ.get('access_key_secret'),
+            'endpoint': os.environ.get('endpoint'),
+            'bucket': os.environ.get('bucket'),
+            'repo_name': os.environ.get('repo_name')
         }
 
         blob_manager = BlobManagerFactory.get_blob_manager(config)
@@ -86,7 +83,7 @@ class TestBlobManager(unittest.TestCase):
 
     def test_custom_blob_manager(self):
         config = {
-            'blob_server.type': 'ai_flow.test.project.test_blob_manager.MockBlockManager'
+            'blob_manager_class': 'ai_flow.test.project.test_blob_manager.MockBlockManager'
         }
         blob_manager = BlobManagerFactory.get_blob_manager(config)
         uploaded_path = blob_manager.upload_blob('1', None)

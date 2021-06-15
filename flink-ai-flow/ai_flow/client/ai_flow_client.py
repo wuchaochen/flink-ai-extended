@@ -17,7 +17,6 @@
 # under the License.
 #
 from ai_flow.context.project_context import project_config
-from ai_flow.api.execution import AirflowOperation
 from ai_flow.rest_endpoint.service.client.aiflow_client import AIFlowClient
 
 _default_ai_flow_client = None

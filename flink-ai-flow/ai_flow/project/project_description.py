@@ -98,7 +98,7 @@ class ProjectDesc(Jsonable):
     def get_absolute_workflow_entry_file(self, workflow_name)->Text:
         return os.path.join(self.get_absolute_workflow_path(workflow_name), '{}.py'.format(workflow_name))
 
-    def get_absolute_workflow_entry_module(self, workflow_name)->Text:
+    def get_workflow_entry_module(self, workflow_name)->Text:
         return '{}.{}'.format(workflow_name, workflow_name)
 
 
@@ -111,8 +111,6 @@ def get_project_description_from(project_path: Text) -> ProjectDesc:
     project_spec = ProjectDesc()
     project_path = os.path.abspath(project_path)
     project_spec.project_path = project_path
-    if not os.path.exists(project_spec.get_absolute_temp_path()):
-        os.makedirs(project_spec.get_absolute_temp_path())
     project_spec.project_config = ProjectConfig()
     project_spec.project_config.load_from_file(project_spec.get_absolute_project_config_file())
     return project_spec

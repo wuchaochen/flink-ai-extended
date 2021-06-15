@@ -18,7 +18,7 @@
 #
 from typing import List, Dict, Text
 from ai_flow.workflow.workflow_config import WorkFlowConfig
-from ai_flow.graph.edge import JobControlEdge
+from ai_flow.workflow.control_edge import ControlEdge
 from ai_flow.workflow.job import Job
 from ai_flow.graph.graph import Graph
 
@@ -39,14 +39,22 @@ class Workflow(Graph):
     def jobs(self)->Dict[Text, Job]:
         return self.nodes
 
+    @property
+    def control_edges(self)->Dict[Text, List[ControlEdge]]:
+        return self.edges
+
     def add_job(self, job: Job):
         self.nodes[job.job_config.job_name] = job
 
-    def add_edges(self, job_name: Text, dependencies: List[JobControlEdge]):
+    def add_edges(self, job_name: Text, dependencies: List[ControlEdge]):
         self.edges[job_name] = dependencies
 
-    def add_edge(self, job_name: Text, edge: JobControlEdge):
+    def add_edge(self, job_name: Text, edge: ControlEdge):
         if job_name not in self.edges:
             self.edges[job_name] = []
         self.edges[job_name].append(edge)
 
+
+class WorkflowPropertyKeys(object):
+    BLOB = "blob"
+    JOB_PLUGINS = "job_plugins"

@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from abc import abstractmethod, ABC
-from typing import Text
+from typing import Text, Dict
 import logging
 from ai_flow.common.registry import BaseRegistry
 from ai_flow.common.json_utils import Jsonable
@@ -175,3 +175,11 @@ def register_job_plugin(plugin: AbstractJobPlugin):
     logging.debug("Register job plugin {} {}".format(plugin.__class__.__name__, plugin.job_type()))
     register_job_generator(job_type=plugin.job_type(), generator=plugin)
     register_job_submitter(job_type=plugin.job_type(), job_submitter=plugin)
+
+
+def get_registered_job_plugins()-> Dict:
+    result = {}
+    jm = get_default_job_submitter_manager()
+    for job_type, plugin in jm.object_dict.items():
+        result[job_type] = (plugin.__class__.__module__, plugin.__class__.__name__)
+    return result

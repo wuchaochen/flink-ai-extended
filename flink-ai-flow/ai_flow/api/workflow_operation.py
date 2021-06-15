@@ -23,8 +23,10 @@ from ai_flow.translator.translator import get_default_translator
 from ai_flow.client.ai_flow_client import get_ai_flow_client
 from ai_flow.context.project_context import project_config, project_description
 from ai_flow.context.workflow_context import workflow_config
-from ai_flow.workflow.workflow import Workflow
+from ai_flow.workflow.job import Job
+from ai_flow.workflow.workflow import Workflow, WorkflowPropertyKeys
 from ai_flow.plugin_interface.scheduler_interface import JobExecutionInfo, WorkflowExecutionInfo, WorkflowInfo
+from ai_flow.plugin_interface.job_plugin_interface import get_registered_job_plugins
 from ai_flow.rest_endpoint.service.workflow_proto_utils import \
     proto_to_workflow, proto_to_workflow_list, proto_to_workflow_execution, proto_to_workflow_execution_list,\
     proto_to_job, proto_to_job_list
@@ -37,13 +39,10 @@ def _upload_project_package(workflow: Workflow):
     :param workflow: The generated workflow.
     """
     project_desc = project_description()
-    blob_manager = BlobManagerFactory.get_blob_manager(project_config().get('blob'))
+    blob_manager = BlobManagerFactory.get_blob_manager(project_config().get(WorkflowPropertyKeys.BLOB))
     uploaded_project_path = blob_manager.upload_blob(str(workflow.workflow_id), project_desc.project_path)
     workflow.project_uri = uploaded_project_path
-    workflow.properties['blob'] = project_config().get('blob')
-    for job in workflow.jobs.values():
-        job.project_uri = uploaded_project_path
-        job.properties['blob'] = project_config().get('blob')
+    workflow.properties[WorkflowPropertyKeys.BLOB] = project_config().get(WorkflowPropertyKeys.BLOB)
 
 
 def _register_job_meta(workflow_id: int, job):
@@ -66,6 +65,16 @@ def _set_entry_module_path(workflow: Workflow, entry_module_path: Text):
         job.job_config.properties['entry_module_path'] = entry_module_path
 
 
+def _set_job_plugins(workflow: Workflow):
+    plugins = get_registered_job_plugins()
+    workflow.properties[WorkflowPropertyKeys.JOB_PLUGINS] = {}
+    for node in workflow.nodes.values():
+        job: Job = node
+        job_type = job.job_config.job_type
+        workflow.properties[WorkflowPropertyKeys.JOB_PLUGINS][job_type] \
+            = [plugins.get(job_type)[0], plugins.get(job_type)[1]]
+
+
 def submit_workflow(workflow_name: Text = None,
                     args: Dict = None) -> WorkflowInfo:
     """
@@ -74,20 +83,25 @@ def submit_workflow(workflow_name: Text = None,
     :param args: The arguments of the submit action.
     :return: The result of the submit action.
     """
-    entry_module_path = project_description().get_absolute_workflow_entry_module(workflow_name=workflow_name)
+    entry_module_path = project_description().get_workflow_entry_module(workflow_name=workflow_name)
     namespace = project_config().get_project_name()
     translator = get_default_translator()
     workflow = translator.translate(graph=default_graph(), project_desc=project_description())
-    workflow.workflow_config = workflow_config()
-    workflow.workflow_id = '{}.{}.{}'.format(project_description().project_name, workflow.workflow_name,
-                                             round(time.time()*1000))
-    _set_entry_module_path(workflow, entry_module_path)
-    _upload_project_package(workflow)
+    apply_full_infor_to_workflow(entry_module_path, workflow)
     return proto_to_workflow(get_ai_flow_client()
                              .submit_workflow_to_scheduler(namespace=namespace,
                                                            workflow_json=json_utils.dumps(workflow),
                                                            workflow_name=workflow_name,
                                                            args=args))
+
+
+def apply_full_infor_to_workflow(entry_module_path, workflow):
+    workflow.workflow_config = workflow_config()
+    workflow.workflow_id = '{}.{}.{}'.format(project_description().project_name, workflow.workflow_name,
+                                             round(time.time() * 1000))
+    _set_entry_module_path(workflow, entry_module_path)
+    _upload_project_package(workflow)
+    _set_job_plugins(workflow)
 
 
 def delete_workflow(workflow_name: Text = None) -> WorkflowInfo:

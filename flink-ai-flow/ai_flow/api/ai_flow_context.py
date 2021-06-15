@@ -23,6 +23,7 @@ from ai_flow.client.ai_flow_client import get_ai_flow_client
 
 def init_ai_flow_context(workflow_entry_file: Text):
     workflows_path = os.path.dirname(os.path.dirname(workflow_entry_file))
+    # workflow_name/workflow_name.py len(.py) == 3
     workflow_name = os.path.basename(workflow_entry_file)[:-3]
     project_path = os.path.dirname(workflows_path)
     init_project_context(project_path)

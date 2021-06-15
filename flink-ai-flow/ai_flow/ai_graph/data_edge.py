@@ -1,4 +1,3 @@
-#
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -15,33 +14,28 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-#
-from typing import Text
+from typing import Text, Dict
 
 from ai_flow.common.json_utils import Jsonable
 
+from ai_flow.graph.edge import Edge
 
-class Edge(Jsonable):
-    """ the edge connect tow node"""
 
+class DataEdge(Edge):
     def __init__(self,
                  tail: Text,
                  head: Text,
-                 ) -> None:
-        """
-
-        :param tail: the node dependent the other node output id
-        :param head: the node id
-        """
-        super().__init__()
-        if tail is None or head is None:
-            raise Exception('target node id or source node id can not be None!')
-        self.tail = tail
-        self.head = head
+                 port: int = 0,
+                 data_config: Dict[Text, Jsonable] = None) -> None:
+        super().__init__(head=head, tail=tail)
+        self.port = port
+        self.data_config = data_config
 
     def __eq__(self, o: object) -> bool:
-        if isinstance(o, Edge):
-            return self.head == o.head and self.tail == o.tail
+        if isinstance(o, DataEdge):
+            return self.head == o.head \
+                   and self.tail == o.tail \
+                   and self.port == o.port
         else:
             return False
 

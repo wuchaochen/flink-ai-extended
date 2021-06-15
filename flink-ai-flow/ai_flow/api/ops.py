@@ -24,8 +24,8 @@ from ai_flow.ai_graph.ai_node import CustomAINode
 from ai_flow.common.args import ExecuteArgs
 from ai_flow.common import json_utils
 from ai_flow.graph.channel import Channel, NoneChannel
-from ai_flow.graph.edge import ControlEdge, \
-    TaskAction, EventLife, MetValueCondition, MetCondition, DEFAULT_NAMESPACE
+from ai_flow.workflow.control_edge import ControlEdge, \
+    TaskAction, EventLife, MetValueCondition, MetCondition, DEFAULT_NAMESPACE, AIFlowInnerEventType
 from ai_flow.ai_graph.ai_graph import default_graph, add_ai_node_to_graph
 from ai_flow.meta.example_meta import ExampleMeta
 from ai_flow.meta.model_meta import ModelMeta, ModelVersionMeta
@@ -527,7 +527,7 @@ def action_on_example_event(job_name: Text,
     action_on_event(job_name=job_name,
                     event_key=example_name,
                     event_value="created",
-                    event_type="EXAMPLE_TYPE",
+                    event_type=AIFlowInnerEventType.DATASET_CHANGED,
                     action=action,
                     namespace=namespace,
                     sender=ANY_CONDITION
@@ -540,7 +540,7 @@ def action_on_status(job_name: Text,
                      action: TaskAction):
     action_on_event(job_name=job_name,
                     event_key=workflow_config().workflow_name,
-                    event_type='JOB_STATUS_CHANGED',
+                    event_type=AIFlowInnerEventType.JOB_STATUS_CHANGED,
                     sender=upstream_job_name,
                     event_value=upstream_job_status,
                     action=action,
@@ -562,7 +562,7 @@ def action_with_periodic(job_name: Text,
 
     action_on_event(job_name=job_name,
                     event_key=workflow_config().workflow_name,
-                    event_type='PERIODIC_ACTION',
+                    event_type=AIFlowInnerEventType.PERIODIC_ACTION,
                     sender=ANY_CONDITION,
                     event_value=json_utils.dumps(periodic_config),
                     action=TaskAction.START,

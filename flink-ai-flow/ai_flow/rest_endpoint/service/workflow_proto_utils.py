@@ -17,11 +17,8 @@
 from typing import List
 
 from ai_flow.metadata_store.utils.ProtoToMeta import ProtoToMeta
-
-from ai_flow.meta.job_meta import State
-
 from ai_flow.rest_endpoint.protobuf.message_pb2 import WorkflowProto, WorkflowExecutionProto, StateProto, JobProto
-from ai_flow.workflow.workflow import WorkflowInfo, WorkflowExecutionInfo, JobInfo
+from ai_flow.plugin_interface.scheduler_interface import WorkflowInfo, WorkflowExecutionInfo, JobExecutionInfo
 
 
 def workflow_to_proto(workflow: WorkflowInfo) -> WorkflowProto:
@@ -52,7 +49,7 @@ def proto_to_workflow_list(proto_list: List[WorkflowProto]) -> List[WorkflowInfo
 
 
 def workflow_execution_to_proto(workflow_execution: WorkflowExecutionInfo) -> WorkflowExecutionProto:
-    return WorkflowExecutionProto(execution_id=workflow_execution.execution_id,
+    return WorkflowExecutionProto(execution_id=workflow_execution.workflow_execution_id,
                                   execution_state=StateProto.Value(workflow_execution.state.value),
                                   workflow=workflow_to_proto(workflow_execution.workflow_info))
 
@@ -61,7 +58,7 @@ def proto_to_workflow_execution(proto: WorkflowExecutionProto) -> WorkflowExecut
     if proto is None:
         return None
     else:
-        return WorkflowExecutionInfo(execution_id=proto.execution_id,
+        return WorkflowExecutionInfo(workflow_execution_id=proto.execution_id,
                                      state=ProtoToMeta.proto_to_state(proto.execution_state),
                                      workflow_info=proto_to_workflow(proto.workflow))
 
@@ -81,28 +78,28 @@ def proto_to_workflow_execution_list(proto_list: List[WorkflowExecutionProto]) -
     return result
 
 
-def job_to_proto(job: JobInfo) -> JobProto:
+def job_to_proto(job: JobExecutionInfo) -> JobProto:
     return JobProto(name=job.job_name,
                     job_state=StateProto.Value(job.state.value),
                     workflow_execution=workflow_execution_to_proto(job.workflow_execution))
 
 
-def proto_to_job(proto: JobProto) -> JobInfo:
+def proto_to_job(proto: JobProto) -> JobExecutionInfo:
     if proto is None:
         return None
     else:
-        return JobInfo(job_name=proto.name, state=ProtoToMeta.proto_to_state(proto.job_state),
-                       workflow_execution=proto_to_workflow_execution(proto.workflow_execution))
+        return JobExecutionInfo(job_name=proto.name, state=ProtoToMeta.proto_to_state(proto.job_state),
+                                workflow_execution=proto_to_workflow_execution(proto.workflow_execution))
 
 
-def job_list_to_proto(job_list: List[JobInfo]) -> List[JobProto]:
+def job_list_to_proto(job_list: List[JobExecutionInfo]) -> List[JobProto]:
     result = []
     for job in job_list:
         result.append(job_to_proto(job))
     return result
 
 
-def proto_to_job_list(proto_list: List[JobProto]) -> List[JobInfo]:
+def proto_to_job_list(proto_list: List[JobProto]) -> List[JobExecutionInfo]:
     result = []
     for proto in proto_list:
         result.append(proto_to_job(proto))

@@ -40,7 +40,7 @@ class TestProjectConfig(unittest.TestCase):
         self.assertTrue(os.path.exists(workflow_1_entry))
         self.assertTrue(os.path.isfile(workflow_1_entry))
         print(project_desc.list_resources_paths())
-        self.assertEqual('workflow_1.workflow_1', project_desc.get_absolute_workflow_entry_module('workflow_1'))
+        self.assertEqual('workflow_1.workflow_1', project_desc.get_workflow_entry_module('workflow_1'))
         self.assertEqual(project_desc.project_config.get_master_uri(), "localhost:50051")
         self.assertIsNone(project_desc.project_config.get('ai_flow config', None))
         self.assertEqual(project_desc.project_config['ai_flow_home'], '/opt/ai_flow')

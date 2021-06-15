@@ -34,7 +34,7 @@
 # specific language governing permissions and limitations
 # under the License.
 #
-from typing import Dict, Text, List, Set
+from typing import Dict, Text
 import copy
 from ai_flow.translator.base_translator import BaseGraphSplitter, BaseJobGenerator, BaseWorkflowConstructor, \
     BaseTranslator
@@ -42,7 +42,8 @@ from ai_flow.rest_endpoint.service.client.aiflow_client import AIFlowClient
 from ai_flow.workflow.workflow import Workflow
 from ai_flow.workflow.job import Job
 from ai_flow.ai_graph.ai_graph import AIGraph, SplitGraph, AISubGraph
-from ai_flow.graph.edge import ControlEdge, DataEdge, JobControlEdge, control_edge_to_job_edge
+from ai_flow.ai_graph.data_edge import DataEdge
+from ai_flow.workflow.control_edge import ControlEdge
 from ai_flow.project.project_description import ProjectDesc
 
 
@@ -112,12 +113,17 @@ class WorkflowConstructor(BaseWorkflowConstructor):
             job: Job = generator.generate(sub_graph=sub, project_desc=project_desc)
             workflow.add_job(job)
 
+        def validate_edge(head, tail):
+            if head not in workflow.jobs:
+                raise Exception('job: {} is not defined in workflow!'.format(head))
+            if tail is not None and tail != '' and tail != '*' and tail not in workflow.jobs:
+                raise Exception('job: {} is not defined in workflow!'.format(tail))
         # add edges to workflow
         for edges in split_graph.edges.values():
             for e in edges:
                 control_edge = copy.deepcopy(e)
-                job_edge: JobControlEdge = control_edge_to_job_edge(control_edge=control_edge)
-                workflow.add_edge(control_edge.head, job_edge)
+                validate_edge(control_edge.head, control_edge.tail)
+                workflow.add_edge(control_edge.head, control_edge)
 
         for job in workflow.nodes.values():
             generator: BaseJobGenerator = self.job_generator_registry \
