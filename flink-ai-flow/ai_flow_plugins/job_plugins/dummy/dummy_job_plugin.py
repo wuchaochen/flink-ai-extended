@@ -27,7 +27,6 @@ class DummyJobPlugin(AbstractJobPlugin, ABC):
 
     def __init__(self) -> None:
         super().__init__()
-        self.running = True
 
     def generate(self, sub_graph: AISubGraph, project_desc: ProjectDesc) -> Job:
         job = Job(job_config=sub_graph.config)
@@ -37,8 +36,8 @@ class DummyJobPlugin(AbstractJobPlugin, ABC):
         pass
 
     def submit_job(self, job: Job, project_desc: ProjectDesc, job_context: Any = None) -> BaseJobHandler:
-        self.running = False
-        return BaseJobHandler(job=job, job_execution=job_context)
+        handler = BaseJobHandler(job=job, job_execution=job_context)
+        return handler
 
     def stop_job(self, job_handler: BaseJobHandler, project_desc: ProjectDesc, job_context: Any = None):
         pass

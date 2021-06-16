@@ -21,13 +21,8 @@ task_1:
   job_type: dummy
 
 task_2:
-  job_type: dummy
-
-task_3:
-  job_type: dummy
-
-task_4:
-  job_type: dummy
-
-task_5:
-  job_type: dummy
+  job_type: bash
+  properties:
+    env:
+      a: a
+      b: b

@@ -18,7 +18,7 @@ from abc import abstractmethod, ABC
 from typing import Text, Dict, Any
 import logging
 from ai_flow.common.registry import BaseRegistry
-from ai_flow.common.json_utils import Jsonable, dumps
+from ai_flow.common.json_utils import Jsonable
 from ai_flow.plugin_interface.scheduler_interface import JobExecutionInfo
 from ai_flow.project.project_description import ProjectDesc
 from ai_flow.translator.translator import register_job_generator
@@ -33,9 +33,6 @@ class BaseJobHandler(Jsonable):
         self.job: Job = job
         self.job_execution: JobExecutionInfo = job_execution
 
-    def __str__(self) -> str:
-        return dumps(self)
-
 
 class BaseJobSubmitter(ABC):
     """
@@ -45,10 +42,12 @@ class BaseJobSubmitter(ABC):
     """
 
     def __init__(self) -> None:
-        """
-        Construct a :py:class:`ai_flow.deployer.job_submitter.BaseJobSubmitter`
-        """
-        pass
+        self._log = logging.getLogger(self.__class__.__module__ + '.' + self.__class__.__name__)
+
+    @property
+    def log(self) -> logging.Logger:
+        """Returns a logger."""
+        return self._log
 
     @abstractmethod
     def submit_job(self, job: Job, project_desc: ProjectDesc, job_context: Any = None) -> BaseJobHandler:

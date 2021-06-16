@@ -38,7 +38,7 @@ class TestWorkflow1(BaseWorkflowTest):
             af.user_define_operation(executor=None)
         tl = get_default_translator()
         workflow = tl.translate(graph=af.default_graph(), project_desc=af.project_description())
-        af.workflow_operation.apply_full_infor_to_workflow(
+        af.workflow_operation.apply_full_info_to_workflow(
             af.project_description().get_workflow_entry_module(config.workflow_name),
             workflow
         )
@@ -58,7 +58,7 @@ class TestWorkflow1(BaseWorkflowTest):
         af.action_on_event(job_name='task_2', event_key='a', event_type='a', event_value='a', sender='task_1')
         tl = get_default_translator()
         workflow = tl.translate(graph=af.default_graph(), project_desc=af.project_description())
-        af.workflow_operation.apply_full_infor_to_workflow(
+        af.workflow_operation.apply_full_info_to_workflow(
             af.project_description().get_workflow_entry_module(config.workflow_name),
             workflow
         )
@@ -84,7 +84,7 @@ class TestWorkflow1(BaseWorkflowTest):
                             action=TaskAction.START)
         tl = get_default_translator()
         workflow = tl.translate(graph=af.default_graph(), project_desc=af.project_description())
-        af.workflow_operation.apply_full_infor_to_workflow(
+        af.workflow_operation.apply_full_info_to_workflow(
             af.project_description().get_workflow_entry_module(config.workflow_name),
             workflow
         )
@@ -106,7 +106,7 @@ class TestWorkflow1(BaseWorkflowTest):
 
         tl = get_default_translator()
         workflow = tl.translate(graph=af.default_graph(), project_desc=af.project_description())
-        af.workflow_operation.apply_full_infor_to_workflow(
+        af.workflow_operation.apply_full_info_to_workflow(
             af.project_description().get_workflow_entry_module(config.workflow_name),
             workflow
         )

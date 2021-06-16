@@ -18,7 +18,6 @@ from typing import Any, Text
 import os
 from airflow.models.baseoperator import BaseOperator
 from airflow.utils.decorators import apply_defaults
-
 from ai_flow.common.module_load import import_string
 from ai_flow.plugin_interface.blob_manager_interface import BlobManagerFactory
 from ai_flow.plugin_interface.job_plugin_interface import BaseJobSubmitter, BaseJobHandler
@@ -80,8 +79,7 @@ class AIFlowOperator(BaseOperator):
     def execute(self, context: Any):
         self.log.info("context:" + str(context))
         self.job_handler: BaseJobHandler = self.job_submitter.submit_job(self.job, self.project_desc, self.job_context)
-        self.log.info("handler: {}".format(self.job_handler))
-        self.job_submitter.wait_job_finished(self.job_handler, self.project_desc, self.job_context)
+        return self.job_submitter.wait_job_finished(self.job_handler, self.project_desc, self.job_context)
 
     def on_kill(self):
         self.job_submitter.stop_job(self.job_handler, self.project_desc, self.job_context)
