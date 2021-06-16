@@ -88,6 +88,7 @@ def submit_workflow(workflow_name: Text = None,
     translator = get_default_translator()
     workflow = translator.translate(graph=default_graph(), project_desc=project_description())
     apply_full_infor_to_workflow(entry_module_path, workflow)
+    default_graph().clear_graph()
     return proto_to_workflow(get_ai_flow_client()
                              .submit_workflow_to_scheduler(namespace=namespace,
                                                            workflow_json=json_utils.dumps(workflow),

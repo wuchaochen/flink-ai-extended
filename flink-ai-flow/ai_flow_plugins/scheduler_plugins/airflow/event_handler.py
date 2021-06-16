@@ -18,7 +18,7 @@
 from typing import Tuple, List, Dict
 import json
 import copy
-from ai_flow.graph.edge import MetConfig, MetCondition, EventLife, MetValueCondition, TaskAction
+from ai_flow.workflow.control_edge import MetConfig, MetCondition, EventLife, MetValueCondition, TaskAction
 from airflow.executors.scheduling_action import SchedulingAction
 from airflow.models.eventhandler import EventHandler
 from notification_service.base_notification import BaseEvent, ANY_CONDITION

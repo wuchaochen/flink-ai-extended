@@ -15,12 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 import os
+import logging
 from tempfile import NamedTemporaryFile
 from typing import Dict, Text, List, Optional
 from ai_flow.meta import job_meta
 from ai_flow_plugins.scheduler_plugins.airflow.dag_generator import DAGGenerator
 from ai_flow.project.project_description import ProjectDesc
-from ai_flow.plugin_interface.scheduler_interface import AbstractScheduler, SchedulerConfig,\
+from ai_flow.plugin_interface.scheduler_interface import AbstractScheduler, SchedulerConfig, \
     WorkflowInfo, JobExecutionInfo, WorkflowExecutionInfo
 from ai_flow.workflow.workflow import Workflow
 from airflow.executors.scheduling_action import SchedulingAction
@@ -99,7 +100,9 @@ class AirFlowScheduler(AbstractScheduler):
 
     def submit_workflow(self, workflow: Workflow, project_desc: ProjectDesc, args: Dict = None) -> WorkflowInfo:
         dag_id = self.airflow_dag_id(project_desc.project_name, workflow.workflow_name)
-        code_text = self.dag_generator.generate(workflow, dag_id, args)
+        code_text = self.dag_generator.generate(workflow=workflow,
+                                                project_name=project_desc.project_name,
+                                                args=args)
         deploy_path = self.config.properties().get('airflow_deploy_path')
         if deploy_path is None:
             raise Exception("airflow_deploy_path config not set!")
@@ -189,7 +192,7 @@ class AirFlowScheduler(AbstractScheduler):
         workflow_execution_list = self.list_workflow_executions(project_name, workflow_name)
         for we in workflow_execution_list:
             if we.state == job_meta.State.RUNNING:
-                self.kill_workflow_execution(we.execution_id)
+                self.kill_workflow_execution(we.workflow_execution_id)
         return workflow_execution_list
 
     def kill_workflow_execution(self, execution_id: Text) -> Optional[WorkflowExecutionInfo]:
@@ -252,10 +255,10 @@ class AirFlowScheduler(AbstractScheduler):
             return JobExecutionInfo(job_name=job_name,
                                     state=self.airflow_state_to_state(task.state),
                                     workflow_execution
-                           =WorkflowExecutionInfo(workflow_info=WorkflowInfo(namespace=project_name,
-                                                                             workflow_name=workflow_name),
-                                                  workflow_execution_id=dag_run.run_id,
-                                                  state=self.airflow_state_to_state(dag_run.state)))
+                                    =WorkflowExecutionInfo(workflow_info=WorkflowInfo(namespace=project_name,
+                                                                                      workflow_name=workflow_name),
+                                                           workflow_execution_id=dag_run.run_id,
+                                                           state=self.airflow_state_to_state(dag_run.state)))
 
     def stop_job(self, job_name: Text, execution_id: Text) -> Optional[JobExecutionInfo]:
         with create_session() as session:
@@ -277,10 +280,10 @@ class AirFlowScheduler(AbstractScheduler):
             return JobExecutionInfo(job_name=job_name,
                                     state=self.airflow_state_to_state(task.state),
                                     workflow_execution
-                           =WorkflowExecutionInfo(workflow_info=WorkflowInfo(namespace=project_name,
-                                                                             workflow_name=workflow_name),
-                                                  workflow_execution_id=dag_run.run_id,
-                                                  state=self.airflow_state_to_state(dag_run.state)))
+                                    =WorkflowExecutionInfo(workflow_info=WorkflowInfo(namespace=project_name,
+                                                                                      workflow_name=workflow_name),
+                                                           workflow_execution_id=dag_run.run_id,
+                                                           state=self.airflow_state_to_state(dag_run.state)))
 
     def restart_job(self, job_name: Text, execution_id: Text) -> Optional[JobExecutionInfo]:
         with create_session() as session:
@@ -300,10 +303,10 @@ class AirFlowScheduler(AbstractScheduler):
             return JobExecutionInfo(job_name=job_name,
                                     state=self.airflow_state_to_state(task.state),
                                     workflow_execution
-                           =WorkflowExecutionInfo(workflow_info=WorkflowInfo(namespace=project_name,
-                                                                             workflow_name=workflow_name),
-                                                  workflow_execution_id=dag_run.run_id,
-                                                  state=self.airflow_state_to_state(dag_run.state)))
+                                    =WorkflowExecutionInfo(workflow_info=WorkflowInfo(namespace=project_name,
+                                                                                      workflow_name=workflow_name),
+                                                           workflow_execution_id=dag_run.run_id,
+                                                           state=self.airflow_state_to_state(dag_run.state)))
 
     def get_job(self, job_name: Text, execution_id: Text) -> Optional[JobExecutionInfo]:
         with create_session() as session:
@@ -320,10 +323,10 @@ class AirFlowScheduler(AbstractScheduler):
                 return JobExecutionInfo(job_name=job_name,
                                         state=self.airflow_state_to_state(task.state),
                                         workflow_execution
-                               =WorkflowExecutionInfo(workflow_info=WorkflowInfo(namespace=project_name,
-                                                                                 workflow_name=workflow_name),
-                                                      workflow_execution_id=dag_run.run_id,
-                                                      state=self.airflow_state_to_state(dag_run.state)))
+                                        =WorkflowExecutionInfo(workflow_info=WorkflowInfo(namespace=project_name,
+                                                                                          workflow_name=workflow_name),
+                                                               workflow_execution_id=dag_run.run_id,
+                                                               state=self.airflow_state_to_state(dag_run.state)))
 
     def list_jobs(self, execution_id: Text) -> List[JobExecutionInfo]:
         with create_session() as session:
@@ -341,9 +344,9 @@ class AirFlowScheduler(AbstractScheduler):
                     job = JobExecutionInfo(job_name=task.task_id,
                                            state=self.airflow_state_to_state(task.state),
                                            workflow_execution
-                                  =WorkflowExecutionInfo(workflow_info=WorkflowInfo(namespace=project_name,
-                                                                                    workflow_name=workflow_name),
-                                                         workflow_execution_id=dag_run.run_id,
-                                                         state=self.airflow_state_to_state(dag_run.state)))
+                                           =WorkflowExecutionInfo(workflow_info=WorkflowInfo(namespace=project_name,
+                                                                                             workflow_name=workflow_name),
+                                                                  workflow_execution_id=dag_run.run_id,
+                                                                  state=self.airflow_state_to_state(dag_run.state)))
                     result.append(job)
                 return result

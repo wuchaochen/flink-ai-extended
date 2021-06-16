@@ -16,11 +16,18 @@
 ## specific language governing permissions and limitations
 ## under the License.
 ##
-master_ip: localhost
-master_port: 50051
-db_uri: sqlite:///aiflow.db
-db_type: sql_lite
-scheduler:
-  scheduler_class_name: ai_flow_plugins.scheduler_plugins.airflow.airflow_scheduler.AirFlowScheduler
-  properties:
-    airflow_deploy_path: /tmp/airflow
+
+task_1:
+  job_type: dummy
+
+task_2:
+  job_type: dummy
+
+task_3:
+  job_type: dummy
+
+task_4:
+  job_type: dummy
+
+task_5:
+  job_type: dummy

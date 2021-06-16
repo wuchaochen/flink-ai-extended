@@ -35,7 +35,7 @@ def import_job_plugins_text(workflow: Workflow):
 
 class DAGTemplate(object):
     AIRFLOW_IMPORT = """
-from datetime import datetime
+import datetime
 from airflow.models.dag import DAG
 from ai_flow_plugins.scheduler_plugins.airflow.event_handler import AIFlowHandler
 from ai_flow_plugins.scheduler_plugins.airflow.ai_flow_operator import AIFlowOperator
@@ -44,8 +44,6 @@ from ai_flow.common import json_utils
 
 """
     LOAD_CONFIG = """
-project_path = '{}'
-project_desc = get_project_description_from(project_path)
 workflow_json = '{}'
 workflow = json_utils.loads(workflow_json)
 """
@@ -74,7 +72,7 @@ class DAGGenerator(object):
         OP_DEFINE = """
 job_json_{0} = '{1}'
 job_{0} = json_utils.loads(job_json_{0})
-op_{0} = AIFlowOperator(task_id='{2}', job=job_{0}, project_desc=project_desc, workflow=workflow, dag=dag)
+op_{0} = AIFlowOperator(task_id='{2}', job=job_{0}, workflow=workflow, dag=dag)
 """
         return 'job_{}'.format(self.op_count), OP_DEFINE.format(self.op_count, json_utils.dumps(job),
                                                                 job.job_name)
@@ -96,16 +94,15 @@ op_{0} = AIFlowOperator(task_id='{2}', job=job_{0}, project_desc=project_desc, w
     def generate(self,
                  workflow: Workflow,
                  project_name: Text,
-                 project_path: Text,
-                 default_args=None) -> Text:
+                 args=None) -> Text:
         code_text = DAGTemplate.AIRFLOW_IMPORT
-        code_text += DAGTemplate.LOAD_CONFIG.format(project_path, json_utils.dumps(workflow))
+        code_text += DAGTemplate.LOAD_CONFIG.format(json_utils.dumps(workflow))
         code_text += import_job_plugins_text(workflow)
 
-        if default_args is None:
-            default_args = DAGTemplate.DEFAULT_ARGS_VALUE
+        if args is None:
+            args = DAGTemplate.DEFAULT_ARGS_VALUE
         self.op_count = -1
-        code_text += DAGTemplate.DEFAULT_ARGS.format(default_args)
+        code_text += DAGTemplate.DEFAULT_ARGS.format(args)
 
         dag_id = '{}.{}'.format(project_name, workflow.workflow_name)
         code_text += DAGTemplate.DAG_DEFINE.format(dag_id)

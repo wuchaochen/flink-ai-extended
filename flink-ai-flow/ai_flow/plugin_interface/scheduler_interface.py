@@ -17,12 +17,12 @@
 from abc import ABC, abstractmethod
 from typing import Dict, Text, List, Optional
 from ai_flow.common.configuration import AIFlowConfiguration
-from ai_flow.common.json_utils import Jsonable
+from ai_flow.common import json_utils
 from ai_flow.workflow.workflow import Workflow
 from ai_flow.project.project_description import ProjectDesc
 
 
-class WorkflowInfo(Jsonable):
+class WorkflowInfo(json_utils.Jsonable):
 
     def __init__(self,
                  namespace: Text = None,
@@ -58,8 +58,11 @@ class WorkflowInfo(Jsonable):
     def properties(self, value):
         self._properties = value
 
+    def __str__(self) -> str:
+        return json_utils.dumps(self)
 
-class WorkflowExecutionInfo(Jsonable):
+
+class WorkflowExecutionInfo(json_utils.Jsonable):
     def __init__(self,
                  workflow_execution_id: Text,
                  workflow_info: WorkflowInfo = None,
@@ -124,8 +127,11 @@ class WorkflowExecutionInfo(Jsonable):
     def end_date(self, value):
         self._end_date = value
 
+    def __str__(self) -> str:
+        return json_utils.dumps(self)
 
-class JobExecutionInfo(object):
+
+class JobExecutionInfo(json_utils.Jsonable):
     def __init__(self,
                  job_name: Text = None,
                  state: Text = None,
@@ -201,12 +207,15 @@ class JobExecutionInfo(object):
     def properties(self, value):
         self._properties = value
 
+    def __str__(self) -> str:
+        return json_utils.dumps(self)
+
 
 class SchedulerConfig(AIFlowConfiguration):
 
     def repository(self):
         if 'repository' not in self:
-            return '/tmp/airflow'
+            return '/tmp'
         else:
             return self['repository']
 

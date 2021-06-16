@@ -100,7 +100,7 @@ class TestSchedulingService(unittest.TestCase):
                                    start_meta_service=False,
                                    start_metric_service=False,
                                    start_model_center_service=False,
-                                   start_scheder_service=True,
+                                   start_scheduler_service=True,
                                    scheduler_config=config)
         self.server.run()
 

@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from abc import ABC
-from typing import Text
+from typing import Text, Any
 
 from ai_flow.ai_graph.ai_graph import AISubGraph
 from ai_flow.plugin_interface.job_plugin_interface import AbstractJobPlugin, BaseJobHandler
@@ -24,8 +24,10 @@ from ai_flow.workflow.job import Job
 
 
 class DummyJobPlugin(AbstractJobPlugin, ABC):
+
     def __init__(self) -> None:
         super().__init__()
+        self.running = True
 
     def generate(self, sub_graph: AISubGraph, project_desc: ProjectDesc) -> Job:
         job = Job(job_config=sub_graph.config)
@@ -34,13 +36,17 @@ class DummyJobPlugin(AbstractJobPlugin, ABC):
     def generate_job_resource(self, job: Job, project_desc: ProjectDesc) -> None:
         pass
 
-    def submit_job(self, job: Job, project_desc: ProjectDesc) -> BaseJobHandler:
-        return BaseJobHandler(job=job, job_execution=None)
+    def submit_job(self, job: Job, project_desc: ProjectDesc, job_context: Any = None) -> BaseJobHandler:
+        self.running = False
+        return BaseJobHandler(job=job, job_execution=job_context)
 
-    def stop_job(self, job_handler: BaseJobHandler, project_desc: ProjectDesc):
+    def stop_job(self, job_handler: BaseJobHandler, project_desc: ProjectDesc, job_context: Any = None):
         pass
 
-    def cleanup_job(self, job_handler: BaseJobHandler, project_desc: ProjectDesc):
+    def cleanup_job(self, job_handler: BaseJobHandler, project_desc: ProjectDesc, job_context: Any = None):
+        pass
+
+    def wait_job_finished(self, job_handler: BaseJobHandler, project_desc: ProjectDesc, job_context: Any = None):
         pass
 
     def job_type(self) -> Text:

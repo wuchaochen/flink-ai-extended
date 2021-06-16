@@ -69,7 +69,7 @@ class AIFlowServer(object):
                  start_model_center_service: bool = True,
                  start_metric_service: bool = True,
                  start_deploy_service: bool = True,
-                 start_scheder_service: bool = True,
+                 start_scheduler_service: bool = True,
                  scheduler_config: Dict = None):
         self.executor = Executor(futures.ThreadPoolExecutor(max_workers=10))
         self.server = grpc.server(self.executor)
@@ -92,15 +92,8 @@ class AIFlowServer(object):
             logging.info("start metric service.")
             metric_service_pb2_grpc.add_MetricServiceServicer_to_server(MetricService(db_uri=store_uri), self.server)
 
-        if start_scheder_service:
+        if start_scheduler_service:
             logging.info("start scheduler service.")
-            if scheduler_config is None:
-                nf_uri = server_uri if start_default_notification else notification_uri
-                scheduler_config = SchedulerConfig()
-                scheduler_config.set_notification_service_uri(nf_uri)
-                scheduler_config.\
-                    set_scheduler_class_name('ai_flow.scheduler.implements.airflow_scheduler.AirFlowScheduler')
-                scheduler_config.set_repository('/tmp/airflow')
             real_config = SchedulerConfig()
             if scheduler_config.get('notification_uri') is None:
                 nf_uri = server_uri if start_default_notification else notification_uri

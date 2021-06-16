@@ -15,11 +15,10 @@
 # specific language governing permissions and limitations
 # under the License.
 from abc import abstractmethod, ABC
-from typing import Text, Dict
+from typing import Text, Dict, Any
 import logging
 from ai_flow.common.registry import BaseRegistry
-from ai_flow.common.json_utils import Jsonable
-from ai_flow.ai_graph.ai_graph import AISubGraph
+from ai_flow.common.json_utils import Jsonable, dumps
 from ai_flow.plugin_interface.scheduler_interface import JobExecutionInfo
 from ai_flow.project.project_description import ProjectDesc
 from ai_flow.translator.translator import register_job_generator
@@ -33,6 +32,9 @@ class BaseJobHandler(Jsonable):
                  job_execution: JobExecutionInfo) -> None:
         self.job: Job = job
         self.job_execution: JobExecutionInfo = job_execution
+
+    def __str__(self) -> str:
+        return dumps(self)
 
 
 class BaseJobSubmitter(ABC):
@@ -49,9 +51,10 @@ class BaseJobSubmitter(ABC):
         pass
 
     @abstractmethod
-    def submit_job(self, job: Job, project_desc: ProjectDesc) -> BaseJobHandler:
+    def submit_job(self, job: Job, project_desc: ProjectDesc, job_context: Any = None) -> BaseJobHandler:
         """
         submit an executable job to run.
+        :param job_context:
         :param job: A job object that contains the necessary information for an execution.
         :param project_desc: The ai flow project description.
         :return base_job_handler: a job handler that maintain the handler of a jobs runtime.
@@ -59,18 +62,30 @@ class BaseJobSubmitter(ABC):
         pass
 
     @abstractmethod
-    def stop_job(self, job_handler: BaseJobHandler, project_desc: ProjectDesc):
+    def stop_job(self, job_handler: BaseJobHandler, project_desc: ProjectDesc, job_context: Any = None):
         """
         Stop a ai flow job.
+        :param job_context:
         :param job_handler: The job handler that contains the necessary information for an execution.
         :param project_desc: The ai flow project description.
         """
         pass
 
     @abstractmethod
-    def cleanup_job(self, job_handler: BaseJobHandler, project_desc: ProjectDesc):
+    def cleanup_job(self, job_handler: BaseJobHandler, project_desc: ProjectDesc, job_context: Any = None):
         """
         clean up temporary resources created during this execution.
+        :param job_context:
+        :param job_handler: The job handler that contains the necessary information for an execution.
+        :param project_desc: The ai flow project description.
+        """
+        pass
+
+    @abstractmethod
+    def wait_job_finished(self, job_handler: BaseJobHandler, project_desc: ProjectDesc, job_context: Any = None):
+        """
+        wait the job finished.
+        :param job_context:
         :param job_handler: The job handler that contains the necessary information for an execution.
         :param project_desc: The ai flow project description.
         """
@@ -115,53 +130,6 @@ class AbstractJobPlugin(BaseJobGenerator, BaseJobSubmitter):
 
     def __init__(self) -> None:
         super().__init__()
-
-    @abstractmethod
-    def generate(self, sub_graph: AISubGraph, project_desc: ProjectDesc) -> Job:
-        """
-        Generate the job to execute.
-        :param sub_graph: The sub graph of AI graph, which describes the operation logic of a job
-        :param project_desc: The ai flow project description.
-        :return: the job.
-        """
-        pass
-
-    @abstractmethod
-    def generate_job_resource(self, job: Job, project_desc: ProjectDesc) -> None:
-        """
-        :param job: A base job object that contains the necessary information for an execution.
-        :param project_desc: The ai flow project description.
-        :return None
-        """
-        pass
-
-    @abstractmethod
-    def submit_job(self, job: Job, project_desc: ProjectDesc) -> BaseJobHandler:
-        """
-        submit an executable job to run.
-        :param job: A base job object that contains the necessary information for an execution.
-        :param project_desc: The ai flow project description.
-        :return base_job_handler: a job handler that maintain the handler of a jobs runtime.
-        """
-        pass
-
-    @abstractmethod
-    def stop_job(self, job_handler: BaseJobHandler, project_desc: ProjectDesc):
-        """
-        Stop a ai flow job.
-        :param job_handler: The job handler that contains the necessary information for an execution.
-        :param project_desc: The ai flow project description.
-        """
-        pass
-
-    @abstractmethod
-    def cleanup_job(self, job_handler: BaseJobHandler, project_desc: ProjectDesc):
-        """
-        clean up temporary resources created during this execution.
-        :param job_handler: The job handler that contains the necessary information for an execution.
-        :param project_desc: The ai flow project description.
-        """
-        pass
 
     @abstractmethod
     def job_type(self) -> Text:

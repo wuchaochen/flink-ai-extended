@@ -24,14 +24,17 @@ from ai_flow.plugin_interface.scheduler_interface import WorkflowInfo, WorkflowE
 def workflow_to_proto(workflow: WorkflowInfo) -> WorkflowProto:
     if workflow is None:
         return None
-    return WorkflowProto(name=workflow.workflow_name, namespace=workflow.namespace)
+    wp = WorkflowProto(name=workflow.workflow_name, namespace=workflow.namespace)
+    for k, v in workflow.properties.items():
+        wp.properties[k] = v
+    return wp
 
 
 def proto_to_workflow(proto: WorkflowProto) -> WorkflowInfo:
     if proto is None:
         return None
     else:
-        return WorkflowInfo(namespace=proto.namespace, workflow_name=proto.name)
+        return WorkflowInfo(namespace=proto.namespace, workflow_name=proto.name, properties=dict(proto.properties))
 
 
 def workflow_list_to_proto(workflow_list: List[WorkflowInfo]) -> List[WorkflowProto]:
@@ -49,9 +52,12 @@ def proto_to_workflow_list(proto_list: List[WorkflowProto]) -> List[WorkflowInfo
 
 
 def workflow_execution_to_proto(workflow_execution: WorkflowExecutionInfo) -> WorkflowExecutionProto:
-    return WorkflowExecutionProto(execution_id=workflow_execution.workflow_execution_id,
-                                  execution_state=StateProto.Value(workflow_execution.state.value),
-                                  workflow=workflow_to_proto(workflow_execution.workflow_info))
+    wp = WorkflowExecutionProto(execution_id=workflow_execution.workflow_execution_id,
+                                execution_state=StateProto.Value(workflow_execution.state.value),
+                                workflow=workflow_to_proto(workflow_execution.workflow_info))
+    for k, v in workflow_execution.properties.items():
+        wp.properties[k] = v
+    return wp
 
 
 def proto_to_workflow_execution(proto: WorkflowExecutionProto) -> WorkflowExecutionInfo:
@@ -60,7 +66,8 @@ def proto_to_workflow_execution(proto: WorkflowExecutionProto) -> WorkflowExecut
     else:
         return WorkflowExecutionInfo(workflow_execution_id=proto.execution_id,
                                      state=ProtoToMeta.proto_to_state(proto.execution_state),
-                                     workflow_info=proto_to_workflow(proto.workflow))
+                                     workflow_info=proto_to_workflow(proto.workflow),
+                                     properties=dict(proto.properties))
 
 
 def workflow_execution_list_to_proto(workflow_execution_list: List[WorkflowExecutionInfo]) \
