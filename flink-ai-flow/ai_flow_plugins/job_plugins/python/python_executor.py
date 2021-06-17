@@ -27,9 +27,7 @@ class ExecutionContext(json_utils.Jsonable):
                  job_execution_info: JobExecutionInfo,
                  node_spec: AINode):
         self._job_execution_info = job_execution_info
-        self._job_config = node_spec.config
-        self._properties = node_spec.properties
-        self._name = node_spec.name
+        self._ai_node = node_spec
 
     @property
     def job_execution_info(self)-> JobExecutionInfo:
@@ -37,15 +35,19 @@ class ExecutionContext(json_utils.Jsonable):
 
     @property
     def name(self):
-        return self._name
+        return self._ai_node.name
 
     @property
     def job_config(self)-> JobConfig:
-        return self._job_config
+        return self._ai_node.config
 
     @property
     def properties(self)->Dict:
-        return self._properties
+        return self._ai_node.properties
+
+    @property
+    def ai_node(self)->AINode:
+        return self._ai_node
 
 
 class PythonExecutor(object):
