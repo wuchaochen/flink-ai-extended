@@ -26,3 +26,10 @@ task_2:
     env:
       a: a
       b: b
+
+task_3:
+  job_type: python
+  properties:
+    env:
+      a: a
+      b: b

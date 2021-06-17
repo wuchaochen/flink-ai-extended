@@ -16,8 +16,7 @@
 # under the License.
 import os
 import signal
-from abc import ABC
-from tempfile import TemporaryDirectory, NamedTemporaryFile
+from tempfile import NamedTemporaryFile
 from typing import Text, Any, Dict
 from subprocess import PIPE, STDOUT, Popen
 from ai_flow.common import serialization_utils
@@ -45,7 +44,7 @@ class BashJobHandler(BaseJobHandler):
         self.sub_process = {}
 
 
-class BashJobPlugin(AbstractJobPlugin, ABC):
+class BashJobPlugin(AbstractJobPlugin):
 
     def __init__(self) -> None:
         super().__init__()
@@ -58,10 +57,10 @@ class BashJobPlugin(AbstractJobPlugin, ABC):
         return job
 
     def generate_job_resource(self, job: Job, project_desc: ProjectDesc) -> None:
-        job_graph_path = os.path.join(project_desc.get_absolute_temp_path(), 'job_graph')
+        job_graph_path = os.path.join(project_desc.get_absolute_temp_path(), 'bash')
         if not os.path.exists(job_graph_path):
             os.makedirs(job_graph_path)
-        with NamedTemporaryFile(mode='w+b', dir=job_graph_path, delete=False) as fp:
+        with NamedTemporaryFile(mode='w+b', dir=job_graph_path, prefix='{}_'.format(job.job_name), delete=False) as fp:
             job.sub_graph_path = fp.name
             fp.write(serialization_utils.serialize(job.executors))
         job.executors = None

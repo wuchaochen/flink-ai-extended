@@ -31,6 +31,10 @@ def init_ai_flow_context(workflow_entry_file: Text):
     init_workflow_context(workflow_name)
 
 
+def init_ai_flow_context_by_name(project_path: Text, workflow_name: Text):
+    init_ai_flow_context(os.path.join(project_path, 'workflows', workflow_name, '{}.py'.format(workflow_name)))
+
+
 def __ensure_project_registered():
     """ Ensure the project configured in project.yaml has been registered. """
 

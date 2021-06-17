@@ -79,7 +79,10 @@ class AIFlowOperator(BaseOperator):
     def execute(self, context: Any):
         self.log.info("context:" + str(context))
         self.job_handler: BaseJobHandler = self.job_submitter.submit_job(self.job, self.project_desc, self.job_context)
-        return self.job_submitter.wait_job_finished(self.job_handler, self.project_desc, self.job_context)
+        result = self.job_submitter.wait_job_finished(self.job_handler, self.project_desc, self.job_context)
+        self.job_submitter.cleanup_job(self.job_handler, self.project_desc, self.job_context)
+        return result
 
     def on_kill(self):
         self.job_submitter.stop_job(self.job_handler, self.project_desc, self.job_context)
+        self.job_submitter.cleanup_job(self.job_handler, self.project_desc, self.job_context)
