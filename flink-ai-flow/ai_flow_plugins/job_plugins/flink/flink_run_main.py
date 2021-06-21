@@ -35,10 +35,10 @@ def run_project(run_graph_file, run_args_file, flink_env_file):
     run_graph: RunGraph = read_from_serialized_file(run_graph_file)
     args: RunArgs = read_from_serialized_file(run_args_file)
     flink_env: AbstractFlinkEnv = read_from_serialized_file(flink_env_file)
-    entry_module_path = args.entry_module_path
     project_path = args.project_path
     job_execution_info: JobExecutionInfo = args.job_execution_info
     workflow_name = job_execution_info.workflow_execution.workflow_info.workflow_name
+    entry_module_path = job_execution_info.workflow_execution.workflow_info.workflow_name
     init_ai_flow_context_by_name(project_path=project_path, workflow_name=workflow_name)
     mdl = importlib.import_module(entry_module_path)
     if "__all__" in mdl.__dict__:

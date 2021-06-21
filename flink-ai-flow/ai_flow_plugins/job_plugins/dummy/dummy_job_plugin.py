@@ -18,7 +18,7 @@ from abc import ABC
 from typing import Text, Any
 
 from ai_flow.ai_graph.ai_graph import AISubGraph
-from ai_flow.plugin_interface.job_plugin_interface import AbstractJobPlugin, BaseJobHandler
+from ai_flow.plugin_interface.job_plugin_interface import AbstractJobPlugin, JobHandler, JobExecutionContext
 from ai_flow.project.project_description import ProjectDesc
 from ai_flow.workflow.job import Job
 
@@ -35,17 +35,13 @@ class DummyJobPlugin(AbstractJobPlugin, ABC):
     def generate_job_resource(self, job: Job, project_desc: ProjectDesc) -> None:
         pass
 
-    def submit_job(self, job: Job, project_desc: ProjectDesc, job_context: Any = None) -> BaseJobHandler:
-        handler = BaseJobHandler(job=job, job_execution=job_context)
-        return handler
+    def submit_job(self, job: Job, job_context: JobExecutionContext) -> JobHandler:
+        return JobHandler(job=job, job_execution=job_context.job_execution_info)
 
-    def stop_job(self, job_handler: BaseJobHandler, project_desc: ProjectDesc, job_context: Any = None):
+    def stop_job(self, job_handler: JobHandler, job_context: JobExecutionContext):
         pass
 
-    def cleanup_job(self, job_handler: BaseJobHandler, project_desc: ProjectDesc, job_context: Any = None):
-        pass
-
-    def wait_job_finished(self, job_handler: BaseJobHandler, project_desc: ProjectDesc, job_context: Any = None):
+    def cleanup_job(self, job_handler: JobHandler, job_context: JobExecutionContext):
         pass
 
     def job_type(self) -> Text:

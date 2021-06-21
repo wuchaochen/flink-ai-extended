@@ -17,7 +17,7 @@
 # under the License.
 #
 from typing import List, Dict, Text
-from ai_flow.workflow.workflow_config import WorkFlowConfig
+from ai_flow.workflow.workflow_config import WorkflowConfig
 from ai_flow.workflow.control_edge import ControlEdge
 from ai_flow.workflow.job import Job
 from ai_flow.graph.graph import Graph
@@ -27,7 +27,7 @@ class Workflow(Graph):
 
     def __init__(self) -> None:
         super().__init__()
-        self.workflow_config: WorkFlowConfig = None
+        self.workflow_config: WorkflowConfig = None
         self.workflow_id: Text = None
         self.project_uri = None
 

@@ -22,6 +22,7 @@ from ai_flow.project.project_description import ProjectDesc, get_project_descrip
 class ProjectContext(object):
     def __init__(self) -> None:
         self.project_desc: ProjectDesc = None
+        self.project_config: ProjectConfig = None
 
 
 __default_project_context__ = ProjectContext()
@@ -30,6 +31,11 @@ __default_project_context__ = ProjectContext()
 def init_project_context(project_path: Text):
     project_desc = get_project_description_from(project_path)
     __default_project_context__.project_desc = project_desc
+    __default_project_context__.project_config = project_desc.project_config
+
+
+def init_project_context_by_config():
+    __default_project_context__.project_config = project_desc.project_config
 
 
 def project_description() -> ProjectDesc:

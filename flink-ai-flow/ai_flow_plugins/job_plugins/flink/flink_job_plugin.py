@@ -19,7 +19,7 @@ import sys
 import signal
 import logging
 from abc import ABC
-from tempfile import NamedTemporaryFile
+from tempfile import NamedTemporaryFile, mkdtemp
 from typing import Text, Any, Dict, List
 from subprocess import Popen
 
@@ -30,7 +30,7 @@ from ai_flow.common import serialization_utils
 from ai_flow.common import json_utils
 from ai_flow.workflow.job_config import JobConfig
 from ai_flow.ai_graph.ai_graph import AISubGraph
-from ai_flow.plugin_interface.job_plugin_interface import AbstractJobPlugin, BaseJobHandler
+from ai_flow.plugin_interface.job_plugin_interface import AbstractJobPlugin, JobHandler, JobExecutionContext
 from ai_flow.plugin_interface.scheduler_interface import JobExecutionInfo
 from ai_flow.project.project_description import ProjectDesc
 from ai_flow.workflow.job import Job
@@ -52,11 +52,9 @@ class RunGraph(json_utils.Jsonable):
 class RunArgs(json_utils.Jsonable):
     def __init__(self,
                  project_path: Text,
-                 entry_module_path: Text,
                  job_execution_info: JobExecutionInfo) -> None:
         super().__init__()
         self.project_path: Text = project_path
-        self.entry_module_path: Text = entry_module_path
         self.job_execution_info: JobExecutionInfo = job_execution_info
 
 
@@ -105,19 +103,30 @@ def flink_execute_func(run_graph: RunGraph, job_execution_info: JobExecutionInfo
 
 
 class FlinkJob(Job):
-    def __init__(self, job_config: JobConfig, run_graph: RunGraph):
+    def __init__(self, job_config: JobConfig):
         super().__init__(job_config)
-        self.run_graph = run_graph
         self.run_graph_file: Text = None
         self.flink_env_file: Text = None
 
 
-class FlinkJobHandler(BaseJobHandler):
+class FlinkJobHandler(JobHandler):
+
     def __init__(self, job: Job,
                  job_execution: JobExecutionInfo):
         super().__init__(job=job, job_execution=job_execution)
         self.sub_process = None
         self.run_args_file = None
+
+    def wait_finished(self):
+        self.log.info('Output:')
+
+        self.sub_process.wait()
+
+        self.log.info('Command exited with return code %s', self.sub_process.returncode)
+
+        if self.sub_process.returncode != 0:
+            raise Exception('Bash command failed. The command returned a non-zero exit code.')
+        return None
 
 
 class FlinkJobPlugin(AbstractJobPlugin, ABC):
@@ -166,47 +175,41 @@ class FlinkJobPlugin(AbstractJobPlugin, ABC):
             processed_size = len(processed_nodes)
         return run_graph
 
-    def generate(self, sub_graph: AISubGraph, project_desc: ProjectDesc) -> Job:
+    def generate(self, sub_graph: AISubGraph) -> Job:
         flink_job_config: FlinkJobConfig = sub_graph.config
         run_graph: RunGraph = self.build_run_graph(sub_graph)
-        return FlinkJob(job_config=flink_job_config, run_graph=run_graph)
+        job = FlinkJob(job_config=flink_job_config)
+        tmp_dir = mkdtemp(prefix=job.job_name, dir='/tmp')
+        with NamedTemporaryFile(mode='w+b', dir=tmp_dir,
+                                prefix='{}_run_graph_'.format(job.job_name), delete=False) as fp:
+            job.run_graph_file = os.path.basename(fp.name)
+            fp.write(serialization_utils.serialize(run_graph))
 
-    def generate_job_resource(self, job: Job, project_desc: ProjectDesc) -> None:
-        flink_job: FlinkJob = job
-        job_graph_path = os.path.join(project_desc.get_absolute_temp_path(), 'flink')
-        if not os.path.exists(job_graph_path):
-            os.makedirs(job_graph_path)
-        with NamedTemporaryFile(mode='w+b', dir=job_graph_path,
-                                prefix='{}_run_graph'.format(job.job_name), delete=False) as fp:
-            flink_job.run_graph_file = fp.name
-            fp.write(serialization_utils.serialize(flink_job.run_graph))
-        flink_job.run_graph = None
-
-        with NamedTemporaryFile(mode='w+b', dir=job_graph_path,
-                                prefix='{}_flink_env'.format(job.job_name), delete=False) as fp:
-            flink_job.flink_env_file = fp.name
+        with NamedTemporaryFile(mode='w+b', dir=tmp_dir,
+                                prefix='{}_flink_env_'.format(job.job_name), delete=False) as fp:
+            job.flink_env_file = os.path.basename(fp.name)
             fp.write(serialization_utils.serialize(get_flink_env()))
+        job.resource_dir = tmp_dir
+        return job
 
-    def submit_job(self, job: Job, project_desc: ProjectDesc, job_context: Any = None) -> BaseJobHandler:
-        job_execution_info: JobExecutionInfo = job_context
-        run_args: RunArgs = RunArgs(project_path=project_desc.project_path,
-                                    entry_module_path=job_execution_info.workflow_execution.workflow_info.workflow_name,
+    def submit_job(self, job: Job, job_context: JobExecutionContext = None) -> JobHandler:
+        job_execution_info: JobExecutionInfo = job_context.job_execution_info
+        run_args: RunArgs = RunArgs(project_path=job_context.job_runtime_env.project_path,
                                     job_execution_info=job_execution_info)
 
-        job_graph_path = os.path.join(project_desc.get_absolute_temp_path(), 'flink')
-        with NamedTemporaryFile(mode='w+b', dir=job_graph_path,
-                                prefix='{}_run_args'.format(job.job_name), delete=False) as fp:
+        with NamedTemporaryFile(mode='w+b', dir=job_context.job_runtime_env.generated_dir,
+                                prefix='{}_run_args_'.format(job.job_name), delete=False) as fp:
             run_args_file = fp.name
             fp.write(serialization_utils.serialize(run_args))
-        handler = FlinkJobHandler(job=job, job_execution=job_context)
+        handler = FlinkJobHandler(job=job, job_execution=job_context.job_execution_info)
         flink_job: FlinkJob = job
-        run_graph_file = flink_job.run_graph_file
-        flink_env_file = flink_job.flink_env_file
+        run_graph_file = os.path.join(job_context.job_runtime_env.generated_dir, flink_job.run_graph_file)
+        flink_env_file = os.path.join(job_context.job_runtime_env.generated_dir, flink_job.flink_env_file)
         env = os.environ.copy()
         env.update(job.job_config.properties.get('env', {}))
         # Add PYTHONEPATH
         copy_path = sys.path.copy()
-        copy_path.insert(0, project_desc.get_absolute_python_dependencies_path())
+        copy_path.insert(0, job_context.job_runtime_env.python_dep_dir)
         env['PYTHONPATH'] = ':'.join(copy_path)
 
         current_path = os.path.dirname(__file__)
@@ -214,21 +217,21 @@ class FlinkJobPlugin(AbstractJobPlugin, ABC):
         python3_location = sys.executable
         bash_command = [python3_location, script_path, run_graph_file, run_args_file, flink_env_file]
 
-        stdout_log = log_path_utils.stdout_log_path(project_desc.get_absolute_log_path(), job.job_name)
-        stderr_log = log_path_utils.stderr_log_path(project_desc.get_absolute_log_path(), job.job_name)
-        if not os.path.exists(project_desc.get_absolute_log_path()):
-            os.mkdir(project_desc.get_absolute_log_path())
+        stdout_log = log_path_utils.stdout_log_path(job_context.job_runtime_env.log_dir, job.job_name)
+        stderr_log = log_path_utils.stderr_log_path(job_context.job_runtime_env.log_dir, job.job_name)
+        if not os.path.exists(job_context.job_runtime_env.log_dir):
+            os.makedirs(job_context.job_runtime_env.log_dir)
 
         sub_process = self.submit_process(bash_command=bash_command,
                                           env=env,
-                                          working_dir=project_desc.get_absolute_temp_path(),
+                                          working_dir=job_context.job_runtime_env.working_dir,
                                           stdout_log=stdout_log,
                                           stderr_log=stderr_log)
         handler.sub_process = sub_process
         handler.run_args_file = run_args_file
         return handler
 
-    def stop_job(self, job_handler: BaseJobHandler, project_desc: ProjectDesc, job_context: Any = None):
+    def stop_job(self, job_handler: JobHandler, project_desc: ProjectDesc, job_context: Any = None):
         handler: FlinkJobHandler = job_handler
         self.log.info('Output:')
         sub_process = handler.sub_process
@@ -236,22 +239,9 @@ class FlinkJobPlugin(AbstractJobPlugin, ABC):
         if sub_process and hasattr(sub_process, 'pid'):
             os.killpg(os.getpgid(sub_process.pid), signal.SIGTERM)
 
-    def cleanup_job(self, job_handler: BaseJobHandler, project_desc: ProjectDesc, job_context: Any = None):
+    def cleanup_job(self, job_handler: JobHandler, project_desc: ProjectDesc, job_context: Any = None):
         if os.path.exists(job_handler.run_args_file):
             os.remove(job_handler.run_args_file)
-
-    def wait_job_finished(self, job_handler: BaseJobHandler, project_desc: ProjectDesc, job_context: Any = None):
-        handler: FlinkJobHandler = job_handler
-        self.log.info('Output:')
-        sub_process = handler.sub_process
-
-        sub_process.wait()
-
-        self.log.info('Command exited with return code %s', sub_process.returncode)
-
-        if sub_process.returncode != 0:
-            raise Exception('Bash command failed. The command returned a non-zero exit code.')
-        return None
 
     def job_type(self) -> Text:
         return "flink"

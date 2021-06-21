@@ -16,15 +16,14 @@
 # under the License.
 import os
 import signal
-from tempfile import NamedTemporaryFile
+from tempfile import NamedTemporaryFile, mkdtemp
 from typing import Text, Any, Dict
 from subprocess import PIPE, STDOUT, Popen
 from ai_flow.common import serialization_utils
 from ai_flow.workflow.job_config import JobConfig
 from ai_flow.ai_graph.ai_graph import AISubGraph
-from ai_flow.plugin_interface.job_plugin_interface import AbstractJobPlugin, BaseJobHandler
+from ai_flow.plugin_interface.job_plugin_interface import AbstractJobPlugin, JobHandler, JobExecutionContext
 from ai_flow.plugin_interface.scheduler_interface import JobExecutionInfo
-from ai_flow.project.project_description import ProjectDesc
 from ai_flow.workflow.job import Job
 from ai_flow_plugins.job_plugins.bash.bash_job_config import BashJobConfig
 from ai_flow_plugins.job_plugins.bash.bash_executor import BashExecutor
@@ -34,74 +33,26 @@ class BashJob(Job):
     def __init__(self, job_config: JobConfig):
         super().__init__(job_config)
         self.sub_graph_path = None
-        self.executors = {}
 
 
-class BashJobHandler(BaseJobHandler):
+class BashJobHandler(JobHandler):
+
     def __init__(self, job: Job,
                  job_execution: JobExecutionInfo):
         super().__init__(job=job, job_execution=job_execution)
         self.sub_process = {}
+        self.sub_graph_path = None
+        self.lines = {}
 
+    def get_result(self) -> object:
+        return self.lines
 
-class BashJobPlugin(AbstractJobPlugin):
-
-    def __init__(self) -> None:
-        super().__init__()
-
-    def generate(self, sub_graph: AISubGraph, project_desc: ProjectDesc) -> Job:
-        bash_job_config: BashJobConfig = sub_graph.config
-        job = BashJob(job_config=bash_job_config)
-        for k, v in sub_graph.nodes.items():
-            job.executors[k] = v.get_executor()
-        return job
-
-    def generate_job_resource(self, job: Job, project_desc: ProjectDesc) -> None:
-        job_graph_path = os.path.join(project_desc.get_absolute_temp_path(), 'bash')
-        if not os.path.exists(job_graph_path):
-            os.makedirs(job_graph_path)
-        with NamedTemporaryFile(mode='w+b', dir=job_graph_path, prefix='{}_'.format(job.job_name), delete=False) as fp:
-            job.sub_graph_path = fp.name
-            fp.write(serialization_utils.serialize(job.executors))
-        job.executors = None
-
-    def submit_job(self, job: Job, project_desc: ProjectDesc, job_context: Any = None) -> BaseJobHandler:
-        handler = BashJobHandler(job=job, job_execution=job_context)
-        bash_job: BashJob = job
-        with open(bash_job.sub_graph_path, 'rb') as f:
-            executors: Dict = serialization_utils.deserialize(f.read())
-        for k, v in executors.items():
-            executor: BashExecutor = v
-            sub_process = self.submit_one_process(executor=executor,
-                                                  env=job.job_config.properties.get('env'),
-                                                  working_dir=project_desc.get_absolute_temp_path())
-            handler.sub_process[k] = sub_process
-        return handler
-
-    def stop_job(self, job_handler: BaseJobHandler, project_desc: ProjectDesc, job_context: Any = None):
-        handler: BashJobHandler = job_handler
-        bash_job: BashJob = job_handler.job
-        with open(bash_job.sub_graph_path, 'rb') as f:
+    def wait_finished(self):
+        with open(self.sub_graph_path, 'rb') as f:
             executors: Dict = serialization_utils.deserialize(f.read())
         for k, v in executors.items():
             self.log.info('{} Output:'.format(k))
-            sub_process = handler.sub_process.get(k)
-            self.log.info('Sending SIGTERM signal to bash process group')
-            if sub_process and hasattr(sub_process, 'pid'):
-                os.killpg(os.getpgid(sub_process.pid), signal.SIGTERM)
-
-    def cleanup_job(self, job_handler: BaseJobHandler, project_desc: ProjectDesc, job_context: Any = None):
-        pass
-
-    def wait_job_finished(self, job_handler: BaseJobHandler, project_desc: ProjectDesc, job_context: Any = None):
-        handler: BashJobHandler = job_handler
-        job: BashJob = job_handler.job
-        with open(job.sub_graph_path, 'rb') as f:
-            executors: Dict = serialization_utils.deserialize(f.read())
-        lines = {}
-        for k, v in executors.items():
-            self.log.info('{} Output:'.format(k))
-            sub_process = handler.sub_process.get(k)
+            sub_process = self.sub_process.get(k)
             line = ''
             for raw_line in iter(sub_process.stdout.readline, b''):
                 line = raw_line.decode(v.output_encoding).rstrip()
@@ -113,8 +64,59 @@ class BashJobPlugin(AbstractJobPlugin):
 
             if sub_process.returncode != 0:
                 raise Exception('Bash command failed. The command returned a non-zero exit code.')
-            lines[k] = line
-        return lines
+            self.lines[k] = line
+
+
+class BashJobPlugin(AbstractJobPlugin):
+
+    def __init__(self) -> None:
+        super().__init__()
+
+    def generate(self, sub_graph: AISubGraph) -> Job:
+        bash_job_config: BashJobConfig = sub_graph.config
+        job = BashJob(job_config=bash_job_config)
+        executors = {}
+        for k, v in sub_graph.nodes.items():
+            executors[k] = v.get_executor()
+        tmp_dir = mkdtemp(prefix=job.job_name, dir='/tmp')
+        with NamedTemporaryFile(mode='w+b', dir=tmp_dir, prefix='{}_bash_'.format(job.job_name), delete=False) as fp:
+            job.sub_graph_path = os.path.basename(fp.name)
+            fp.write(serialization_utils.serialize(executors))
+        job.resource_dir = tmp_dir
+        return job
+
+    def submit_job(self, job: Job, job_context: JobExecutionContext) -> JobHandler:
+        handler = BashJobHandler(job=job, job_execution=job_context.job_execution_info)
+        bash_job: BashJob = job
+        executor_file = os.path.join(job_context.job_runtime_env.generated_dir, bash_job.sub_graph_path)
+        with open(executor_file, 'rb') as f:
+            executors: Dict = serialization_utils.deserialize(f.read())
+        for k, v in executors.items():
+            executor: BashExecutor = v
+            env = os.environ.copy()
+            if 'env' in job.job_config.properties:
+                env.update(job.job_config.properties.get('env'))
+            sub_process = self.submit_one_process(executor=executor,
+                                                  env=env,
+                                                  working_dir=job_context.job_runtime_env.working_dir)
+            handler.sub_process[k] = sub_process
+        handler.sub_graph_path = executor_file
+        return handler
+
+    def stop_job(self, job_handler: JobHandler, job_context: JobExecutionContext = None):
+        handler: BashJobHandler = job_handler
+        executor_file = job_handler.sub_graph_path
+        with open(executor_file, 'rb') as f:
+            executors: Dict = serialization_utils.deserialize(f.read())
+        for k, v in executors.items():
+            self.log.info('{} Output:'.format(k))
+            sub_process = handler.sub_process.get(k)
+            self.log.info('Sending SIGTERM signal to bash process group')
+            if sub_process and hasattr(sub_process, 'pid'):
+                os.killpg(os.getpgid(sub_process.pid), signal.SIGTERM)
+
+    def cleanup_job(self, job_handler: JobHandler, job_context: JobExecutionContext = None):
+        pass
 
     def job_type(self) -> Text:
         return "bash"

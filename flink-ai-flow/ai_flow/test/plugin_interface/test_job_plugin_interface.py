@@ -18,7 +18,7 @@ import unittest
 from typing import Text
 
 from ai_flow.ai_graph.ai_graph import AISubGraph
-from ai_flow.plugin_interface.job_plugin_interface import register_job_plugin, AbstractJobPlugin, BaseJobHandler, \
+from ai_flow.plugin_interface.job_plugin_interface import register_job_plugin, AbstractJobPlugin, JobHandler, \
     get_registered_job_plugins
 from ai_flow.project.project_description import ProjectDesc
 from ai_flow.workflow.job import Job
@@ -31,13 +31,13 @@ class MockJobPlugin(AbstractJobPlugin):
     def generate_job_resource(self, job: Job, project_desc: ProjectDesc) -> None:
         pass
 
-    def submit_job(self, job: Job, project_desc: ProjectDesc) -> BaseJobHandler:
+    def submit_job(self, job: Job, project_desc: ProjectDesc) -> JobHandler:
         pass
 
-    def stop_job(self, job_handler: BaseJobHandler, project_desc: ProjectDesc):
+    def stop_job(self, job_handler: JobHandler, project_desc: ProjectDesc):
         pass
 
-    def cleanup_job(self, job_handler: BaseJobHandler, project_desc: ProjectDesc):
+    def cleanup_job(self, job_handler: JobHandler, project_desc: ProjectDesc):
         pass
 
     def job_type(self) -> Text:

@@ -40,11 +40,7 @@ class BaseJobGenerator(ABC):
         super().__init__()
 
     @abstractmethod
-    def generate(self, sub_graph: AISubGraph, project_desc: ProjectDesc) -> Job:
-        pass
-
-    @abstractmethod
-    def generate_job_resource(self, job: Job, project_desc: ProjectDesc) -> None:
+    def generate(self, sub_graph: AISubGraph) -> Job:
         pass
 
 

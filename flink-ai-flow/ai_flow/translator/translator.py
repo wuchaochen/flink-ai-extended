@@ -36,6 +36,10 @@
 #
 from typing import Dict, Text
 import copy
+import time
+import os
+import shutil
+from ai_flow.context.workflow_context import workflow_config
 from ai_flow.translator.base_translator import BaseGraphSplitter, BaseJobGenerator, BaseWorkflowConstructor, \
     BaseTranslator
 from ai_flow.rest_endpoint.service.client.aiflow_client import AIFlowClient
@@ -103,6 +107,9 @@ class WorkflowConstructor(BaseWorkflowConstructor):
 
     def build_workflow(self, split_graph: SplitGraph, project_desc: ProjectDesc) -> Workflow:
         workflow = Workflow()
+        workflow.workflow_config = workflow_config()
+        workflow.workflow_id = '{}.{}.{}'.format(project_desc.project_name, workflow.workflow_name,
+                                                 round(time.time() * 1000))
         # add ai_nodes to workflow
         for sub in split_graph.nodes.values():
             if sub.config.job_type not in self.job_generator_registry.object_dict:
@@ -110,8 +117,16 @@ class WorkflowConstructor(BaseWorkflowConstructor):
                                 .format(sub.config.job_type))
             generator: BaseJobGenerator = self.job_generator_registry \
                 .get_object(sub.config.job_type)
-            job: Job = generator.generate(sub_graph=sub, project_desc=project_desc)
+            job: Job = generator.generate(sub_graph=sub)
             workflow.add_job(job)
+            # copy job resource
+            job_resource_dir = os.path.join(project_desc.get_absolute_generated_path(),
+                                            workflow.workflow_id,
+                                            job.job_name)
+            if job.resource_dir is not None and os.path.isdir(job.resource_dir):
+                shutil.copytree(job.resource_dir, job_resource_dir)
+            else:
+                os.makedirs(job_resource_dir)
 
         def validate_edge(head, tail):
             if head not in workflow.jobs:
@@ -124,11 +139,6 @@ class WorkflowConstructor(BaseWorkflowConstructor):
                 control_edge = copy.deepcopy(e)
                 validate_edge(control_edge.head, control_edge.tail)
                 workflow.add_edge(control_edge.head, control_edge)
-
-        for job in workflow.nodes.values():
-            generator: BaseJobGenerator = self.job_generator_registry \
-                .get_object(job.job_config.job_type)
-            generator.generate_job_resource(job, project_desc)
         return workflow
 
 

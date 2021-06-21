@@ -17,12 +17,12 @@
 from typing import Text
 
 from ai_flow.context.project_context import project_description
-from ai_flow.workflow.workflow_config import WorkFlowConfig, load_workflow_config
+from ai_flow.workflow.workflow_config import WorkflowConfig, load_workflow_config
 
 
 class WorkflowContext(object):
     def __init__(self) -> None:
-        self.workflow_config: WorkFlowConfig = None
+        self.workflow_config: WorkflowConfig = None
 
 
 __default_workflow_context__ = WorkflowContext()
@@ -34,5 +34,5 @@ def init_workflow_context(workflow_name: Text):
         = load_workflow_config(project_desc.get_absolute_workflow_config_file(workflow_name))
 
 
-def workflow_config() -> WorkFlowConfig:
+def workflow_config() -> WorkflowConfig:
     return __default_workflow_context__.workflow_config

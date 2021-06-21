@@ -26,7 +26,7 @@ WORKFLOW_PROPERTIES = "properties"
 WORKFLOW_DEPENDENCIES = "dependencies"
 
 
-class WorkFlowConfig(Jsonable):
+class WorkflowConfig(Jsonable):
 
     def __init__(self, workflow_name: Text = None) -> None:
         super().__init__()
@@ -39,17 +39,17 @@ class WorkFlowConfig(Jsonable):
         self.job_configs[config_key] = job_config
 
 
-def load_workflow_config(config_path: Text) -> WorkFlowConfig:
+def load_workflow_config(config_path: Text) -> WorkflowConfig:
     if config_path.endswith('.json'):
         with open(config_path, 'r') as f:
             workflow_config_json = f.read()
-        workflow_config: WorkFlowConfig = loads(workflow_config_json)
+        workflow_config: WorkflowConfig = loads(workflow_config_json)
         return workflow_config
     elif config_path.endswith('.yaml'):
         workflow_name = os.path.basename(config_path)[:-5]
         workflow_data = yaml_utils.load_yaml_file(config_path)
 
-        workflow_config: WorkFlowConfig = WorkFlowConfig(workflow_name=workflow_name)
+        workflow_config: WorkflowConfig = WorkflowConfig(workflow_name=workflow_name)
 
         if WORKFLOW_PROPERTIES in workflow_data:
             workflow_config.properties = workflow_data[WORKFLOW_PROPERTIES]

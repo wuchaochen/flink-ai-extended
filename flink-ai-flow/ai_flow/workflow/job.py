@@ -16,6 +16,7 @@
 # specific language governing permissions and limitations
 # under the License.
 #
+from typing import Text
 from ai_flow.graph.node import BaseNode
 from ai_flow.workflow.job_config import JobConfig
 
@@ -32,9 +33,25 @@ class Job(BaseNode):
         """
         super().__init__()
         self.job_config = job_config
-        self.project_uri = None
+        self._project_uri: Text = None
+        self._resource_dir: Text = None
 
     @property
     def job_name(self):
         return self.job_config.job_name
 
+    @property
+    def resource_dir(self):
+        return self._resource_dir
+
+    @resource_dir.setter
+    def resource_dir(self, value):
+        self._resource_dir = value
+
+    @property
+    def project_uri(self):
+        return self._project_uri
+
+    @project_uri.setter
+    def project_uri(self, value):
+        self._project_uri = value

@@ -15,23 +15,91 @@
 # specific language governing permissions and limitations
 # under the License.
 from abc import abstractmethod, ABC
-from typing import Text, Dict, Any
+from typing import Text, Dict
+import os
 import logging
 from ai_flow.common.registry import BaseRegistry
 from ai_flow.common.json_utils import Jsonable
 from ai_flow.plugin_interface.scheduler_interface import JobExecutionInfo
-from ai_flow.project.project_description import ProjectDesc
+from ai_flow.project.project_config import ProjectConfig
+from ai_flow.workflow.workflow_config import WorkflowConfig
 from ai_flow.translator.translator import register_job_generator
 from ai_flow.translator.base_translator import BaseJobGenerator
 from ai_flow.workflow.job import Job
 
 
-class BaseJobHandler(Jsonable):
+class JobHandler(Jsonable):
     def __init__(self,
                  job: Job,
                  job_execution: JobExecutionInfo) -> None:
+        self._log = logging.getLogger(self.__class__.__module__ + '.' + self.__class__.__name__)
         self.job: Job = job
         self.job_execution: JobExecutionInfo = job_execution
+
+    def get_result(self)->object:
+        pass
+
+    def wait_finished(self):
+        pass
+
+    @property
+    def log(self) -> logging.Logger:
+        """Returns a logger."""
+        return self._log
+
+
+class JobRuntimeEnv(object):
+    def __init__(self,
+                 working_dir: Text):
+        self._working_dir: Text = working_dir
+
+    @property
+    def working_dir(self)->Text:
+        return self._working_dir
+
+    @property
+    def project_path(self)->Text:
+        return os.path.dirname(os.path.dirname(os.path.dirname(self._working_dir)))
+
+    @property
+    def log_dir(self) -> Text:
+        return os.path.join(self._working_dir, 'logs')
+
+    @property
+    def resource_dir(self)->Text:
+        return os.path.join(self._working_dir, 'resources')
+
+    @property
+    def generated_dir(self)->Text:
+        return os.path.join(self._working_dir, 'generated')
+
+    @property
+    def dependencies_dir(self)->Text:
+        return os.path.join(self._working_dir, 'dependencies')
+
+    @property
+    def python_dep_dir(self)->Text:
+        return os.path.join(self.dependencies_dir, 'python')
+
+    @property
+    def go_dep_dir(self) -> Text:
+        return os.path.join(self.dependencies_dir, 'go')
+
+    @property
+    def jar_dep_dir(self) -> Text:
+        return os.path.join(self.dependencies_dir, 'jar')
+
+
+class JobExecutionContext(object):
+    def __init__(self,
+                 job_runtime_env: JobRuntimeEnv,
+                 project_config: ProjectConfig,
+                 workflow_config: WorkflowConfig,
+                 job_execution_info: JobExecutionInfo):
+        self.job_runtime_env: JobRuntimeEnv = job_runtime_env
+        self.project_config: ProjectConfig = project_config
+        self.workflow_config: WorkflowConfig = workflow_config
+        self.job_execution_info: JobExecutionInfo = job_execution_info
 
 
 class BaseJobSubmitter(ABC):
@@ -50,40 +118,28 @@ class BaseJobSubmitter(ABC):
         return self._log
 
     @abstractmethod
-    def submit_job(self, job: Job, project_desc: ProjectDesc, job_context: Any = None) -> BaseJobHandler:
+    def submit_job(self, job: Job, job_context: JobExecutionContext) -> JobHandler:
         """
         submit an executable job to run.
         :param job_context:
         :param job: A job object that contains the necessary information for an execution.
-        :param project_desc: The ai flow project description.
         :return base_job_handler: a job handler that maintain the handler of a jobs runtime.
         """
         pass
 
     @abstractmethod
-    def stop_job(self, job_handler: BaseJobHandler, project_desc: ProjectDesc, job_context: Any = None):
+    def stop_job(self, job_handler: JobHandler, job_context: JobExecutionContext):
         """
         Stop a ai flow job.
         :param job_context:
         :param job_handler: The job handler that contains the necessary information for an execution.
-        :param project_desc: The ai flow project description.
         """
         pass
 
     @abstractmethod
-    def cleanup_job(self, job_handler: BaseJobHandler, project_desc: ProjectDesc, job_context: Any = None):
+    def cleanup_job(self, job_handler: JobHandler, job_context: JobExecutionContext):
         """
         clean up temporary resources created during this execution.
-        :param job_context:
-        :param job_handler: The job handler that contains the necessary information for an execution.
-        :param project_desc: The ai flow project description.
-        """
-        pass
-
-    @abstractmethod
-    def wait_job_finished(self, job_handler: BaseJobHandler, project_desc: ProjectDesc, job_context: Any = None):
-        """
-        wait the job finished.
         :param job_context:
         :param job_handler: The job handler that contains the necessary information for an execution.
         :param project_desc: The ai flow project description.
@@ -95,9 +151,9 @@ class JobSubmitterManager(BaseRegistry):
     def __init__(self) -> None:
         super().__init__()
 
-    def submit_job(self, job: Job, project_desc: ProjectDesc) -> BaseJobHandler:
+    def submit_job(self, job: Job, job_context: JobExecutionContext) -> JobHandler:
         job_submitter = self.get_job_submitter(job)
-        return job_submitter.submit_job(job, project_desc)
+        return job_submitter.submit_job(job, job_context)
 
     def get_job_submitter(self, job: Job)->BaseJobSubmitter:
         job_submitter: BaseJobSubmitter = self.get_object(job.job_config.job_type)
@@ -105,13 +161,13 @@ class JobSubmitterManager(BaseRegistry):
             raise Exception("job submitter not found! job_type {}".format(job.job_config.job_type))
         return job_submitter
 
-    def stop_job(self, job_handler: BaseJobHandler, project_desc: ProjectDesc):
+    def stop_job(self, job_handler: JobHandler, job_context: JobExecutionContext):
         job_submitter = self.get_job_submitter(job_handler.job)
-        job_submitter.stop_job(job_handler, project_desc)
+        job_submitter.stop_job(job_handler, job_context)
 
-    def cleanup_job(self, job_handler: BaseJobHandler, project_desc: ProjectDesc):
+    def cleanup_job(self, job_handler: JobHandler, job_context: JobExecutionContext):
         job_submitter = self.get_job_submitter(job_handler.job)
-        job_submitter.cleanup_job(job_handler, project_desc)
+        job_submitter.cleanup_job(job_handler, job_context)
 
 
 __default_job_submitter_manager__ = JobSubmitterManager()

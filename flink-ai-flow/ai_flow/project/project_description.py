@@ -62,6 +62,9 @@ class ProjectDesc(Jsonable):
     def get_absolute_resources_path(self)->Text:
         return os.path.join(self.project_path, 'resources')
 
+    def get_absolute_generated_path(self)->Text:
+        return os.path.join(self.project_path, 'generated')
+
     def list_resources_paths(self)->List:
         return get_file_paths_from(self.get_absolute_resources_path())
 

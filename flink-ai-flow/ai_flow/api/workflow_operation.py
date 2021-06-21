@@ -98,8 +98,6 @@ def submit_workflow(workflow_name: Text = None,
 
 def apply_full_info_to_workflow(entry_module_path, workflow):
     workflow.workflow_config = workflow_config()
-    workflow.workflow_id = '{}.{}.{}'.format(project_description().project_name, workflow.workflow_name,
-                                             round(time.time() * 1000))
     _set_entry_module_path(workflow, entry_module_path)
     _upload_project_package(workflow)
     _set_job_plugins(workflow)
