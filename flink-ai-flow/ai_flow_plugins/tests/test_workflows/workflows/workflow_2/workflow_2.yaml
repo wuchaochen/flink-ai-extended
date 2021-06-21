@@ -29,6 +29,9 @@ task_2:
 
 task_3:
   job_type: python
+
+task_4:
+  job_type: flink
   properties:
     env:
       a: a
