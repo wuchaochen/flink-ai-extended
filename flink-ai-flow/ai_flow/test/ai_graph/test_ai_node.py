@@ -1,4 +1,3 @@
-#
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -15,26 +14,17 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-#
-from typing import Text
-from ai_flow.common.properties import ExecuteProperties
-from ai_flow.executor.executor import BaseExecutor
-from ai_flow.graph.ai_nodes.executable import ExecutableNode
+import unittest
+from ai_flow.ai_graph.ai_node import AINode
 
 
-class DatasetValidator(ExecutableNode):
+class TestCustomAINode(unittest.TestCase):
 
-    def __init__(self,
-                 executor: BaseExecutor,
-                 properties: ExecuteProperties = None,
-                 name: Text = None,
-                 instance_id: Text = None,
-                 output_num: int = 1) -> None:
-        super().__init__(
-            executor=executor,
-            properties=properties,
-            name=name,
-            instance_id=instance_id,
-            output_num=output_num)
-        self.executor_config = executor
+    def test_ai_node(self):
+        node = AINode(executor=None, arg1='arg1_v', arg2='arg2_v')
+        self.assertEqual('arg1_v', node.node_config['arg1'])
+        self.assertEqual('arg2_v', node.node_config['arg2'])
 
+
+if __name__ == '__main__':
+    unittest.main()

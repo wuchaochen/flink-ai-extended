@@ -1,4 +1,3 @@
-#
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -15,25 +14,30 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-#
-from typing import Text, List
+from typing import Text, Dict
 
-from ai_flow.meta.model_meta import ModelMeta
-from ai_flow.common.properties import ExecuteProperties
-from ai_flow.graph.ai_nodes.predictor import Predictor
-from ai_flow.meta.artifact_meta import ArtifactMeta
-from ai_flow.executor.executor import BaseExecutor
-from ai_flow.graph.channel import NoneChannel, Channel
+from ai_flow.util.json_utils import Jsonable
+
+from ai_flow.graph.edge import Edge
 
 
-class Evaluator(Predictor):
-
+class DataEdge(Edge):
     def __init__(self,
-                 model: ModelMeta,
-                 executor: BaseExecutor,
-                 properties: ExecuteProperties = None,
-                 name: Text = None,
-                 instance_id=None,
-                 output_num=0) -> None:
-        super().__init__(model=model, executor=executor, properties=properties, name=name, instance_id=instance_id,
-                         output_num=output_num)
+                 tail: Text,
+                 head: Text,
+                 port: int = 0,
+                 data_config: Dict[Text, Jsonable] = None) -> None:
+        super().__init__(head=head, tail=tail)
+        self.port = port
+        self.data_config = data_config
+
+    def __eq__(self, o: object) -> bool:
+        if isinstance(o, DataEdge):
+            return self.head == o.head \
+                   and self.tail == o.tail \
+                   and self.port == o.port
+        else:
+            return False
+
+    def __ne__(self, o: object) -> bool:
+        return not self.__eq__(o)

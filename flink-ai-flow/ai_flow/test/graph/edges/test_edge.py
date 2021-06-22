@@ -19,17 +19,16 @@
 import unittest
 
 from ai_flow.util import json_utils
-from ai_flow.graph.edge import DataEdge
+from ai_flow.graph.edge import Edge
 
 
 class TestEdge(unittest.TestCase):
 
     def test_json(self):
-        channel = DataEdge("a", 0)
+        channel = Edge("a", 'b')
         json_text = json_utils.dumps(channel)
-        c2: DataEdge = json_utils.loads(json_text)
-        self.assertEqual(channel.target_node_id, c2.target_node_id)
-        self.assertEqual(channel.port, c2.port)
+        c2: Edge = json_utils.loads(json_text)
+        self.assertEqual(channel.tail, c2.tail)
 
 
 if __name__ == '__main__':

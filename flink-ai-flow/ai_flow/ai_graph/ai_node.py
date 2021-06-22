@@ -16,26 +16,34 @@
 # specific language governing permissions and limitations
 # under the License.
 #
-from typing import Text, List
-from ai_flow.graph.ai_node import AINode
-from ai_flow.common.properties import ExecuteProperties
-from ai_flow.executor.executor import BaseExecutor
+from typing import Text, List, Dict
+from ai_flow.graph.node import BaseNode
+from ai_flow.workflow.job import JobConfig
+from ai_flow.common.properties import Properties
+from ai_flow.util import serialization_utils
 from ai_flow.graph.channel import Channel, NoneChannel
 
 
-class ExecutableNode(AINode):
+class AINode(BaseNode):
     def __init__(self,
-                 executor: BaseExecutor,
+                 executor: object = None,
                  name: Text = None,
-                 instance_id=None,
-                 properties: ExecuteProperties = None,
-                 output_num=1
-                 ) -> None:
+                 instance_id: Text = None,
+                 properties: Properties = None,
+                 output_num: int = 1,
+                 config: JobConfig = None,
+                 node_type: Text = 'AINode',
+                 **kwargs) -> None:
         super().__init__(properties=properties,
                          name=name,
                          instance_id=instance_id,
                          output_num=output_num)
-        self.executor = executor
+        self.executor: bytes = serialization_utils.serialize(executor)
+        self.config: JobConfig = config
+        self.node_config: Dict = kwargs
+        self.node_config['name'] = name
+        self.node_config['node_type'] = node_type
+        self.node_type = node_type
 
     def outputs(self) -> List[Channel]:
         if self.output_num > 0:
@@ -45,3 +53,9 @@ class ExecutableNode(AINode):
             return result
         else:
             return [NoneChannel(self.instance_id)]
+
+    def get_executor(self)->object:
+        if self.executor is None:
+            return None
+        else:
+            return serialization_utils.deserialize(self.executor)
