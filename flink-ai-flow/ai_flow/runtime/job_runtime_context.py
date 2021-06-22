@@ -14,17 +14,15 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import unittest
-from ai_flow.ai_graph.ai_node import AINode
+from ai_flow.project.project_config import ProjectConfig
+from ai_flow.context.project_context import __default_project_context__
+from ai_flow.context.workflow_context import __default_workflow_context__
+from ai_flow.runtime.job_runtime_env import JobRuntimeEnv
+from ai_flow.workflow.workflow_config import load_workflow_config
 
 
-class TestCustomAINode(unittest.TestCase):
-
-    def test_ai_node(self):
-        node = AINode(executor=None, arg1='arg1_v', arg2='arg2_v')
-        self.assertEqual('arg1_v', node.node_config['arg1'])
-        self.assertEqual('arg2_v', node.node_config['arg2'])
-
-
-if __name__ == '__main__':
-    unittest.main()
+def init_job_runtime_context(job_runtime_env: JobRuntimeEnv):
+    project_config = ProjectConfig()
+    project_config.load_from_file(job_runtime_env.project_config_file)
+    __default_project_context__.project_config = project_config
+    __default_workflow_context__.workflow_config = load_workflow_config(job_runtime_env.workflow_config_file)

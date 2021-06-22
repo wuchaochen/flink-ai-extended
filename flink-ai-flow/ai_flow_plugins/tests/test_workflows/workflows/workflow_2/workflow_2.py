@@ -38,7 +38,7 @@ ROOT_PATH = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 class MockPythonExecutor(python.PythonExecutor):
 
     def execute(self, execution_context: ExecutionContext, input_list: List) -> List:
-        print('Hello world!')
+        print('{} say Hello world!'.format(execution_context.config['speaker']))
         return []
 
 
@@ -50,7 +50,7 @@ class Transformer(flink.FlinkPythonExecutor):
 class Source(flink.FlinkPythonExecutor):
     def execute(self, execution_context: flink.ExecutionContext, input_list: List[Table] = None) -> List[Table]:
         t_env = execution_context.table_env
-        t_env.connect(FileSystem().path('{}/resources/word_count.txt'.format(ROOT_PATH))) \
+        t_env.connect(FileSystem().path('./resources/word_count.txt')) \
             .with_format(OldCsv()
                          .field('word', DataTypes.STRING())) \
             .with_schema(Schema()
@@ -61,7 +61,7 @@ class Source(flink.FlinkPythonExecutor):
 
 class Sink(flink.FlinkPythonExecutor):
     def execute(self, execution_context: flink.ExecutionContext, input_list: List[Table] = None) -> List[Table]:
-        output_file = '{}/resources/output'.format(ROOT_PATH)
+        output_file = './output'
         if os.path.exists(output_file):
             os.remove(output_file)
 
@@ -152,7 +152,7 @@ class TestWorkflow2(BaseSchedulerTest):
 
         def run_task_function(client: NotificationClient):
             with af.job_config('task_3'):
-                af.user_define_operation(executor=MockPythonExecutor())
+                af.user_define_operation(executor=MockPythonExecutor(), speaker='Xiao Ming')
 
             workflow_info = af.workflow_operation.submit_workflow(workflow_name)
             self.assertEqual(project_name, workflow_info.namespace)

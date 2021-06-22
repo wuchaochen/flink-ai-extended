@@ -16,12 +16,12 @@
 # under the License.
 from abc import abstractmethod, ABC
 from typing import Text, Dict
-import os
 import logging
 from ai_flow.common.registry import BaseRegistry
 from ai_flow.common.json_utils import Jsonable
 from ai_flow.plugin_interface.scheduler_interface import JobExecutionInfo
 from ai_flow.project.project_config import ProjectConfig
+from ai_flow.runtime.job_runtime_env import JobRuntimeEnv
 from ai_flow.workflow.workflow_config import WorkflowConfig
 from ai_flow.translator.translator import register_job_generator
 from ai_flow.translator.base_translator import BaseJobGenerator
@@ -46,48 +46,6 @@ class JobHandler(Jsonable):
     def log(self) -> logging.Logger:
         """Returns a logger."""
         return self._log
-
-
-class JobRuntimeEnv(object):
-    def __init__(self,
-                 working_dir: Text):
-        self._working_dir: Text = working_dir
-
-    @property
-    def working_dir(self)->Text:
-        return self._working_dir
-
-    @property
-    def project_path(self)->Text:
-        return os.path.dirname(os.path.dirname(os.path.dirname(self._working_dir)))
-
-    @property
-    def log_dir(self) -> Text:
-        return os.path.join(self._working_dir, 'logs')
-
-    @property
-    def resource_dir(self)->Text:
-        return os.path.join(self._working_dir, 'resources')
-
-    @property
-    def generated_dir(self)->Text:
-        return os.path.join(self._working_dir, 'generated')
-
-    @property
-    def dependencies_dir(self)->Text:
-        return os.path.join(self._working_dir, 'dependencies')
-
-    @property
-    def python_dep_dir(self)->Text:
-        return os.path.join(self.dependencies_dir, 'python')
-
-    @property
-    def go_dep_dir(self) -> Text:
-        return os.path.join(self.dependencies_dir, 'go')
-
-    @property
-    def jar_dep_dir(self) -> Text:
-        return os.path.join(self.dependencies_dir, 'jar')
 
 
 class JobExecutionContext(object):

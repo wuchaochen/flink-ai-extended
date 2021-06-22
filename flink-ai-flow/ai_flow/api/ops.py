@@ -16,12 +16,12 @@
 # specific language governing permissions and limitations
 # under the License.
 #
+import sys
 from typing import Union, Text, Tuple, Optional, List
 from notification_service.base_notification import UNDEFINED_EVENT_TYPE, ANY_CONDITION
 from ai_flow.workflow.periodic_config import PeriodicConfig
 from ai_flow.client.ai_flow_client import get_ai_flow_client
-from ai_flow.ai_graph.ai_node import CustomAINode
-from ai_flow.common.args import ExecuteArgs
+from ai_flow.ai_graph.ai_node import AINode
 from ai_flow.common import json_utils
 from ai_flow.graph.channel import Channel, NoneChannel
 from ai_flow.workflow.control_edge import ControlEdge, \
@@ -35,8 +35,7 @@ from ai_flow.workflow.job_state import JobState
 
 
 def read_example(example_info: Union[ExampleMeta, Text, int],
-                 executor=None,
-                 exec_args: Optional[ExecuteArgs] = None) -> Channel:
+                 executor=None) -> Channel:
     """
     Read example from the example operator. It can read example from external system.
 
@@ -45,8 +44,6 @@ def read_example(example_info: Union[ExampleMeta, Text, int],
                          means name in the metadata service when its type is Text and it means id when its type is int.
                          The ai flow will get the example from metadata service by name or id.
     :param executor: The python user defined function in read example operator. User can write their own logic here.
-    :param exec_args: The properties of read example, there are batch properties, stream properties and
-                      common properties respectively.
     :return: Channel: data output channel.
     """
     if isinstance(example_info, ExampleMeta):
@@ -57,16 +54,14 @@ def read_example(example_info: Union[ExampleMeta, Text, int],
         example_meta = get_ai_flow_client().get_example_by_id(example_info)
 
     return user_define_operation(example_meta=example_meta,
-                                 properties=exec_args,
-                                 is_source=True,
                                  executor=executor,
-                                 output_num=1)
+                                 output_num=1,
+                                 operation_type='read_example')
 
 
 def write_example(input_data: Channel,
                   example_info: Union[ExampleMeta, Text, int],
                   executor=None,
-                  exec_args: ExecuteArgs = None
                   ) -> NoneChannel:
     """
     Write example to example operator. It can write example to external system.
@@ -77,8 +72,6 @@ def write_example(input_data: Channel,
                          means name in he metadata service when its type is Text and it means id when its type is int.
                          The ai flow will get the example from metadata service by name or id.
     :param executor: The python user defined function in write example operator. User can write their own logic here.
-    :param exec_args: The properties of read example, there are batch properties, stream properties and
-                      common properties respectively.
     :return: NoneChannel.
     """
     if isinstance(example_info, ExampleMeta):
@@ -90,15 +83,13 @@ def write_example(input_data: Channel,
 
     return user_define_operation(input_data=input_data,
                                  example_meta=example_meta,
-                                 properties=exec_args,
-                                 is_source=False,
                                  executor=executor,
-                                 output_num=0)
+                                 output_num=0,
+                                 operation_type='write_example')
 
 
 def transform(input_data_list: List[Channel],
               executor,
-              exec_args: ExecuteArgs = None,
               output_num=1,
               name: Text = None) -> Union[Channel, Tuple[Channel]]:
     """
@@ -107,8 +98,6 @@ def transform(input_data_list: List[Channel],
 
     :param input_data_list: List of input data. It contains multiple channels from the operators which generate data.
     :param executor: The user defined function in transform operator. User can write their own logic here.
-    :param exec_args: The properties of read example, there are batch properties, stream properties and
-                      common properties respectively.
     :param output_num: The output number of the operator. The default value is 1.
     :param name: Name of the transform operator.
     :return: Channel or Tuple[Channel]. It returns Channel When the output_num is 1 and returns Tuple[Channel] when
@@ -117,15 +106,14 @@ def transform(input_data_list: List[Channel],
     return user_define_operation(input_data_list=input_data_list,
                                  name=name,
                                  executor=executor,
-                                 properties=exec_args,
-                                 output_num=output_num)
+                                 output_num=output_num,
+                                 operation_type='transform')
 
 
 def train(input_data_list: List[Channel],
           executor,
           model_info: Union[ModelMeta, Text, int],
           base_model_info: Union[ModelMeta, Text, int] = None,
-          exec_args: ExecuteArgs = None,
           output_num=0,
           name: Text = None) -> Union[NoneChannel, Channel, Tuple[Channel]]:
     """
@@ -141,8 +129,6 @@ def train(input_data_list: List[Channel],
                             of py:class:`ai_flow.meta.model_meta.ModelMeta` or Text or int. The base_model_info
                             means name in he metadata service when its type is Text and it means id when its type is
                             int. The ai flow will get the model meta from metadata service by name or id.
-    :param exec_args: The properties of read example, there are batch properties, stream properties and
-                      common properties respectively.
     :param output_num: The output number of the operator. The default value is 0.
     :param name: Name of the train operator.
     :return: NoneChannel, Channel, Tuple[Channel].
@@ -169,15 +155,14 @@ def train(input_data_list: List[Channel],
                                  executor=executor,
                                  output_model=output_model_meta,
                                  base_model=base_model_meta,
-                                 properties=exec_args,
-                                 output_num=output_num)
+                                 output_num=output_num,
+                                 operation_type='train')
 
 
 def predict(input_data_list: List[Channel],
             model_info: Union[ModelMeta, Text, int],
             executor,
             model_version_info: Optional[Union[ModelVersionMeta, Text]] = None,
-            exec_args: ExecuteArgs = None,
             output_num=1,
             name: Text = None) -> Union[NoneChannel, Channel, Tuple[Channel]]:
     """
@@ -194,8 +179,6 @@ def predict(input_data_list: List[Channel],
                                or Text. The model_version_info means version in he metadata service
                                when its type is Text. The ai flow will get the model meta from metadata
                                service by version.
-    :param exec_args: The properties of read example, there are batch properties, stream properties and
-                      common properties respectively.
     :param output_num: The output number of the operator. The default value is 1.
     :param name: Name of the predict operator.
     :return: Channel or Tuple[Channel].
@@ -221,14 +204,13 @@ def predict(input_data_list: List[Channel],
                                  model=model_meta,
                                  executor=executor,
                                  model_version=model_version_meta,
-                                 properties=exec_args,
-                                 output_num=output_num)
+                                 output_num=output_num,
+                                 operation_type='predict')
 
 
 def evaluate(input_data_list: List[Channel],
              model_info: Union[ModelMeta, Text, int],
              executor,
-             exec_args: ExecuteArgs = None,
              output_num=0,
              name: Text = None) -> Union[NoneChannel, Channel, Tuple[Channel]]:
     """
@@ -240,8 +222,6 @@ def evaluate(input_data_list: List[Channel],
                        means name in he metadata service when its type is Text and it means id when its type is
                        int. The ai flow will get the model meta from metadata service by name or id.
     :param executor: The user defined function in evaluate operator. User can write their own logic here.
-    :param exec_args: The properties of read example, there are batch properties, stream properties and
-                      common properties respectively.
     :param output_num: The output number of the operator. The default value is 0.
     :param name: Name of the predict operator.
     :return: NoneChannel.
@@ -257,13 +237,12 @@ def evaluate(input_data_list: List[Channel],
                                  name=name,
                                  model=model_meta,
                                  executor=executor,
-                                 properties=exec_args,
-                                 output_num=output_num)
+                                 output_num=output_num,
+                                 operation_type='evaluate')
 
 
 def example_validate(input_data: Channel,
                      executor,
-                     exec_args: ExecuteArgs = None,
                      name: Text = None
                      ) -> NoneChannel:
     """
@@ -271,16 +250,14 @@ def example_validate(input_data: Channel,
 
     :param input_data: Channel. It contains the example data used in evaluation.
     :param executor: The user defined function in example validate operator. User can write their own logic here.
-    :param exec_args: The properties of read example, there are batch properties, stream properties and
-                      common properties respectively.
     :param name: Name of the example validate operator.
     :return: NoneChannel.
     """
     return user_define_operation(input_data_list=input_data,
                                  executor=executor,
-                                 properties=exec_args,
                                  name=name,
-                                 output_num=0
+                                 output_num=0,
+                                 operation_type='example_validate'
                                  )
 
 
@@ -289,7 +266,6 @@ def model_validate(input_data_list: List[Channel],
                    executor,
                    model_version_info: Optional[Union[ModelVersionMeta, Text]] = None,
                    base_model_version_info: Optional[Union[ModelVersionMeta, Text]] = None,
-                   exec_args: ExecuteArgs = None,
                    output_num=0,
                    name: Text = None) -> Union[NoneChannel, Channel, Tuple[Channel]]:
     """
@@ -312,8 +288,6 @@ def model_validate(input_data_list: List[Channel],
                                     or Text. The model_version_info means version in he metadata service
                                     when its type is Text. The ai flow will get the model meta from metadata
                                     service by version.
-    :param exec_args: The properties of read example, there are batch properties, stream properties and
-                      common properties respectively.
     :param output_num: The output number of the operator. The default value is 0.
     :param name: Name of the model validate operator.
     :return: NoneChannel.
@@ -346,18 +320,17 @@ def model_validate(input_data_list: List[Channel],
     return user_define_operation(input_data_list=input_data_list,
                                  model=model_meta,
                                  executor=executor,
-                                 properties=exec_args,
                                  name=name,
                                  model_version_meta=model_version_meta,
                                  base_model_version_meta=base_model_version_meta,
-                                 output_num=output_num
+                                 output_num=output_num,
+                                 operation_type='model_validate'
                                  )
 
 
 def push_model(model_info: Union[ModelMeta, Text, int],
                executor,
                model_version_info: Optional[Union[ModelVersionMeta, Text]] = None,
-               exec_args: ExecuteArgs = None,
                name: Text = None) -> NoneChannel:
     """
     Pusher operator. The pusher operator is used to push a validated model which is better than previous one to
@@ -373,8 +346,6 @@ def push_model(model_info: Union[ModelMeta, Text, int],
                                or Text. The model_version_info means version in he metadata service
                                when its type is Text. The ai flow will get the model meta from metadata
                                service by version.
-    :param exec_args: The properties of read example, there are batch properties, stream properties and
-                      common properties respectively.
     :param name: Name of the push operator.
     :return: NoneChannel.
     """
@@ -393,34 +364,35 @@ def push_model(model_info: Union[ModelMeta, Text, int],
 
     return user_define_operation(model=model_meta,
                                  executor=executor,
-                                 properties=exec_args,
                                  model_version=model_version_info,
-                                 name=name)
+                                 name=name,
+                                 operation_type='push_model')
 
 
 def user_define_operation(
         executor,
         input_data_list: Union[None, Channel, List[Channel]] = None,
-        exec_args: ExecuteArgs = None,
         output_num=1,
         name: Text = None,
+        operation_type: Text = sys._getframe().f_code.co_name,
         **kwargs) -> Union[NoneChannel, Channel, Tuple[Channel]]:
     """
     User defined operator.
 
+    :param operation_type: The type of the operation.
     :param executor: The user defined function in operator. User can write their own logic here.
     :param input_data_list: List of input data. It contains multiple channels from the operators which generate data.
-    :param exec_args: The properties of read example
     :param output_num: The output number of the operator. The default value is 1.
     :param name: Name of this operator.
     :param kwargs:
     :return: NoneChannel or Channel or Tuple[Channel].
     """
-    node = CustomAINode(name=name,
-                        executor=executor,
-                        exec_args=exec_args,
-                        output_num=output_num,
-                        **kwargs)
+    node = AINode(name=name,
+                  executor=executor,
+                  properties=None,
+                  output_num=output_num,
+                  node_type=operation_type,
+                  **kwargs)
     add_ai_node_to_graph(node, inputs=input_data_list)
     outputs = node.outputs()
     if 0 == output_num:
@@ -559,7 +531,6 @@ def start_on_job_succeed(job_name: Text,
 
 def action_with_periodic(job_name: Text,
                          periodic_config: PeriodicConfig):
-
     action_on_event(job_name=job_name,
                     event_key=workflow_config().workflow_name,
                     event_type=AIFlowInnerEventType.PERIODIC_ACTION,
@@ -568,4 +539,3 @@ def action_with_periodic(job_name: Text,
                     action=TaskAction.START,
                     condition=MetCondition.SUFFICIENT,
                     namespace=project_description().project_name)
-

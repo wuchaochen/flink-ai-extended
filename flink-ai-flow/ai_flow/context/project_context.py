@@ -34,10 +34,6 @@ def init_project_context(project_path: Text):
     __default_project_context__.project_config = project_desc.project_config
 
 
-def init_project_context_by_config():
-    __default_project_context__.project_config = project_desc.project_config
-
-
 def project_description() -> ProjectDesc:
     return __default_project_context__.project_desc
 

@@ -16,7 +16,7 @@
 # specific language governing permissions and limitations
 # under the License.
 #
-from typing import Text, List
+from typing import Text, List, Dict
 from ai_flow.graph.node import BaseNode
 from ai_flow.workflow.job import JobConfig
 from ai_flow.common.properties import Properties
@@ -31,13 +31,19 @@ class AINode(BaseNode):
                  instance_id: Text = None,
                  properties: Properties = None,
                  output_num: int = 1,
-                 config: JobConfig = None) -> None:
+                 config: JobConfig = None,
+                 node_type: Text = 'AINode',
+                 **kwargs) -> None:
         super().__init__(properties=properties,
                          name=name,
                          instance_id=instance_id,
                          output_num=output_num)
         self.executor: bytes = serialization_utils.serialize(executor)
         self.config: JobConfig = config
+        self.node_config: Dict = kwargs
+        self.node_config['name'] = name
+        self.node_config['node_type'] = node_type
+        self.node_type = node_type
 
     def outputs(self) -> List[Channel]:
         if self.output_num > 0:
@@ -53,22 +59,3 @@ class AINode(BaseNode):
             return None
         else:
             return serialization_utils.deserialize(self.executor)
-
-
-class CustomAINode(AINode):
-    def __init__(self,
-                 executor,
-                 name: Text = None,
-                 instance_id=None,
-                 exec_args: Properties = None,
-                 output_num=1,
-                 config: JobConfig = None,
-                 **kwargs
-                 ) -> None:
-        super().__init__(executor=executor,
-                         properties=exec_args,
-                         name=name,
-                         instance_id=instance_id,
-                         output_num=output_num,
-                         config=config)
-        self.__dict__.update(kwargs)

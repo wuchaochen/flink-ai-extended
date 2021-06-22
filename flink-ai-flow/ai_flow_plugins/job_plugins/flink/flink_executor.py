@@ -16,8 +16,6 @@
 # under the License.
 from abc import abstractmethod
 from typing import List, Dict, Text
-from ai_flow.workflow.job_config import JobConfig
-from ai_flow.ai_graph.ai_node import AINode
 from ai_flow.plugin_interface.scheduler_interface import JobExecutionInfo
 from ai_flow.common import json_utils
 from pyflink.dataset import ExecutionEnvironment
@@ -27,17 +25,16 @@ from pyflink.table import TableEnvironment, StatementSet, Table
 class ExecutionContext(json_utils.Jsonable):
     def __init__(self,
                  job_execution_info: JobExecutionInfo,
-                 node_spec: AINode,
+                 config: Dict,
                  execution_env: ExecutionEnvironment,
                  table_env: TableEnvironment,
                  statement_set: StatementSet
                  ):
         self._job_execution_info = job_execution_info
-        self._ai_node = node_spec
+        self._config: Dict = config
         self._execution_env = execution_env
         self._table_env = table_env
         self._statement_set = statement_set
-
 
     @property
     def job_execution_info(self)-> JobExecutionInfo:
@@ -45,19 +42,15 @@ class ExecutionContext(json_utils.Jsonable):
 
     @property
     def name(self):
-        return self._ai_node.name
+        return self._config['name']
 
     @property
-    def job_config(self)-> JobConfig:
-        return self._ai_node.config
+    def node_type(self):
+        return self._config['node_type']
 
     @property
-    def properties(self)->Dict:
-        return self._ai_node.properties
-
-    @property
-    def ai_node(self)->AINode:
-        return self._ai_node
+    def config(self) -> Dict:
+        return self._config
 
     @property
     def execution_env(self)->ExecutionEnvironment:

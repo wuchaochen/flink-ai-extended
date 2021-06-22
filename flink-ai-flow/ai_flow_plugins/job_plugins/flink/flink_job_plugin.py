@@ -51,10 +51,10 @@ class RunGraph(json_utils.Jsonable):
 
 class RunArgs(json_utils.Jsonable):
     def __init__(self,
-                 project_path: Text,
+                 working_dir: Text,
                  job_execution_info: JobExecutionInfo) -> None:
         super().__init__()
-        self.project_path: Text = project_path
+        self.working_dir: Text = working_dir
         self.job_execution_info: JobExecutionInfo = job_execution_info
 
 
@@ -66,7 +66,7 @@ def flink_execute_func(run_graph: RunGraph, job_execution_info: JobExecutionInfo
         caller: FlinkPythonExecutor = serialization_utils.deserialize(run_graph.executor_bytes[index])
         executors.append(caller)
         node: AINode = run_graph.nodes[index]
-        execution_context = ExecutionContext(node_spec=node,
+        execution_context = ExecutionContext(config=node.node_config,
                                              job_execution_info=job_execution_info,
                                              execution_env=exec_env,
                                              table_env=table_env,
@@ -194,7 +194,7 @@ class FlinkJobPlugin(AbstractJobPlugin, ABC):
 
     def submit_job(self, job: Job, job_context: JobExecutionContext = None) -> JobHandler:
         job_execution_info: JobExecutionInfo = job_context.job_execution_info
-        run_args: RunArgs = RunArgs(project_path=job_context.job_runtime_env.project_path,
+        run_args: RunArgs = RunArgs(working_dir=job_context.job_runtime_env.working_dir,
                                     job_execution_info=job_execution_info)
 
         with NamedTemporaryFile(mode='w+b', dir=job_context.job_runtime_env.generated_dir,
