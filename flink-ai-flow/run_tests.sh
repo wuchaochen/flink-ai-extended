@@ -50,20 +50,19 @@ function run_test_class() {
 # python3 -m unittest discover -v ai_flow.test.api
 
 mvn verify
-
-run_test_class 'ai_flow/test/endpoint/' 'test_client.TestAIFlowClientSqlite'
-run_test_class 'ai_flow/test/endpoint/' 'test_mysql_client.TestAIFlowClientMySQL'
-
-run_tests 'ai_flow/test/graph/'
-run_tests 'ai_flow/test/common/'
-run_tests 'ai_flow/test/translator/'
-run_tests 'ai_flow/test/store/'
-run_tests 'ai_flow/test/model_center/'
-run_tests 'ai_flow/test/application_master/'
-run_tests 'ai_flow/test/project/'
-# run_tests 'ai_flow/test/deployer/'
-#run_tests 'ai_flow/test/api/'
+run_tests 'ai_flow/test/common'
+run_tests 'ai_flow/test/graph'
+run_tests 'ai_flow/test/workflow'
+run_tests 'ai_flow/test/context'
+run_tests 'ai_flow/test/project'
+run_tests 'ai_flow/test/ai_graph'
+run_tests 'ai_flow/test/translator'
+run_tests 'ai_flow/test/runtime'
+run_tests 'ai_flow/test/plugin_interface'
+#run_tests 'ai_flow/test/store'
+#run_tests 'ai_flow/test/model_center'
+#run_tests 'ai_flow/test/application_master'
 #
-#run_tests 'flink_ai_flow/tests/python_codes/'
-#
-#run_tests 'python_ai_flow/test/python_codes/'
+#run_test_class 'ai_flow/test/endpoint/' 'test_client.TestAIFlowClientSqlite'
+#run_test_class 'ai_flow/test/endpoint/' 'test_mysql_client.TestAIFlowClientMySQL'
+

@@ -1,4 +1,3 @@
-#
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -15,21 +14,4 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-#
-import pickle
-
-_BYTES_ENCODE = "ISO-8859-1"
-
-
-def serialize(o: object) -> bytes:
-    return pickle.dumps(o)
-
-
-def deserialize(s: bytes) -> object:
-    return pickle.loads(s)
-
-
-def read_object_from_serialized_file(file_path):
-    with open(file_path, 'rb') as f:
-        serialized_bytes = f.read()
-    return deserialize(serialized_bytes)
+from ai_flow.plugin_interface.job_plugin_interface import register_job_plugin
