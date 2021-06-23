@@ -74,7 +74,7 @@ class AIFlowMaster(object):
                 start_meta_service=self.master_config.start_meta_service(),
                 start_model_center_service=self.master_config.start_model_center_service(),
                 start_metric_service=self.master_config.start_metric_service(),
-                start_scheduling_service=self.master_config.start_scheduling_service(),
+                start_scheduler_service=self.master_config.start_scheduling_service(),
                 scheduler_config=self.master_config.get_scheduler_config())
         else:
             self.server = HighAvailableAIFlowServer(

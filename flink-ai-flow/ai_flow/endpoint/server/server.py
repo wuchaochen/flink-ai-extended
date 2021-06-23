@@ -46,7 +46,7 @@ from notification_service.proto import notification_service_pb2_grpc
 from ai_flow.metadata_store.service.service import MetadataService
 from ai_flow.model_center.service.service import ModelCenterService
 from ai_flow.metric.service.metric_service import MetricService
-from ai_flow.scheduler.scheduling_service import SchedulingService, SchedulerConfig
+from ai_flow.scheduler.scheduler_service import SchedulerService, SchedulerConfig
 
 
 sys.path.append(os.path.abspath(os.path.join(os.getcwd(), "../../..")))
@@ -69,7 +69,7 @@ class AIFlowServer(object):
                  start_meta_service: bool = True,
                  start_model_center_service: bool = True,
                  start_metric_service: bool = True,
-                 start_scheduling_service: bool = True,
+                 start_scheduler_service: bool = True,
                  scheduler_config: Dict = None):
         self.executor = Executor(futures.ThreadPoolExecutor(max_workers=10))
         self.server = grpc.server(self.executor)
@@ -93,15 +93,10 @@ class AIFlowServer(object):
             logging.info("start metric service.")
             metric_service_pb2_grpc.add_MetricServiceServicer_to_server(MetricService(db_uri=store_uri), self.server)
 
-        if start_scheduling_service:
+        if start_scheduler_service:
             logging.info("start scheduling service.")
             if scheduler_config is None:
-                nf_uri = server_uri if start_default_notification else notification_uri
-                scheduler_config = SchedulerConfig()
-                scheduler_config.set_notification_service_uri(nf_uri)
-                scheduler_config.\
-                    set_scheduler_class_name('ai_flow.scheduler.implements.airflow_scheduler.AirFlowScheduler')
-                scheduler_config.set_repository('/tmp/airflow')
+                raise Exception('scheduler config not set!')
             real_config = SchedulerConfig()
             if scheduler_config.get('notification_uri') is None:
                 nf_uri = server_uri if start_default_notification else notification_uri
@@ -111,8 +106,8 @@ class AIFlowServer(object):
             real_config.set_properties(scheduler_config.get('properties'))
             real_config.set_repository(scheduler_config.get('repository'))
             real_config.set_scheduler_class_name(scheduler_config.get('scheduler_class_name'))
-            self.scheduling_service = SchedulingService(real_config)
-            scheduling_service_pb2_grpc.add_SchedulingServiceServicer_to_server(self.scheduling_service,
+            self.scheduler_service = SchedulerService(real_config)
+            scheduling_service_pb2_grpc.add_SchedulingServiceServicer_to_server(self.scheduler_service,
                                                                                 self.server)
 
         self.server.add_insecure_port('[::]:' + str(port))
