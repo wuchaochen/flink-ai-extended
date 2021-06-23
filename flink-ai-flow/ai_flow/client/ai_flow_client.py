@@ -26,8 +26,6 @@ import grpc
 from notification_service.base_notification import BaseEvent
 from notification_service.client import NotificationClient
 
-from ai_flow.api.configuration import ensure_project_registered
-from ai_flow.api.execution import AirflowOperation
 from ai_flow.endpoint.client.metadata_client import MetadataClient
 from ai_flow.endpoint.client.metric_client import MetricClient
 from ai_flow.endpoint.client.model_center_client import ModelCenterClient
@@ -59,7 +57,6 @@ def get_ai_flow_client():
     """ Get AI flow Client. """
 
     global _default_ai_flow_client, _default_master_uri
-    ensure_project_registered()
     if _default_ai_flow_client is None:
         current_uri = project_config().get_master_uri()
         if current_uri is None:
@@ -79,16 +76,6 @@ def get_ai_flow_client():
                                notification_service_uri=project_config().get_notification_service_uri())
 
         return _default_ai_flow_client
-
-
-def get_airflow_operation_client():
-    """ Get a client to operate airflow dags and tasks. """
-    global _default_airflow_operation_client
-    ensure_project_registered()
-    if _default_airflow_operation_client:
-        return _default_airflow_operation_client
-    else:
-        return AirflowOperation(project_config().get_notification_service_uri())
 
 
 class AIFlowClient(MetadataClient, ModelCenterClient, NotificationClient, MetricClient, SchedulerClient):
