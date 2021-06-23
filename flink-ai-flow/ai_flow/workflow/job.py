@@ -23,8 +23,8 @@ from ai_flow.workflow.job_config import JobConfig
 
 class Job(BaseNode):
     """
-    A BaseJob contains the common information of a ai flow job. Users can implement custom jobs by adding other
-    execution information for a specific engine and platform.
+    A Job contains the common information of a ai flow job. Users can implement custom jobs by adding other
+    execution information for a specific job_type.
     """
     def __init__(self,
                  job_config: JobConfig) -> None:

@@ -77,10 +77,6 @@ class MetConfig(Jsonable):
         self.sender = sender
 
 
-def generate_job_status_key(target_id) -> str:
-    return str(target_id) + ".job_status"
-
-
 class ControlEdge(Edge):
 
     def __init__(self,
