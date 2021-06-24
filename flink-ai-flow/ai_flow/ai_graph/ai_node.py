@@ -19,7 +19,6 @@
 from typing import Text, List, Dict
 from ai_flow.graph.node import BaseNode
 from ai_flow.workflow.job import JobConfig
-from ai_flow.common.properties import Properties
 from ai_flow.util import serialization_utils
 from ai_flow.graph.channel import Channel, NoneChannel
 
@@ -29,12 +28,11 @@ class AINode(BaseNode):
                  executor: object = None,
                  name: Text = None,
                  instance_id: Text = None,
-                 properties: Properties = None,
                  output_num: int = 1,
                  config: JobConfig = None,
                  node_type: Text = 'AINode',
                  **kwargs) -> None:
-        super().__init__(properties=properties,
+        super().__init__(properties=None,
                          name=name,
                          instance_id=instance_id,
                          output_num=output_num)
@@ -43,7 +41,6 @@ class AINode(BaseNode):
         self.node_config: Dict = kwargs
         self.node_config['name'] = name
         self.node_config['node_type'] = node_type
-        self.node_type = node_type
 
     def outputs(self) -> List[Channel]:
         if self.output_num > 0:

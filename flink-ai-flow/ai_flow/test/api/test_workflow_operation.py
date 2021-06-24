@@ -210,3 +210,7 @@ class TestWorkflowOperation(unittest.TestCase):
 
         js = workflow_operation.list_job_executions(execution_id='1')
         self.assertEqual(2, len(js))
+
+
+if __name__ == '__main__':
+    unittest.main()

@@ -58,3 +58,5 @@ class TestSchedulingService(unittest.TestCase):
         self.assertEqual(5, len(workflow_config_.job_configs))
 
 
+if __name__ == '__main__':
+    unittest.main()
