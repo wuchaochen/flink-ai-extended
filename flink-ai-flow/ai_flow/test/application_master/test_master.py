@@ -17,18 +17,71 @@
 # under the License.
 #
 import unittest
-
+import os
+from typing import Text, List, Optional, Dict
 from ai_flow.application_master.master import AIFlowMaster
-from ai_flow.application_master.master_config import MasterConfig, DBType
-from ai_flow.test import test_util
+from ai_flow.plugin_interface.scheduler_interface import AbstractScheduler, JobExecutionInfo, WorkflowExecutionInfo, \
+    WorkflowInfo
+from ai_flow.project.project_description import ProjectDesc
+from ai_flow.workflow.workflow import Workflow
+
+
+class MockScheduler(AbstractScheduler):
+
+    def submit_workflow(self, workflow: Workflow, project_desc: ProjectDesc, args: Dict = None) -> WorkflowInfo:
+        pass
+
+    def delete_workflow(self, project_name: Text, workflow_name: Text) -> Optional[WorkflowInfo]:
+        pass
+
+    def pause_workflow_scheduling(self, project_name: Text, workflow_name: Text) -> WorkflowInfo:
+        pass
+
+    def resume_workflow_scheduling(self, project_name: Text, workflow_name: Text) -> WorkflowInfo:
+        pass
+
+    def get_workflow(self, project_name: Text, workflow_name: Text) -> Optional[WorkflowInfo]:
+        pass
+
+    def list_workflows(self, project_name: Text) -> List[WorkflowInfo]:
+        pass
+
+    def start_new_workflow_execution(self, project_name: Text, workflow_name: Text) -> Optional[WorkflowExecutionInfo]:
+        pass
+
+    def kill_all_workflow_execution(self, project_name: Text, workflow_name: Text) -> List[WorkflowExecutionInfo]:
+        pass
+
+    def kill_workflow_execution(self, execution_id: Text) -> Optional[WorkflowExecutionInfo]:
+        pass
+
+    def get_workflow_execution(self, execution_id: Text) -> Optional[WorkflowExecutionInfo]:
+        pass
+
+    def list_workflow_executions(self, project_name: Text, workflow_name: Text) -> List[WorkflowExecutionInfo]:
+        pass
+
+    def start_job_execution(self, job_name: Text, execution_id: Text) -> JobExecutionInfo:
+        pass
+
+    def stop_job_execution(self, job_name: Text, execution_id: Text) -> JobExecutionInfo:
+        pass
+
+    def restart_job_execution(self, job_name: Text, execution_id: Text) -> JobExecutionInfo:
+        pass
+
+    def get_job_executions(self, job_name: Text, execution_id: Text) -> List[JobExecutionInfo]:
+        pass
+
+    def list_job_executions(self, execution_id: Text) -> List[JobExecutionInfo]:
+        pass
 
 
 class TestMaster(unittest.TestCase):
 
     def test_master_start_stop(self):
-        config = MasterConfig()
-        config.set_db_uri(db_type=DBType.SQLITE, uri="sqlite:///sql.db")
-        master = AIFlowMaster(config_file=test_util.get_master_config_file())
+        master_config_file = os.path.dirname(__file__) + '/master_config.yaml'
+        master = AIFlowMaster(config_file=master_config_file)
         master.start(is_block=False)
         master.stop()
 

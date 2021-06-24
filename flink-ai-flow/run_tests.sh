@@ -61,10 +61,10 @@ run_tests 'ai_flow/test/runtime'
 run_tests 'ai_flow/test/plugin_interface'
 run_tests 'ai_flow/test/scheduler'
 run_tests 'ai_flow/test/api'
-#run_tests 'ai_flow/test/store'
-#run_tests 'ai_flow/test/model_center'
-#run_tests 'ai_flow/test/application_master'
-#
-#run_test_class 'ai_flow/test/endpoint/' 'test_client.TestAIFlowClientSqlite'
-#run_test_class 'ai_flow/test/endpoint/' 'test_mysql_client.TestAIFlowClientMySQL'
+run_tests 'ai_flow/test/store'
+run_tests 'ai_flow/test/model_center'
+run_tests 'ai_flow/test/application_master'
+
+run_test_class 'ai_flow/test/endpoint/' 'test_client.TestAIFlowClientSqlite'
+run_test_class 'ai_flow/test/endpoint/' 'test_mysql_client.TestAIFlowClientMySQL'
 
