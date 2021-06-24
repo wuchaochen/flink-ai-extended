@@ -14,14 +14,14 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from enum import Enum
 
 
-class JobState(object):
-    QUEUED = "queued"
-    RUNNING = "running"
-    SUCCESS = "success"
-    SHUTDOWN = "shutdown"  # External request to shut down
-    FAILED = "failed"
-    SKIPPED = "skipped"
-    KILLING = "killing"
-    KILLED = "killed"
+class State(str, Enum):
+    INIT = 'INIT'
+    STARTING = 'STARTING'
+    RUNNING = 'RUNNING'
+    FINISHED = 'FINISHED'
+    FAILED = 'FAILED'
+    KILLING = 'KILLING'
+    KILLED = 'KILLED'

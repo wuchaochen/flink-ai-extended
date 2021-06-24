@@ -20,7 +20,7 @@ import unittest
 
 from typing import Text, List, Dict
 
-from ai_flow.meta.job_meta import State
+from ai_flow.workflow.state import State
 from ai_flow.protobuf.message_pb2 import StateProto
 
 from ai_flow.endpoint.client.scheduler_client import SchedulerClient
@@ -88,7 +88,7 @@ class MockScheduler(AbstractScheduler):
 SCHEDULER_CLASS = 'ai_flow.test.scheduler.test_scheduler_service.MockScheduler'
 
 
-class TestSchedulingService(unittest.TestCase):
+class TestSchedulerService(unittest.TestCase):
     def setUp(self):
         config = SchedulerConfig()
         config.set_scheduler_class_name(SCHEDULER_CLASS)

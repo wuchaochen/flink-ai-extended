@@ -46,7 +46,7 @@ class TestSchedulingService(unittest.TestCase):
             os.remove(_SQLITE_DB_FILE)
 
     def test_init_ai_flow_context(self):
-        init_ai_flow_context(os.path.join(os.path.dirname(__file__), 'test_workflows', 'workflows',
+        init_ai_flow_context(os.path.join(os.path.dirname(__file__), 'ut_workflows', 'workflows',
                                           'workflow_1', 'workflow_1.py'))
         project_config_ = project_config()
         self.assertEqual('test_project', project_config_.get_project_name())

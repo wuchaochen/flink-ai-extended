@@ -16,9 +16,26 @@
 # under the License.
 from typing import List
 
-from ai_flow.metadata_store.utils.ProtoToMeta import ProtoToMeta
 from ai_flow.protobuf.message_pb2 import WorkflowProto, WorkflowExecutionProto, StateProto, JobProto
 from ai_flow.plugin_interface.scheduler_interface import WorkflowInfo, WorkflowExecutionInfo, JobExecutionInfo
+from ai_flow.workflow.state import State
+
+
+def proto_to_state(state):
+    if state == StateProto.INIT:
+        return State.INIT
+    elif state == StateProto.STARTING:
+        return State.STARTING
+    elif state == StateProto.RUNNING:
+        return State.RUNNING
+    elif state == StateProto.FINISHED:
+        return State.FINISHED
+    elif state == StateProto.FAILED:
+        return State.FAILED
+    elif state == StateProto.KILLING:
+        return State.KILLING
+    elif state == StateProto.KILLED:
+        return State.KILLED
 
 
 def workflow_to_proto(workflow: WorkflowInfo) -> WorkflowProto:
@@ -52,8 +69,14 @@ def proto_to_workflow_list(proto_list: List[WorkflowProto]) -> List[WorkflowInfo
 
 
 def workflow_execution_to_proto(workflow_execution: WorkflowExecutionInfo) -> WorkflowExecutionProto:
+    if workflow_execution is None:
+        return None
+    if workflow_execution.state is None:
+        state = State.INIT
+    else:
+        state = workflow_execution.state
     wp = WorkflowExecutionProto(execution_id=workflow_execution.workflow_execution_id,
-                                execution_state=StateProto.Value(workflow_execution.state.value),
+                                execution_state=StateProto.Value(state),
                                 workflow=workflow_to_proto(workflow_execution.workflow_info))
     for k, v in workflow_execution.properties.items():
         wp.properties[k] = v
@@ -65,7 +88,7 @@ def proto_to_workflow_execution(proto: WorkflowExecutionProto) -> WorkflowExecut
         return None
     else:
         return WorkflowExecutionInfo(workflow_execution_id=proto.execution_id,
-                                     state=ProtoToMeta.proto_to_state(proto.execution_state),
+                                     state=proto_to_state(proto.execution_state),
                                      workflow_info=proto_to_workflow(proto.workflow),
                                      properties=dict(proto.properties))
 
@@ -86,8 +109,12 @@ def proto_to_workflow_execution_list(proto_list: List[WorkflowExecutionProto]) -
 
 
 def job_to_proto(job: JobExecutionInfo) -> JobProto:
+    if job.state is None:
+        state = State.INIT
+    else:
+        state = job.state
     return JobProto(name=job.job_name,
-                    job_state=StateProto.Value(job.state.value),
+                    job_state=StateProto.Value(state),
                     workflow_execution=workflow_execution_to_proto(job.workflow_execution))
 
 
@@ -95,7 +122,7 @@ def proto_to_job(proto: JobProto) -> JobExecutionInfo:
     if proto is None:
         return None
     else:
-        return JobExecutionInfo(job_name=proto.name, state=ProtoToMeta.proto_to_state(proto.job_state),
+        return JobExecutionInfo(job_name=proto.name, state=proto_to_state(proto.job_state),
                                 workflow_execution=proto_to_workflow_execution(proto.workflow_execution))
 
 

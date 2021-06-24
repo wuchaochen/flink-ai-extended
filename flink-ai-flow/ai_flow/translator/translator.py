@@ -123,8 +123,6 @@ class WorkflowConstructor(BaseWorkflowConstructor):
                                             job.job_name)
             if job.resource_dir is not None and os.path.isdir(job.resource_dir):
                 shutil.copytree(job.resource_dir, job_resource_dir)
-            else:
-                os.makedirs(job_resource_dir)
 
         def validate_edge(head, tail):
             if head not in workflow.jobs:

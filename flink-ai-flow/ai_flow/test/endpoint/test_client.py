@@ -28,7 +28,6 @@ from notification_service.base_notification import EventWatcher
 from ai_flow.common.properties import Properties
 from ai_flow.common.status import Status
 from ai_flow.meta.dataset_meta import DatasetMeta, DataType, Schema
-from ai_flow.meta.job_meta import State
 from ai_flow.meta.metric_meta import MetricType, MetricMeta, MetricSummary
 from ai_flow.meta.model_meta import ModelType
 from ai_flow.model_center.entity.model_version_stage import ModelVersionStage

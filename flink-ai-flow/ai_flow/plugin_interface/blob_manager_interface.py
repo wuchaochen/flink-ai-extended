@@ -25,6 +25,8 @@ class BlobManager(ABC):
     """
     A BlobManager is responsible for uploading and downloading files and resource for an execution of an ai flow project.
     """
+    def __init__(self, config: Dict):
+        self.config = config
 
     @abstractmethod
     def upload_blob(self, workflow_id: Text, prj_pkg_path: Text) -> Text:
