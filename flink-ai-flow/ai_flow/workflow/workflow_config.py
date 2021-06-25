@@ -20,10 +20,12 @@ import os
 from typing import Dict, Text
 from ai_flow.util.json_utils import Jsonable, loads
 from ai_flow.workflow.job_config import JobConfig
+from ai_flow.workflow.periodic_config import PeriodicConfig
 from ai_flow.util import yaml_utils
 
 WORKFLOW_PROPERTIES = "properties"
 WORKFLOW_DEPENDENCIES = "dependencies"
+PERIODIC_CONFIG = "periodic_config"
 
 
 class WorkflowConfig(Jsonable):
@@ -34,6 +36,7 @@ class WorkflowConfig(Jsonable):
         self.job_configs: Dict[Text, JobConfig] = {}
         self.properties: Dict[Text, Jsonable] = {}
         self.dependencies: Dict = None
+        self.periodic_config: PeriodicConfig = None
 
     def add_job_config(self, config_key: Text, job_config: JobConfig):
         self.job_configs[config_key] = job_config
@@ -50,6 +53,10 @@ def load_workflow_config(config_path: Text) -> WorkflowConfig:
         workflow_data = yaml_utils.load_yaml_file(config_path)
 
         workflow_config: WorkflowConfig = WorkflowConfig(workflow_name=workflow_name)
+
+        if PERIODIC_CONFIG in workflow_data:
+            p_data = workflow_data.get(PERIODIC_CONFIG)
+            workflow_config.periodic_config = PeriodicConfig.from_dict(p_data)
 
         if WORKFLOW_PROPERTIES in workflow_data:
             workflow_config.properties = workflow_data[WORKFLOW_PROPERTIES]

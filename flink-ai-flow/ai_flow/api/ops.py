@@ -527,7 +527,7 @@ def action_on_state(job_name: Text,
                     upstream_job_state: Text,
                     action: TaskAction):
     """
-
+    Trigger job by upstream job state changed.
     :param job_name: The job name
     :param upstream_job_name: The upstream job name
     :param upstream_job_state: The upstream job state
@@ -548,7 +548,7 @@ def action_on_state(job_name: Text,
 def run_after(job_name: Text,
               upstream_job_name: Text) -> None:
     """
-
+    Job run after upstream job success.
     :param job_name: The job name
     :param upstream_job_name: The upstream job name
     :return:
@@ -557,7 +557,7 @@ def run_after(job_name: Text,
                     event_key=workflow_config().workflow_name,
                     event_type=AIFlowInnerEventType.UPSTREAM_JOB_SUCCESS,
                     sender=upstream_job_name,
-                    event_value='',
+                    event_value=job_name,
                     action=TaskAction.START,
                     namespace=project_description().project_name,
                     condition=MetCondition.SUFFICIENT
@@ -565,11 +565,13 @@ def run_after(job_name: Text,
 
 
 def periodic_run(job_name: Text,
-                 periodic_config: PeriodicConfig):
+                 periodic_config: PeriodicConfig,
+                 action: TaskAction = TaskAction.START):
     """
-
+    Trigger job periodic.
     :param job_name: The job name
     :param periodic_config: ai_flow.workflow.periodic_config.PeriodicConfig
+    :param action: The ai_flow.workflow.control_edge.TaskAction type.
     :return:
     """
     action_on_event(job_name=job_name,
@@ -577,6 +579,6 @@ def periodic_run(job_name: Text,
                     event_type=AIFlowInnerEventType.PERIODIC_ACTION,
                     sender=ANY_CONDITION,
                     event_value=json_utils.dumps(periodic_config),
-                    action=TaskAction.START,
+                    action=action,
                     condition=MetCondition.SUFFICIENT,
                     namespace=project_description().project_name)
