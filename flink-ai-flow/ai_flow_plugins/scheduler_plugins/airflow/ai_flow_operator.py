@@ -23,10 +23,9 @@ from ai_flow.plugin_interface.blob_manager_interface import BlobManagerFactory
 from ai_flow.plugin_interface.job_plugin_interface import BaseJobController, JobHandler, JobExecutionContext
 from ai_flow.plugin_interface.scheduler_interface import JobExecutionInfo, WorkflowExecutionInfo, WorkflowInfo
 from ai_flow.project.project_description import get_project_description_from
-from ai_flow.runtime.job_runtime_env import JobRuntimeEnv
 from ai_flow.workflow.job import Job
 from ai_flow.workflow.workflow import Workflow, WorkflowPropertyKeys
-from ai_flow.project.project_description import ProjectDesc
+from ai_flow_plugins.job_plugins.job_utils import prepare_job_runtime_env
 
 
 class AIFlowOperator(BaseOperator):
@@ -58,28 +57,6 @@ class AIFlowOperator(BaseOperator):
                               workflow_execution=we)
         return je
 
-    def prepare_job_runtime_env(self, workflow_id, workflow_name, job_name, project_desc: ProjectDesc)->JobRuntimeEnv:
-        temp_path = project_desc.get_absolute_temp_path()
-        working_dir = os.path.join(temp_path, workflow_id, job_name)
-        job_runtime_env: JobRuntimeEnv = JobRuntimeEnv(working_dir=working_dir,
-                                                       workflow_name=workflow_name,
-                                                       job_name=job_name)
-        if not os.path.exists(working_dir):
-            os.makedirs(job_runtime_env.log_dir)
-            job_runtime_env.save_workflow_name()
-            job_runtime_env.save_job_name()
-            os.symlink(project_desc.get_absolute_workflow_entry_file(workflow_name=workflow_name),
-                       os.path.join(working_dir, '{}.py'.format(workflow_name)))
-            os.symlink(project_desc.get_absolute_workflow_config_file(workflow_name=workflow_name),
-                       os.path.join(working_dir, '{}.yaml'.format(workflow_name)))
-            os.symlink(os.path.join(project_desc.get_absolute_generated_path(), workflow_id, job_name),
-                       job_runtime_env.generated_dir)
-            os.symlink(project_desc.get_absolute_resources_path(), job_runtime_env.resource_dir)
-            os.symlink(project_desc.get_absolute_dependencies_path(), job_runtime_env.dependencies_dir)
-            os.symlink(project_desc.get_absolute_project_config_file(), job_runtime_env.project_config_file)
-
-        return job_runtime_env
-
     def pre_execute(self, context: Any):
         config = {}
         config.update(self.workflow.properties['blob'])
@@ -99,10 +76,10 @@ class AIFlowOperator(BaseOperator):
         project_desc = get_project_description_from(project_path)
 
         job_execution_info: JobExecutionInfo = self.context_to_job_info(project_desc.project_name, context)
-        job_runtime_env = self.prepare_job_runtime_env(self.workflow.workflow_id,
-                                                       self.workflow.workflow_name,
-                                                       job_execution_info.job_name,
-                                                       project_desc)
+        job_runtime_env = prepare_job_runtime_env(self.workflow.workflow_id,
+                                                  self.workflow.workflow_name,
+                                                  job_execution_info.job_name,
+                                                  project_desc)
         self.job_context: JobExecutionContext \
             = JobExecutionContext(job_runtime_env=job_runtime_env,
                                   project_config=project_desc.project_config,

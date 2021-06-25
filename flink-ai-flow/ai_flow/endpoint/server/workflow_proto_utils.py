@@ -16,6 +16,7 @@
 # under the License.
 from typing import List
 
+from ai_flow.endpoint.server import stringValue
 from ai_flow.protobuf.message_pb2 import WorkflowProto, WorkflowExecutionProto, StateProto, JobProto
 from ai_flow.plugin_interface.scheduler_interface import WorkflowInfo, WorkflowExecutionInfo, JobExecutionInfo
 from ai_flow.workflow.state import State
@@ -114,7 +115,9 @@ def job_to_proto(job: JobExecutionInfo) -> JobProto:
     else:
         state = job.state
     return JobProto(name=job.job_name,
+                    job_id=stringValue(job.job_execution_id),
                     job_state=StateProto.Value(state),
+                    properties=job.properties,
                     workflow_execution=workflow_execution_to_proto(job.workflow_execution))
 
 
@@ -122,7 +125,10 @@ def proto_to_job(proto: JobProto) -> JobExecutionInfo:
     if proto is None:
         return None
     else:
-        return JobExecutionInfo(job_name=proto.name, state=proto_to_state(proto.job_state),
+        return JobExecutionInfo(job_name=proto.name,
+                                job_execution_id=proto.job_id.value,
+                                state=proto_to_state(proto.job_state),
+                                properties=proto.properties,
                                 workflow_execution=proto_to_workflow_execution(proto.workflow_execution))
 
 
