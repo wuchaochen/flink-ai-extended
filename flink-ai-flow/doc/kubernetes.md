@@ -91,7 +91,7 @@ spec:
       containers:
         - name: ai-flow-master-container
           image: '${ai flow image}'
-          command: ["python3", "/opt/aiflow_master_main.py", "--config", "/opt/conf/master.yaml"]
+          command: ["python3", "/opt/server_runner.py", "--config", "/opt/conf/master.yaml"]
           imagePullPolicy: Always
           ports:
             - containerPort: 50051
@@ -125,8 +125,8 @@ metadata:
     app: ai-flow
 data:
   master.yaml: |+
-    master_ip: localhost
-    master_port: ${export port}
+    server_ip: localhost
+    server_port: ${export port}
     db_uri:  ${date base uri}
     db_type: ${data base type}
     k8s_namespace: ai-flow
@@ -208,8 +208,8 @@ ai-flow-master port: 50051
 
 ```yaml
 project_name: ${project name}
-master_ip: ${master ip}
-master_port: ${master port}
+server_ip: ${master ip}
+server_port: ${master port}
 ai_flow_home: /opt/ai_flow
 blob_server.type: oss
 blob_server.endpoint: ${oss endpoint}

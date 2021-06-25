@@ -21,7 +21,7 @@
 from ai_flow import plugins
 from ai_flow.api.ai_flow_context import engine, config, config, global_config, global_config_file, \
     default_af_job_context
-from ai_flow.api.configuration import set_default_project_config, set_project_config_file, set_project_master_uri, \
+from ai_flow.api.configuration import set_default_project_config, set_project_config_file, set_project_server_uri, \
     ensure_project_registered, unset_project_config, project_config
 from ai_flow.api.notification import *
 from ai_flow.api.ops import read_dataset, write_dataset, transform, train, predict, evaluate, dataset_validate, \
@@ -31,7 +31,7 @@ from ai_flow.api.ops import read_dataset, write_dataset, transform, train, predi
 from ai_flow.api.project import run, submit_ai_flow, stop_execution_by_id, wait_workflow_execution_finished, \
     compile_workflow, deploy_to_airflow, generate_airflow_file_text, submit
 # ai_flow.application_master.master
-from ai_flow.application_master.master import AIFlowMaster, set_master_config
+from ai_flow.endpoint.server.server_runner import AIFlowServerRunner, set_master_config
 # ai_flow.client
 from ai_flow.client import *
 # ai_flow.common

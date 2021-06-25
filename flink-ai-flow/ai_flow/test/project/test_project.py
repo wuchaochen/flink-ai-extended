@@ -18,7 +18,7 @@
 #
 import unittest
 
-from ai_flow.application_master.master import AIFlowMaster
+from ai_flow.endpoint.server.server_runner import AIFlowServerRunner
 
 from ai_flow.util.path_util import get_file_dir
 from ai_flow.project.project_description import get_project_description_from
@@ -30,18 +30,18 @@ class TestProjectConfig(unittest.TestCase):
     def setUp(self):
         project_path = get_file_dir(__file__)
         config_file = project_path + '/master.yaml'
-        self.master = AIFlowMaster(config_file=config_file)
-        self.master.start()
+        self.server_runner = AIFlowServerRunner(config_file=config_file)
+        self.server_runner.start()
 
     def tearDown(self):
-        self.master.stop()
-        self.master._clear_db()
+        self.server_runner.stop()
+        self.server_runner._clear_db()
 
     def test_load_project_config(self):
         project_path = get_file_dir(__file__)
         set_project_config_file(project_path+"/project.yaml")
         project_desc = get_project_description_from(project_path)
-        self.assertEqual(project_desc.project_config.get_master_uri(), "localhost:50051")
+        self.assertEqual(project_desc.project_config.get_server_uri(), "localhost:50051")
         self.assertIsNone(project_desc.project_config.get('ai_flow config', None))
         self.assertEqual(project_desc.project_config['ai_flow_home'], '/opt/ai_flow')
         self.assertEqual(project_desc.project_config['ai_flow_job_master.host'], 'localhost')
