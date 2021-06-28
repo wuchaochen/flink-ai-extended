@@ -17,6 +17,7 @@
 import unittest
 import os
 from ai_flow import AIFlowMaster, init_ai_flow_context
+from ai_flow.workflow.state import State
 from ai_flow_plugins.job_plugins import bash
 import ai_flow as af
 
@@ -47,8 +48,8 @@ class TestBash(unittest.TestCase):
             af.user_define_operation(executor=bash.BashExecutor(bash_command='echo "Xiao ming hello world!"'))
         w = af.workflow_operation.submit_workflow(workflow_name='test_bash')
         je = af.workflow_operation.start_job_execution(job_name='task_1', execution_id='1')
-        af.workflow_operation.get_job_execution(job_name='task_1', execution_id='1')
-        af.workflow_operation.stop_job_execution(job_name='task_1', execution_id='1')
+        je = af.workflow_operation.get_job_execution(job_name='task_1', execution_id='1')
+        self.assertEqual(State.FINISHED, je.state)
 
     def test_stop_bash_task(self):
         with af.job_config('task_1'):
@@ -57,7 +58,7 @@ class TestBash(unittest.TestCase):
         je = af.workflow_operation.start_job_execution(job_name='task_1', execution_id='1')
         af.workflow_operation.stop_job_execution(job_name='task_1', execution_id='1')
         je = af.workflow_operation.get_job_execution(job_name='task_1', execution_id='1')
-        self.assertEqual('2', je.job_execution_id)
+        self.assertEqual(State.FAILED, je.state)
         self.assertTrue('err' in je.properties)
 
 

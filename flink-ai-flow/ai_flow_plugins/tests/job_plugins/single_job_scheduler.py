@@ -22,6 +22,7 @@ from ai_flow.plugin_interface.scheduler_interface import AbstractScheduler, JobE
     WorkflowInfo, SchedulerConfig
 from ai_flow.project.project_description import ProjectDesc
 from ai_flow.runtime.job_runtime_env import JobRuntimeEnv
+from ai_flow.workflow.state import State
 from ai_flow.workflow.workflow import Workflow, WorkflowPropertyKeys
 from ai_flow_plugins.job_plugins.job_utils import prepare_job_runtime_env
 
@@ -112,8 +113,9 @@ class SingleJobScheduler(AbstractScheduler):
             print(result)
             self.job_controller.cleanup_job(self.job_handler, self.job_context)
         except Exception as e:
-            return [JobExecutionInfo(job_execution_id='2', job_name=job_name, properties={'err': str(e)})]
-        return [JobExecutionInfo(job_execution_id='1', job_name=job_name)]
+            return [JobExecutionInfo(job_execution_id='1', job_name=job_name,
+                                     state=State.FAILED, properties={'err': str(e)})]
+        return [JobExecutionInfo(job_execution_id='1', job_name=job_name, state=State.FINISHED)]
 
     def list_job_executions(self, execution_id: Text) -> List[JobExecutionInfo]:
         pass

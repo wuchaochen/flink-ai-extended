@@ -20,6 +20,7 @@ import time
 from typing import List
 
 from ai_flow import AIFlowMaster, init_ai_flow_context
+from ai_flow.workflow.state import State
 from ai_flow_plugins.job_plugins import python
 import ai_flow as af
 from ai_flow_plugins.job_plugins.python.python_executor import ExecutionContext
@@ -66,9 +67,8 @@ class TestPython(unittest.TestCase):
             af.user_define_operation(executor=PyExecutor1())
         w = af.workflow_operation.submit_workflow(workflow_name=af.workflow_config().workflow_name)
         je = af.workflow_operation.start_job_execution(job_name='task_1', execution_id='1')
-        af.workflow_operation.get_job_execution(job_name='task_1', execution_id='1')
-        self.assertEqual('1', je.job_execution_id)
-        af.workflow_operation.stop_job_execution(job_name='task_1', execution_id='1')
+        je = af.workflow_operation.get_job_execution(job_name='task_1', execution_id='1')
+        self.assertEqual(State.FINISHED, je.state)
 
     def test_stop_python_task(self):
         with af.job_config('task_1'):
@@ -78,7 +78,7 @@ class TestPython(unittest.TestCase):
         time.sleep(2)
         af.workflow_operation.stop_job_execution(job_name='task_1', execution_id='1')
         je = af.workflow_operation.get_job_execution(job_name='task_1', execution_id='1')
-        self.assertEqual('2', je.job_execution_id)
+        self.assertEqual(State.FAILED, je.state)
         self.assertTrue('err' in je.properties)
 
 

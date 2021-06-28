@@ -34,9 +34,12 @@ def prepare_job_runtime_env(workflow_id, workflow_name, job_name, project_desc: 
                    os.path.join(working_dir, '{}.py'.format(workflow_name)))
         os.symlink(project_desc.get_absolute_workflow_config_file(workflow_name=workflow_name),
                    os.path.join(working_dir, '{}.yaml'.format(workflow_name)))
-        os.symlink(os.path.join(project_desc.get_absolute_generated_path(), workflow_id, job_name),
-                   job_runtime_env.generated_dir)
-        os.symlink(project_desc.get_absolute_resources_path(), job_runtime_env.resource_dir)
-        os.symlink(project_desc.get_absolute_dependencies_path(), job_runtime_env.dependencies_dir)
+        if os.path.exists(project_desc.get_absolute_generated_path()):
+            os.symlink(os.path.join(project_desc.get_absolute_generated_path(), workflow_id, job_name),
+                       job_runtime_env.generated_dir)
+        if os.path.exists(project_desc.get_absolute_resources_path()):
+            os.symlink(project_desc.get_absolute_resources_path(), job_runtime_env.resource_dir)
+        if os.path.exists(project_desc.get_absolute_dependencies_path()):
+            os.symlink(project_desc.get_absolute_dependencies_path(), job_runtime_env.dependencies_dir)
         os.symlink(project_desc.get_absolute_project_config_file(), job_runtime_env.project_config_file)
     return job_runtime_env

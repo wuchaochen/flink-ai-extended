@@ -88,7 +88,7 @@ class JobRuntimeEnv(object):
 
     @property
     def workflow_entry_file(self) -> Text:
-        return os.path.join(self.working_dir, '{}.python'.format(self.workflow_name))
+        return os.path.join(self.working_dir, '{}.py'.format(self.workflow_name))
 
     def save_workflow_name(self):
         if self._workflow_name is None:
