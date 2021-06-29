@@ -23,7 +23,7 @@ from pyflink.table import Table, DataTypes, ScalarFunction
 from pyflink.table.descriptors import Schema, OldCsv, FileSystem
 from pyflink.table.udf import udf
 
-from ai_flow import AIFlowMaster, init_ai_flow_context
+from ai_flow import AIFlowServerRunner, init_ai_flow_context
 from ai_flow.workflow.state import State
 from ai_flow_plugins.job_plugins import flink
 import ai_flow as af
@@ -89,7 +89,7 @@ class TestFlink(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         config_file = os.path.dirname(project_path) + '/master.yaml'
-        cls.master = AIFlowMaster(config_file=config_file)
+        cls.master = AIFlowServerRunner(config_file=config_file)
         cls.master.start()
 
     @classmethod

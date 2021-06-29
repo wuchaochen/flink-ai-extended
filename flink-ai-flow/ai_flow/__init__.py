@@ -25,8 +25,7 @@ from ai_flow.context.project_context import project_description, project_config
 from ai_flow.context.workflow_context import workflow_config
 from ai_flow.context.job_context import job_config
 
-# ai_flow.application_master.master
-from ai_flow.application_master.master import AIFlowMaster, set_master_config
+from ai_flow.endpoint.server.server_runner import AIFlowServerRunner
 
 # ai_flow.client
 from ai_flow.client import *

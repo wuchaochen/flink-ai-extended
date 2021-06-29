@@ -30,9 +30,9 @@ from ai_flow.endpoint.client.metadata_client import MetadataClient
 from ai_flow.endpoint.client.metric_client import MetricClient
 from ai_flow.endpoint.client.model_center_client import ModelCenterClient
 from ai_flow.endpoint.client.scheduler_client import SchedulerClient
+from ai_flow.context.project_context import project_config
 from ai_flow.endpoint.server.high_availability import proto_to_member, sleep_and_detecting_running
 from ai_flow.project.project_config import ProjectConfig
-from ai_flow.context.project_context import project_config
 from ai_flow.protobuf.high_availability_pb2 import ListMembersRequest, ReturnStatus
 from ai_flow.protobuf.high_availability_pb2_grpc import HighAvailabilityManagerStub
 from ai_flow.protobuf.metadata_service_pb2_grpc import MetadataServiceStub
@@ -48,7 +48,7 @@ AI_FLOW_TYPE = "AI_FLOW"
 _SERVER_URI = 'localhost:50051'
 
 _default_ai_flow_client = None
-_default_master_uri = 'localhost:50051'
+_default_server_uri = 'localhost:50051'
 
 _default_airflow_operation_client = None
 
@@ -56,23 +56,23 @@ _default_airflow_operation_client = None
 def get_ai_flow_client():
     """ Get AI flow Client. """
 
-    global _default_ai_flow_client, _default_master_uri
+    global _default_ai_flow_client, _default_server_uri
     if _default_ai_flow_client is None:
-        current_uri = project_config().get_master_uri()
+        current_uri = project_config().get_server_uri()
         if current_uri is None:
             return None
         else:
-            _default_master_uri = current_uri
+            _default_server_uri = current_uri
             _default_ai_flow_client \
-                = AIFlowClient(server_uri=_default_master_uri,
+                = AIFlowClient(server_uri=_default_server_uri,
                                notification_service_uri=project_config().get_notification_service_uri())
             return _default_ai_flow_client
     else:
-        current_uri = project_config().get_master_uri()
-        if current_uri != _default_master_uri:
-            _default_master_uri = current_uri
+        current_uri = project_config().get_server_uri()
+        if current_uri != _default_server_uri:
+            _default_server_uri = current_uri
             _default_ai_flow_client \
-                = AIFlowClient(server_uri=_default_master_uri,
+                = AIFlowClient(server_uri=_default_server_uri,
                                notification_service_uri=project_config().get_notification_service_uri())
 
         return _default_ai_flow_client
@@ -97,7 +97,7 @@ class AIFlowClient(MetadataClient, ModelCenterClient, NotificationClient, Metric
         self.retry_timeout_ms = 10000
         if project_config is not None:
             if server_uri is None:
-                server_uri = project_config.get_master_uri()
+                server_uri = project_config.get_server_uri()
             if notification_service_uri is None:
                 notification_service_uri = project_config.get_notification_service_uri()
             self.enable_ha = project_config.get_enable_ha()

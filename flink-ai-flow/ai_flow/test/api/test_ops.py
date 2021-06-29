@@ -105,7 +105,7 @@ class TestOps(unittest.TestCase):
     def test_train(self):
         with job_config('task_1'):
             o = ops.read_dataset(executor=None, dataset_info=DatasetMeta(name='dataset'))
-            t = ops.train(input_data=o, executor=None, model_info=ModelMeta(name='model', model_type='ckpt'), name='a')
+            t = ops.train(input_data=o, executor=None, model_info=ModelMeta(name='model'), name='a')
             ops.write_dataset(input_data=t, dataset_info=DatasetMeta(name='dataset'))
         self.assertEqual(3, len(default_graph().nodes))
         self.assertEqual(2, len(default_graph().edges))
@@ -116,7 +116,7 @@ class TestOps(unittest.TestCase):
         with job_config('task_1'):
             o = ops.read_dataset(executor=None, dataset_info=DatasetMeta(name='dataset'))
             t = ops.predict(input_data=o, executor=None,
-                            model_info=ModelMeta(name='model', model_type='ckpt'), name='a')
+                            model_info=ModelMeta(name='model'), name='a')
             ops.write_dataset(input_data=t, dataset_info=DatasetMeta(name='dataset'))
         self.assertEqual(3, len(default_graph().nodes))
         self.assertEqual(2, len(default_graph().edges))
@@ -127,7 +127,7 @@ class TestOps(unittest.TestCase):
         with job_config('task_1'):
             o = ops.read_dataset(executor=None, dataset_info=DatasetMeta(name='dataset'))
             t = ops.evaluate(input_data=o, executor=None,
-                             model_info=ModelMeta(name='model', model_type='ckpt'), name='a')
+                             model_info=ModelMeta(name='model'), name='a')
         self.assertEqual(2, len(default_graph().nodes))
         self.assertEqual(1, len(default_graph().edges))
         n = self.get_node_by_name('a')
@@ -146,7 +146,7 @@ class TestOps(unittest.TestCase):
         with job_config('task_1'):
             o = ops.read_dataset(executor=None, dataset_info=DatasetMeta(name='dataset'))
             t = ops.model_validate(input_data=o, executor=None,
-                                   model_info=ModelMeta(name='model', model_type='ckpt'), name='a')
+                                   model_info=ModelMeta(name='model'), name='a')
         self.assertEqual(2, len(default_graph().nodes))
         self.assertEqual(1, len(default_graph().edges))
         n = self.get_node_by_name('a')
@@ -155,7 +155,7 @@ class TestOps(unittest.TestCase):
     def test_push_model(self):
         with job_config('task_1'):
             t = ops.push_model(executor=None,
-                               model_info=ModelMeta(name='model', model_type='ckpt'), name='a')
+                               model_info=ModelMeta(name='model'), name='a')
         self.assertEqual(1, len(default_graph().nodes))
         n = self.get_node_by_name('a')
         self.assertEqual('model', n.node_config.get('model_info').name)
@@ -204,7 +204,7 @@ class TestOps(unittest.TestCase):
         with job_config('task_1'):
             o1 = ops.user_define_operation(executor=None, a='a', name='1')
         ops.periodic_run(job_name='task_1',
-                         periodic_config=PeriodicConfig(periodic_type='cron', args={}))
+                         periodic_config=PeriodicConfig(cron_expression='* * * * * * *'))
         self.assertEqual(1, len(default_graph().edges))
         edge: ControlEdge = default_graph().edges.get('task_1')[0]
         self.assertEqual('task_1', edge.head)

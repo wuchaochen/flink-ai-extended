@@ -19,14 +19,17 @@
 import unittest
 import os
 from typing import Text, List, Optional, Dict
-from ai_flow.application_master.master import AIFlowMaster
+
+from ai_flow.endpoint.server.server_runner import AIFlowServerRunner
 from ai_flow.plugin_interface.scheduler_interface import AbstractScheduler, JobExecutionInfo, WorkflowExecutionInfo, \
-    WorkflowInfo
+    WorkflowInfo, SchedulerConfig
 from ai_flow.project.project_description import ProjectDesc
 from ai_flow.workflow.workflow import Workflow
 
 
 class MockScheduler(AbstractScheduler):
+    def __init__(self, config: SchedulerConfig):
+        super().__init__(config)
 
     def submit_workflow(self, workflow: Workflow, project_desc: ProjectDesc, args: Dict = None) -> WorkflowInfo:
         pass
@@ -80,10 +83,9 @@ class MockScheduler(AbstractScheduler):
 class TestMaster(unittest.TestCase):
 
     def test_master_start_stop(self):
-        master_config_file = os.path.dirname(__file__) + '/master_config.yaml'
-        master = AIFlowMaster(config_file=master_config_file)
-        master.start(is_block=False)
-        master.stop()
+        server_runner = AIFlowServerRunner(config_file=os.path.join(os.path.dirname(__file__), 'master_config.yaml'))
+        server_runner.start(is_block=False)
+        server_runner.stop()
 
 
 if __name__ == '__main__':

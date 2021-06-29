@@ -38,16 +38,16 @@ class DBType(str, Enum):
             raise NotImplementedError
 
 
-class MasterConfig(AIFlowConfiguration):
+class AIFlowServerConfig(AIFlowConfiguration):
     def get_sql_lite_db_file(self):
         db_uri = self.get_db_uri()
         return db_uri[10:]
 
-    def get_master_ip(self):
-        return self["master_ip"]
+    def get_server_ip(self):
+        return self["server_ip"]
 
-    def get_master_port(self):
-        return self["master_port"]
+    def get_server_port(self):
+        return self["server_port"]
 
     def get_db_uri(self):
         return self["db_uri"]
@@ -69,11 +69,11 @@ class MasterConfig(AIFlowConfiguration):
         else:
             return 10000
 
-    def set_master_port(self, value):
-        self["master_port"] = value
+    def set_server_port(self, value):
+        self["server_port"] = value
 
-    def set_master_ip(self, value):
-        self["master_ip"] = value
+    def set_server_ip(self, value):
+        self["server_ip"] = value
 
     def set_db_uri(self, db_type: DBType, uri: Text):
         self["db_type"] = db_type.value
@@ -123,8 +123,8 @@ class MasterConfig(AIFlowConfiguration):
         else:
             return True
 
-    def start_scheduling_service(self):
-        if "start_scheduling_service" in self and self['start_scheduling_service'] is False:
+    def start_scheduler_service(self):
+        if "start_scheduler_service" in self and self['start_scheduler_service'] is False:
             return False
         else:
             return True

@@ -27,7 +27,7 @@ export PYTHONPATH=${SOURCE_ROOT}
 cd ${SOURCE_ROOT}
 function run_tests() {
     code_path=$1
-    test_files=`find ${code_path} | grep -v __pycache__  | grep test_`
+    test_files=`find ${code_path} | grep -v __pycache__ | grep -v temp | grep test_ | grep "\.py$"`
 
     for i in ${test_files}
     do
@@ -67,6 +67,8 @@ run_tests 'ai_flow/test/application_master'
 
 run_test_class 'ai_flow/test/endpoint/' 'test_client.TestAIFlowClientSqlite'
 run_test_class 'ai_flow/test/endpoint/' 'test_mysql_client.TestAIFlowClientMySQL'
+run_test_class 'ai_flow/test/endpoint/' 'test_high_availability.TestHighAvailableAIFlowServer'
 
 run_tests 'ai_flow_plugins/tests/blob_manager_plugins'
-
+run_tests 'ai_flow_plugins/tests/scheduler_plugins'
+run_tests 'ai_flow_plugins/tests/job_plugins'

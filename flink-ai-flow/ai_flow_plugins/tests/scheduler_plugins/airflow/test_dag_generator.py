@@ -18,7 +18,7 @@ import unittest
 import os
 from typing import Text, List, Optional, Dict
 
-from ai_flow import AIFlowMaster, init_ai_flow_context, PeriodicConfig
+from ai_flow import AIFlowServerRunner, init_ai_flow_context, PeriodicConfig
 from ai_flow.plugin_interface.scheduler_interface import AbstractScheduler, JobExecutionInfo, WorkflowExecutionInfo, \
     WorkflowInfo, SchedulerConfig
 import ai_flow as af
@@ -91,7 +91,7 @@ class TestDagGenerator(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         config_file = os.path.dirname(__file__) + '/master.yaml'
-        cls.master = AIFlowMaster(config_file=config_file)
+        cls.master = AIFlowServerRunner(config_file=config_file)
         cls.master.start()
 
     @classmethod
@@ -138,7 +138,6 @@ class TestDagGenerator(unittest.TestCase):
                            action=TaskAction.START)
         w = af.workflow_operation.submit_workflow(workflow_name='workflow_1')
         code = w.properties.get('code')
-        print(code)
         self.assertTrue(".subscribe_event('a', 'a', 'default', 'task_1')" in code)
         self.assertTrue(".subscribe_event('workflow_1', 'JOB_STATUS_CHANGED', 'test_project', 'task_2')" in code)
         self.assertTrue(".set_events_handler(AIFlowHandler(configs_op_" in code)
@@ -149,7 +148,6 @@ class TestDagGenerator(unittest.TestCase):
         af.periodic_run('task_1', periodic_config=PeriodicConfig(cron_expression="* * * * * * *"))
         w = af.workflow_operation.submit_workflow(workflow_name='workflow_1')
         code = w.properties.get('code')
-        print(code)
         self.assertTrue('op_0 = AIFlowOperator' in code)
         self.assertTrue('op_0.executor_config' in code)
 
@@ -159,7 +157,6 @@ class TestDagGenerator(unittest.TestCase):
         af.periodic_run('task_1', periodic_config=PeriodicConfig(interval_expression="1,1,1,1"))
         w = af.workflow_operation.submit_workflow(workflow_name='workflow_1')
         code = w.properties.get('code')
-        print(code)
         self.assertTrue('op_0 = AIFlowOperator' in code)
         self.assertTrue('op_0.executor_config' in code)
 

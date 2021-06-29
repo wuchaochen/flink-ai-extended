@@ -102,6 +102,9 @@
                         <exclude>tests/resources/**/*</exclude>
                         <exclude>ai_flow/java/**/*</exclude>
                         <exclude>ai_flow/test/common/test.yaml</exclude>
+                        <exclude>ai_flow_plugins/tests/job_plugins/ut_workflows/resources/**/*</exclude>
+                        <exclude>ai_flow_plugins/tests/job_plugins/ut_workflows/temp/**/*</exclude>
+                        <exclude>ai_flow_plugins/tests/job_plugins/ut_workflows/generated/**/*</exclude>
                     </excludes>
                 </configuration>
             </plugin>
