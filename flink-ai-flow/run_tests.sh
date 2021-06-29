@@ -44,6 +44,7 @@ function run_tests() {
 function run_test_class() {
     dir_name=$1
     class_name=$2
+    echo "RUN TEST: ${2}"
     cd ${dir_name} && python3 -m unittest ${class_name}
     cd ${SOURCE_ROOT}
 }
