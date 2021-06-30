@@ -28,6 +28,12 @@ def trigger_periodic_task(mailbox, run_id, task_id):
 
 
 class PeriodicManager(LoggingMixin):
+    """
+    Support cron and interval config
+    cron: second minute hour day month day_of_week option(year)
+    interval: weeks,days,hours,minutes,seconds
+    """
+
     def __init__(self, mailbox: Mailbox):
         super().__init__()
         self.mailbox = mailbox
@@ -44,46 +50,56 @@ class PeriodicManager(LoggingMixin):
 
     def add_task(self, run_id, task_id, periodic_config):
         if 'cron' in periodic_config:
+            def build_cron_trigger(expr) -> CronTrigger:
+                cron_items = expr.split()
+                if len(cron_items) == 7:
+                    return CronTrigger(second=cron_items[0],
+                                       minute=cron_items[1],
+                                       hour=cron_items[2],
+                                       day=cron_items[3],
+                                       month=cron_items[4],
+                                       day_of_week=cron_items[5],
+                                       year=cron_items[6])
+                elif len(cron_items) == 6:
+                    return CronTrigger(second=cron_items[0],
+                                       minute=cron_items[1],
+                                       hour=cron_items[2],
+                                       day=cron_items[3],
+                                       month=cron_items[4],
+                                       day_of_week=cron_items[5])
+                else:
+                    raise ValueError('Wrong number of fields; got {}, expected 7 or 6'.format(len(cron_items)))
+
             self.sc.add_job(id=self._generate_job_id(run_id, task_id),
                             func=trigger_periodic_task, args=(self.mailbox, run_id, task_id),
-                            trigger=CronTrigger.from_crontab(periodic_config['cron']))
+                            trigger=build_cron_trigger(periodic_config['cron']))
         elif 'interval' in periodic_config:
-            interval_config: dict = periodic_config['interval']
-            if 'seconds' in interval_config:
-                seconds = interval_config['seconds']
-            else:
-                seconds = 0
-            
-            if 'minutes' in interval_config:
-                minutes = interval_config['minutes']
-            else:
-                minutes = 0
-            
-            if 'hours' in interval_config:
-                hours = interval_config['hours']
-            else:
-                hours = 0
-                
-            if 'days' in interval_config:
-                days = interval_config['days']
-            else:
-                days = 0
-            
-            if 'weeks' in interval_config:
-                weeks = interval_config['weeks']
-            else:
-                weeks = 0
-            
-            if seconds < 10 and 0 >= minutes and 0 >= hours and 0 >= days and 0 >= weeks:
-                self.log.error('Interval mast greater than 20 seconds')
-                return 
+            interval_expr: str = periodic_config['interval']
+            interval_items = interval_expr.split(',')
+            if len(interval_items) != 5:
+                raise ValueError('Wrong number of fields; got {}, expected 5'.format(len(interval_items)))
+            temp_list = []
+            is_zero = True
+            for item in interval_items:
+                if item is None or '' == item.strip():
+                    v = 0
+                else:
+                    v = int(item.strip())
+                if v < 0:
+                    raise Exception('interval expression item must >=0')
+                if v > 0:
+                    is_zero = False
+                temp_list.append(v)
+            if is_zero:
+                raise Exception('interval must >0')
+
             self.sc.add_job(id=self._generate_job_id(run_id, task_id),
                             func=trigger_periodic_task, args=(self.mailbox, run_id, task_id),
-                            trigger=IntervalTrigger(seconds=seconds, 
-                                                    minutes=minutes, 
-                                                    hours=hours, 
-                                                    days=days, 
-                                                    weeks=weeks))
+                            trigger=IntervalTrigger(seconds=temp_list[4],
+                                                    minutes=temp_list[3],
+                                                    hours=temp_list[2],
+                                                    days=temp_list[1],
+                                                    weeks=temp_list[0]))
         else:
             self.log.error('Periodic support type cron or interval. current periodic config {}'.format(periodic_config))
 
