@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-
+from typing import Dict
 from airflow.utils.mailbox import Mailbox
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
@@ -48,7 +48,7 @@ class PeriodicManager(LoggingMixin):
     def _generate_job_id(self, run_id, task_id):
         return '{}:{}'.format(run_id, task_id)
 
-    def add_task(self, run_id, task_id, periodic_config):
+    def add_task(self, run_id, task_id, periodic_config: Dict):
         if 'cron' in periodic_config:
             def build_cron_trigger(expr) -> CronTrigger:
                 cron_items = expr.split()
@@ -68,7 +68,8 @@ class PeriodicManager(LoggingMixin):
                                        month=cron_items[4],
                                        day_of_week=cron_items[5])
                 else:
-                    raise ValueError('Wrong number of fields; got {}, expected 7 or 6'.format(len(cron_items)))
+                    raise ValueError('The cron expression {} is incorrect format, follow the pattern: '
+                                     'second minute hour day month day_of_week optional(year).'.format(len(cron_items)))
 
             self.sc.add_job(id=self._generate_job_id(run_id, task_id),
                             func=trigger_periodic_task, args=(self.mailbox, run_id, task_id),
@@ -77,7 +78,8 @@ class PeriodicManager(LoggingMixin):
             interval_expr: str = periodic_config['interval']
             interval_items = interval_expr.split(',')
             if len(interval_items) != 5:
-                raise ValueError('Wrong number of fields; got {}, expected 5'.format(len(interval_items)))
+                raise ValueError('The interval expression {} is incorrect format, follow the pattern: '
+                                 'weeks,days,hours,minutes,seconds.'.format(len(interval_items)))
             temp_list = []
             is_zero = True
             for item in interval_items:
@@ -86,12 +88,12 @@ class PeriodicManager(LoggingMixin):
                 else:
                     v = int(item.strip())
                 if v < 0:
-                    raise Exception('interval expression item must >=0')
+                    raise Exception('The item of interval expression must be greater than or equal to 0.')
                 if v > 0:
                     is_zero = False
                 temp_list.append(v)
             if is_zero:
-                raise Exception('interval must >0')
+                raise Exception('The interval config must be greater than 0.')
 
             self.sc.add_job(id=self._generate_job_id(run_id, task_id),
                             func=trigger_periodic_task, args=(self.mailbox, run_id, task_id),

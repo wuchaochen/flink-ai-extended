@@ -477,7 +477,7 @@ class DagRun(Base, LoggingMixin):
                         dag_id=self.dag_id,
                         execution_date=self.execution_date,
                         is_failure_callback=True,
-                        msg='all_tasks_deadlocked',
+                        msg='All tasks of dag {} are deadlocked'.format(self.dag_id)
                     )
 
         # finally, if the roots aren't done, the dag is still running
@@ -488,7 +488,7 @@ class DagRun(Base, LoggingMixin):
         self._emit_duration_stats_for_finished_state()
 
         session.merge(self)
-        # filter the periodic trigger task and subscribed event task
+        # filter the periodic triggered and subscribed event tasks
         final_schedulable_tis = []
         if is_long_running_dag:
             for ti in schedulable_tis:
