@@ -69,7 +69,7 @@ class PeriodicManager(LoggingMixin):
                                        day_of_week=cron_items[5])
                 else:
                     raise ValueError('The cron expression {} is incorrect format, follow the pattern: '
-                                     'second minute hour day month day_of_week optional(year).'.format(len(cron_items)))
+                                     'second minute hour day month day_of_week optional(year).'.format(cron_items))
 
             self.sc.add_job(id=self._generate_job_id(run_id, task_id),
                             func=trigger_periodic_task, args=(self.mailbox, run_id, task_id),
@@ -79,7 +79,7 @@ class PeriodicManager(LoggingMixin):
             interval_items = interval_expr.split(',')
             if len(interval_items) != 5:
                 raise ValueError('The interval expression {} is incorrect format, follow the pattern: '
-                                 'weeks,days,hours,minutes,seconds.'.format(len(interval_items)))
+                                 'weeks,days,hours,minutes,seconds.'.format(interval_items))
             temp_list = []
             is_zero = True
             for item in interval_items:
