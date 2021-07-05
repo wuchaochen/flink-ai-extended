@@ -20,7 +20,7 @@ import unittest
 import os
 from ai_flow.util import json_utils
 from ai_flow.workflow.job import Job
-from ai_flow.workflow.control_edge import ControlEdge
+from ai_flow.workflow.control_edge import ControlEdge, ConditionConfig
 from ai_flow.workflow.workflow import Workflow
 from ai_flow.workflow.workflow_config import load_workflow_config
 
@@ -33,7 +33,7 @@ class TestWorkflow(unittest.TestCase):
         self.assertEqual('workflow_1', workflow_config.workflow_name)
         self.assertEqual('bash', workflow_config.job_configs['task_1'].job_type)
 
-    def test_workflow(self):
+    def test_workflow_serde(self):
         workflow_config_file = os.path.join(os.path.dirname(__file__), 'workflow_1.yaml')
         workflow_config = load_workflow_config(workflow_config_file)
         workflow = Workflow()
@@ -43,9 +43,11 @@ class TestWorkflow(unittest.TestCase):
             job = Job(job_config=job_config)
             workflow.add_job(job)
             jobs.append(job)
-        edge = ControlEdge(head=jobs[0].job_name, sender=jobs[1].job_name, event_key='a', event_value='a')
+        edge = ControlEdge(destination=jobs[0].job_name,
+                           condition_config=ConditionConfig(sender=jobs[1].job_name, event_key='a', event_value='a'))
         workflow.add_edge(jobs[0].job_name, edge)
-        edge = ControlEdge(head=jobs[0].job_name, sender=jobs[2].job_name, event_key='b', event_value='b')
+        edge = ControlEdge(destination=jobs[0].job_name,
+                           condition_config=ConditionConfig(sender=jobs[2].job_name, event_key='b', event_value='b'))
         workflow.add_edge(jobs[0].job_name, edge)
         json_text = json_utils.dumps(workflow)
         w: Workflow = json_utils.loads(json_text)

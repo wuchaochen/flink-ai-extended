@@ -20,20 +20,66 @@ from typing import Union, Text, Tuple, Optional, List
 from notification_service.base_notification import UNDEFINED_EVENT_TYPE, ANY_CONDITION
 from ai_flow.workflow.periodic_config import PeriodicConfig
 from ai_flow.client.ai_flow_client import get_ai_flow_client
-from ai_flow.ai_graph.ai_node import AINode
+from ai_flow.ai_graph.ai_node import AINode, IONode
 from ai_flow.util import json_utils
-from ai_flow.graph.channel import Channel, NoneChannel
+from ai_flow.graph.channel import Channel
 from ai_flow.workflow.control_edge import ControlEdge, \
-    TaskAction, EventLife, MetValueCondition, MetCondition, DEFAULT_NAMESPACE, AIFlowInnerEventType
-from ai_flow.ai_graph.ai_graph import default_graph, add_ai_node_to_graph
+    TaskAction, EventLife, MetValueCondition, ConditionType, DEFAULT_NAMESPACE, AIFlowInternalEventType, ConditionConfig
+from ai_flow.ai_graph.ai_graph import current_graph, add_ai_node_to_graph
 from ai_flow.meta.dataset_meta import DatasetMeta
 from ai_flow.meta.model_meta import ModelMeta, ModelVersionMeta
-from ai_flow.context.project_context import project_description
-from ai_flow.context.workflow_context import workflow_config
+from ai_flow.context.project_context import current_project_config
+from ai_flow.context.workflow_config_loader import current_workflow_config
+
+
+def io_operation(
+        dataset: DatasetMeta,
+        is_source: bool = True,
+        processor=None,
+        input_data: Union[None, Channel, List[Channel]] = None,
+        output_num=1,
+        name: Text = None,
+        operation_type: Text = 'user_define_operation',
+        **kwargs) -> Union[None, Channel, Tuple[Channel]]:
+    """
+    IO operator.
+    :param dataset: Information about the dataset. Its type is py:class:`ai_flow.meta.dataset_meta.DatasetMeta`.
+    :param is_source: If the operation read data, the param is_source is True.
+                      If the operation write date, the param is_source is False.
+    :param operation_type: The type of the operation.
+    :param processor: The user defined function in operator. User can write their own logic here.
+    :param input_data: List of input data. It contains multiple channels from the operators which generate data.
+    :param output_num: The output number of the operator. The default value is 1.
+    :param name: Name of this operator.
+    :param kwargs:
+    :return: None or Channel or Tuple[Channel].
+    """
+    node = IONode(name=name,
+                  processor=processor,
+                  properties=None,
+                  output_num=output_num,
+                  node_type=operation_type,
+                  dataset=dataset,
+                  is_source=is_source,
+                  **kwargs)
+    add_ai_node_to_graph(node, inputs=input_data)
+    outputs = node.outputs()
+    if 0 == output_num:
+        return None
+    else:
+        if 1 == len(outputs):
+            output: Channel = outputs[0]
+            return output
+        else:
+            output: List[Channel] = []
+            for i in outputs:
+                tmp: Channel = i
+                output.append(tmp)
+            return tuple(output)
 
 
 def read_dataset(dataset_info: Union[DatasetMeta, Text, int],
-                 executor=None,
+                 processor=None,
                  **kwargs) -> Channel:
     """
     Read dataset from the dataset operator. It can read dataset from external system.
@@ -42,7 +88,7 @@ def read_dataset(dataset_info: Union[DatasetMeta, Text, int],
                          of py:class:`ai_flow.meta.dataset_meta.DatasetMeta` or Text or int. The dataset_info
                          means name in the metadata service when its type is Text and it means id when its type is int.
                          The ai flow will get the dataset from metadata service by name or id.
-    :param executor: The python user defined function in read dataset operator. User can write their own logic here.
+    :param processor: The python user defined function in read dataset operator. User can write their own logic here.
     :return: Channel: data output channel.
     """
     if isinstance(dataset_info, DatasetMeta):
@@ -52,18 +98,19 @@ def read_dataset(dataset_info: Union[DatasetMeta, Text, int],
     else:
         dataset_meta = get_ai_flow_client().get_dataset_by_id(dataset_info)
 
-    return user_define_operation(dataset_info=dataset_meta,
-                                 executor=executor,
-                                 output_num=1,
-                                 operation_type='read_dataset',
-                                 **kwargs)
+    return io_operation(dataset=dataset_meta,
+                        is_source=True,
+                        processor=processor,
+                        output_num=1,
+                        operation_type='read_dataset',
+                        **kwargs)
 
 
 def write_dataset(input_data: Channel,
                   dataset_info: Union[DatasetMeta, Text, int],
-                  executor=None,
+                  processor=None,
                   **kwargs
-                  ) -> NoneChannel:
+                  ) -> None:
     """
     Write dataset to dataset operator. It can write dataset to external system.
 
@@ -72,8 +119,8 @@ def write_dataset(input_data: Channel,
                          of py:class:`ai_flow.meta.dataset_meta.DatasetMeta` or Text or int. The dataset_info
                          means name in he metadata service when its type is Text and it means id when its type is int.
                          The ai flow will get the dataset from metadata service by name or id.
-    :param executor: The python user defined function in write dataset operator. User can write their own logic here.
-    :return: NoneChannel.
+    :param processor: The python user defined function in write dataset operator. User can write their own logic here.
+    :return: None.
     """
     if isinstance(dataset_info, DatasetMeta):
         dataset_meta = dataset_info
@@ -82,16 +129,17 @@ def write_dataset(input_data: Channel,
     else:
         dataset_meta = get_ai_flow_client().get_dataset_by_id(dataset_info)
 
-    return user_define_operation(input_data=input_data,
-                                 dataset_info=dataset_meta,
-                                 executor=executor,
-                                 output_num=0,
-                                 operation_type='write_dataset',
-                                 **kwargs)
+    return io_operation(input_data=input_data,
+                        dataset=dataset_meta,
+                        is_source=False,
+                        processor=processor,
+                        output_num=0,
+                        operation_type='write_dataset',
+                        **kwargs)
 
 
 def transform(input_data: Union[Channel, List[Channel]],
-              executor,
+              processor,
               output_num=1,
               name: Text = None,
               **kwargs) -> Union[Channel, Tuple[Channel]]:
@@ -100,7 +148,7 @@ def transform(input_data: Union[Channel, List[Channel]],
     after feature engineering, data cleaning or some other data transformation.
 
     :param input_data: List of input data. It contains multiple channels from the operators which generate data.
-    :param executor: The user defined function in transform operator. User can write their own logic here.
+    :param processor: The user defined function in transform operator. User can write their own logic here.
     :param output_num: The output number of the operator. The default value is 1.
     :param name: Name of the transform operator.
     :return: Channel or Tuple[Channel]. It returns Channel When the output_num is 1 and returns Tuple[Channel] when
@@ -108,24 +156,24 @@ def transform(input_data: Union[Channel, List[Channel]],
     """
     return user_define_operation(input_data=input_data,
                                  name=name,
-                                 executor=executor,
+                                 processor=processor,
                                  output_num=output_num,
                                  operation_type='transform',
                                  **kwargs)
 
 
 def train(input_data: Union[Channel, List[Channel]],
-          executor,
+          processor,
           model_info: Union[ModelMeta, Text, int],
           base_model_info: Union[ModelMeta, Text, int] = None,
           output_num=0,
           name: Text = None,
-          **kwargs) -> Union[NoneChannel, Channel, Tuple[Channel]]:
+          **kwargs) -> Union[Channel, Tuple[Channel]]:
     """
     Trainer operator. Train model with the inputs or continually re-training the base model.
 
     :param input_data: List of Channel. It contains multiple channels from the operators which generate data.
-    :param executor: The user defined function in train operator. User can write their own logic here.
+    :param processor: The user defined function in train operator. User can write their own logic here.
     :param model_info: Information about the output model which is under training. Its type can be ModelMeta
                               of py:class:`ai_flow.meta.model_meta.ModelMeta` or Text or int. The output_model_info
                               means name in he metadata service when its type is Text and it means id when its type is
@@ -157,7 +205,7 @@ def train(input_data: Union[Channel, List[Channel]],
 
     return user_define_operation(input_data=input_data,
                                  name=name,
-                                 executor=executor,
+                                 processor=processor,
                                  model_info=output_model_meta,
                                  base_model_info=base_model_meta,
                                  output_num=output_num,
@@ -167,11 +215,11 @@ def train(input_data: Union[Channel, List[Channel]],
 
 def predict(input_data: Union[Channel, List[Channel]],
             model_info: Union[ModelMeta, Text, int],
-            executor,
+            processor,
             model_version_info: Optional[Union[ModelVersionMeta, Text]] = None,
             output_num=1,
             name: Text = None,
-            **kwargs) -> Union[NoneChannel, Channel, Tuple[Channel]]:
+            **kwargs) -> Union[Channel, Tuple[Channel]]:
     """
     Predictor Operator. Do prediction job with the specific model version.
 
@@ -180,7 +228,7 @@ def predict(input_data: Union[Channel, List[Channel]],
                        of py:class:`ai_flow.meta.model_meta.ModelMeta` or Text or int. The model_info
                        means name in he metadata service when its type is Text and it means id when its type is
                        int. The ai flow will get the model meta from metadata service by name or id.
-    :param executor: The user defined function in predict operator. User can write their own logic here.
+    :param processor: The user defined function in predict operator. User can write their own logic here.
     :param model_version_info: Information about the model version which is in prediction. Its type can be
                                ModelVersionMeta of py:class:`ai_flow.meta.model_meta.ModelVersionMeta`
                                or Text. The model_version_info means version in he metadata service
@@ -209,7 +257,7 @@ def predict(input_data: Union[Channel, List[Channel]],
     return user_define_operation(input_data=input_data,
                                  name=name,
                                  model_info=model_meta,
-                                 executor=executor,
+                                 processor=processor,
                                  model_version_info=model_version_meta,
                                  output_num=output_num,
                                  operation_type='predict',
@@ -218,10 +266,10 @@ def predict(input_data: Union[Channel, List[Channel]],
 
 def evaluate(input_data: Union[Channel, List[Channel]],
              model_info: Union[ModelMeta, Text, int],
-             executor,
+             processor,
              output_num=0,
              name: Text = None,
-             **kwargs) -> Union[NoneChannel, Channel, Tuple[Channel]]:
+             **kwargs) -> Union[Channel, Tuple[Channel]]:
     """
     Evaluate Operator. Do evaluate job with the specific model version.
 
@@ -230,7 +278,7 @@ def evaluate(input_data: Union[Channel, List[Channel]],
                        of py:class:`ai_flow.meta.model_meta.ModelMeta` or Text or int. The model_info
                        means name in he metadata service when its type is Text and it means id when its type is
                        int. The ai flow will get the model meta from metadata service by name or id.
-    :param executor: The user defined function in evaluate operator. User can write their own logic here.
+    :param processor: The user defined function in evaluate operator. User can write their own logic here.
     :param output_num: The output number of the operator. The default value is 0.
     :param name: Name of the predict operator.
     :return: NoneChannel.
@@ -245,27 +293,27 @@ def evaluate(input_data: Union[Channel, List[Channel]],
     return user_define_operation(input_data=input_data,
                                  name=name,
                                  model_info=model_meta,
-                                 executor=executor,
+                                 processor=processor,
                                  output_num=output_num,
                                  operation_type='evaluate',
                                  **kwargs)
 
 
 def dataset_validate(input_data: Channel,
-                     executor,
+                     processor,
                      name: Text = None,
                      **kwargs
-                     ) -> NoneChannel:
+                     ) -> None:
     """
     Dataset Validator Operator. Identifies anomalies in training and serving data in this operator.
 
     :param input_data: Channel. It contains the dataset data used in evaluation.
-    :param executor: The user defined function in dataset validate operator. User can write their own logic here.
+    :param processor: The user defined function in dataset validate operator. User can write their own logic here.
     :param name: Name of the dataset validate operator.
     :return: NoneChannel.
     """
     return user_define_operation(input_data=input_data,
-                                 executor=executor,
+                                 processor=processor,
                                  name=name,
                                  output_num=0,
                                  operation_type='dataset_validate',
@@ -275,12 +323,12 @@ def dataset_validate(input_data: Channel,
 
 def model_validate(input_data: Union[Channel, List[Channel]],
                    model_info: Union[ModelMeta, Text, int],
-                   executor,
+                   processor,
                    model_version_info: Optional[Union[ModelVersionMeta, Text]] = None,
                    base_model_version_info: Optional[Union[ModelVersionMeta, Text]] = None,
                    output_num=0,
                    name: Text = None,
-                   **kwargs) -> Union[NoneChannel, Channel, Tuple[Channel]]:
+                   **kwargs) -> Union[Channel, Tuple[Channel]]:
     """
     Model Validator Operator. Compare the performance of two different versions of the same model and choose the better
     model version to make it ready to be in the stage of deployment.
@@ -290,7 +338,7 @@ def model_validate(input_data: Union[Channel, List[Channel]],
                        of py:class:`ai_flow.meta.model_meta.ModelMeta` or Text or int. The model_info
                        means name in he metadata service when its type is Text and it means id when its type is
                        int. The ai flow will get the model meta from metadata service by name or id.
-    :param executor: The user defined function in model validate operator. User can write their own logic here.
+    :param processor: The user defined function in model validate operator. User can write their own logic here.
     :param model_version_info: Information about the model version which is in model validation. Its type can be
                                ModelVersionMeta of py:class:`ai_flow.meta.model_meta.ModelVersionMeta`
                                or Text. The model_version_info means version in he metadata service
@@ -332,7 +380,7 @@ def model_validate(input_data: Union[Channel, List[Channel]],
 
     return user_define_operation(input_data=input_data,
                                  model_info=model_meta,
-                                 executor=executor,
+                                 processor=processor,
                                  name=name,
                                  model_version_info=model_version_meta,
                                  base_model_version_info=base_model_version_meta,
@@ -343,10 +391,10 @@ def model_validate(input_data: Union[Channel, List[Channel]],
 
 
 def push_model(model_info: Union[ModelMeta, Text, int],
-               executor,
+               processor,
                model_version_info: Optional[Union[ModelVersionMeta, Text]] = None,
                name: Text = None,
-               **kwargs) -> NoneChannel:
+               **kwargs) -> None:
     """
     Pusher operator. The pusher operator is used to push a validated model which is better than previous one to
     a deployment target.
@@ -355,7 +403,7 @@ def push_model(model_info: Union[ModelMeta, Text, int],
                        of py:class:`ai_flow.meta.model_meta.ModelMeta` or Text or int. The model_info
                        means name in he metadata service when its type is Text and it means id when its type is
                        int. The ai flow will get the model meta from metadata service by name or id.
-    :param executor: The user defined function in pusher operator. User can write their own logic here.
+    :param processor: The user defined function in pusher operator. User can write their own logic here.
     :param model_version_info: Information about the model version which is in push. Its type can be
                                ModelVersionMeta of py:class:`ai_flow.meta.model_meta.ModelVersionMeta`
                                or Text. The model_version_info means version in he metadata service
@@ -378,7 +426,7 @@ def push_model(model_info: Union[ModelMeta, Text, int],
                                                                                model_id=model_meta.uuid)
 
     return user_define_operation(model_info=model_meta,
-                                 executor=executor,
+                                 processor=processor,
                                  model_version_info=model_version_info,
                                  name=name,
                                  operation_type='push_model',
@@ -386,25 +434,25 @@ def push_model(model_info: Union[ModelMeta, Text, int],
 
 
 def user_define_operation(
-        executor=None,
+        processor=None,
         input_data: Union[None, Channel, List[Channel]] = None,
         output_num=1,
         name: Text = None,
         operation_type: Text = 'user_define_operation',
-        **kwargs) -> Union[NoneChannel, Channel, Tuple[Channel]]:
+        **kwargs) -> Union[None, Channel, Tuple[Channel]]:
     """
     User defined operator.
 
     :param operation_type: The type of the operation.
-    :param executor: The user defined function in operator. User can write their own logic here.
+    :param processor: The user defined function in operator. User can write their own logic here.
     :param input_data: List of input data. It contains multiple channels from the operators which generate data.
     :param output_num: The output number of the operator. The default value is 1.
     :param name: Name of this operator.
     :param kwargs:
-    :return: NoneChannel or Channel or Tuple[Channel].
+    :return: None or Channel or Tuple[Channel].
     """
     node = AINode(name=name,
-                  executor=executor,
+                  processor=processor,
                   properties=None,
                   output_num=output_num,
                   node_type=operation_type,
@@ -412,8 +460,7 @@ def user_define_operation(
     add_ai_node_to_graph(node, inputs=input_data)
     outputs = node.outputs()
     if 0 == output_num:
-        output: NoneChannel = outputs[0]
-        return output
+        return None
     else:
         if 1 == len(outputs):
             output: Channel = outputs[0]
@@ -430,10 +477,10 @@ def action_on_event(job_name: Text,
                     event_key: Text,
                     event_value: Text,
                     event_type: Text = UNDEFINED_EVENT_TYPE,
-                    condition: MetCondition = MetCondition.NECESSARY,
+                    condition: ConditionType = ConditionType.NECESSARY,
                     action: TaskAction = TaskAction.START,
                     life: EventLife = EventLife.ONCE,
-                    value_condition: MetValueCondition = MetValueCondition.EQUAL,
+                    value_condition: MetValueCondition = MetValueCondition.EQUALS,
                     namespace: Text = DEFAULT_NAMESPACE,
                     sender: Text = None
                     ):
@@ -455,18 +502,19 @@ def action_on_event(job_name: Text,
        :param sender: The event sender identity. If sender is None, the sender will be dependency.
        :return:None.
        """
-    control_edge = ControlEdge(head=job_name,
-                               event_key=event_key,
-                               event_value=event_value,
-                               event_type=event_type,
-                               condition=condition,
-                               action=action,
-                               life=life,
-                               value_condition=value_condition,
-                               namespace=namespace,
-                               sender=sender
+    control_edge = ControlEdge(destination=job_name,
+                               condition_config=ConditionConfig(
+                                   event_key=event_key,
+                                   event_value=event_value,
+                                   event_type=event_type,
+                                   condition=condition,
+                                   action=action,
+                                   life=life,
+                                   value_condition=value_condition,
+                                   namespace=namespace,
+                                   sender=sender)
                                )
-    default_graph().add_edge(job_name, control_edge)
+    current_graph().add_edge(job_name, control_edge)
 
 
 def action_on_model_version_event(job_name: Text,
@@ -492,8 +540,8 @@ def action_on_model_version_event(job_name: Text,
                     event_type=model_version_event_type,
                     action=action,
                     life=EventLife.ONCE,
-                    value_condition=MetValueCondition.UPDATE,
-                    condition=MetCondition.SUFFICIENT,
+                    value_condition=MetValueCondition.UPDATED,
+                    condition=ConditionType.SUFFICIENT,
                     namespace=namespace,
                     sender=ANY_CONDITION)
 
@@ -515,52 +563,33 @@ def action_on_dataset_event(job_name: Text,
     action_on_event(job_name=job_name,
                     event_key=dataset_name,
                     event_value="created",
-                    event_type=AIFlowInnerEventType.DATASET_CHANGED,
+                    event_type=AIFlowInternalEventType.DATASET_CHANGED,
                     action=action,
                     namespace=namespace,
                     sender=ANY_CONDITION
                     )
 
 
-def action_on_state(job_name: Text,
-                    upstream_job_name: Text,
-                    upstream_job_state: Text,
-                    action: TaskAction):
+def action_on_status(job_name: Text,
+                     upstream_job_name: Text,
+                     upstream_job_status: Text,
+                     action: TaskAction):
     """
     Trigger job by upstream job state changed.
     :param job_name: The job name
     :param upstream_job_name: The upstream job name
-    :param upstream_job_state: The upstream job state
+    :param upstream_job_status: The upstream job state
     :param action: The ai_flow.workflow.control_edge.TaskAction type.
     :return:
     """
     action_on_event(job_name=job_name,
-                    event_key=workflow_config().workflow_name,
-                    event_type=AIFlowInnerEventType.JOB_STATUS_CHANGED,
+                    event_key=current_workflow_config().workflow_name,
+                    event_type=AIFlowInternalEventType.JOB_STATUS_CHANGED,
                     sender=upstream_job_name,
-                    event_value=upstream_job_state,
+                    event_value=upstream_job_status,
                     action=action,
-                    namespace=project_description().project_name,
-                    condition=MetCondition.SUFFICIENT
-                    )
-
-
-def run_after(job_name: Text,
-              upstream_job_name: Text) -> None:
-    """
-    Job run after upstream job success.
-    :param job_name: The job name
-    :param upstream_job_name: The upstream job name
-    :return:
-    """
-    action_on_event(job_name=job_name,
-                    event_key=workflow_config().workflow_name,
-                    event_type=AIFlowInnerEventType.UPSTREAM_JOB_SUCCESS,
-                    sender=upstream_job_name,
-                    event_value=job_name,
-                    action=TaskAction.START,
-                    namespace=project_description().project_name,
-                    condition=MetCondition.SUFFICIENT
+                    namespace=current_project_config().get_project_name(),
+                    condition=ConditionType.SUFFICIENT
                     )
 
 
@@ -575,10 +604,10 @@ def periodic_run(job_name: Text,
     :return:
     """
     action_on_event(job_name=job_name,
-                    event_key=workflow_config().workflow_name,
-                    event_type=AIFlowInnerEventType.PERIODIC_ACTION,
+                    event_key=current_workflow_config().workflow_name,
+                    event_type=AIFlowInternalEventType.PERIODIC_ACTION,
                     sender=ANY_CONDITION,
                     event_value=json_utils.dumps(periodic_config),
                     action=action,
-                    condition=MetCondition.SUFFICIENT,
-                    namespace=project_description().project_name)
+                    condition=ConditionType.SUFFICIENT,
+                    namespace=current_project_config().get_project_name())

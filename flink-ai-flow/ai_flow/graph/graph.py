@@ -16,64 +16,36 @@
 # specific language governing permissions and limitations
 # under the License.
 #
-from ai_flow.graph.node import BaseNode
+from ai_flow.graph.node import Node
 from typing import Dict, List, Text, Optional
 from ai_flow.graph.edge import Edge
-from ai_flow.util.json_utils import Jsonable, loads
-
-__id_generator_map__ = {}
+from ai_flow.util.json_utils import loads
 
 
-def get_id_generator(graph: object):
-    if graph in __id_generator_map__:
-        return __id_generator_map__[graph]
-    else:
-        __id_generator_map__[graph] = _IdGenerator()
-        return __id_generator_map__[graph]
-
-
-class _IdGenerator(Jsonable):
+class Graph(Node):
 
     def __init__(self) -> None:
         super().__init__()
-        self.node_type_to_num: Dict[Text, int] = {}
-
-    def generate_id(self, node: BaseNode) -> Text:
-        node_type = type(node).__name__
-        if node_type in self.node_type_to_num:
-            num = self.node_type_to_num[node_type]
-            self.node_type_to_num[node_type] = num + 1
-        else:
-            self.node_type_to_num[node_type] = 0
-        return node_type + "_" + str(self.node_type_to_num[node_type])
-
-
-class Graph(BaseNode):
-
-    def __init__(self) -> None:
-        super().__init__()
-        self.nodes: Dict[Text, BaseNode] = {}
+        self.nodes: Dict[Text, Node] = {}
         self.edges: Dict[Text, List[Edge]] = {}
 
-    def add_node(self, node: BaseNode):
-        instance_id = get_id_generator(self).generate_id(node)
-        node.set_instance_id(instance_id)
-        self.nodes[instance_id] = node
+    def add_node(self, node: Node):
+        self.nodes[node.node_id] = node
 
-    def add_edge(self, instance_id: Text, edge: Edge):
-        if instance_id in self.edges:
-            for e in self.edges[instance_id]:
+    def add_edge(self, node_id: Text, edge: Edge):
+        if node_id in self.edges:
+            for e in self.edges[node_id]:
                 if e == edge:
                     return
-            self.edges[instance_id].append(edge)
+            self.edges[node_id].append(edge)
         else:
-            self.edges[instance_id] = []
-            self.edges[instance_id].append(edge)
+            self.edges[node_id] = []
+            self.edges[node_id].append(edge)
 
     def is_in_graph(self, node_id: Text) -> bool:
         return node_id in self.nodes
 
-    def get_node_by_id(self, node_id: Text) -> Optional[BaseNode]:
+    def get_node_by_id(self, node_id: Text) -> Optional[Node]:
         if node_id in self.nodes:
             return self.nodes[node_id]
         else:

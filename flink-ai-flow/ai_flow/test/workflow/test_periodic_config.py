@@ -20,19 +20,38 @@ from pytz import timezone
 from ai_flow.workflow.periodic_config import PeriodicConfig
 
 
-class TestWorkflow(unittest.TestCase):
+class TestPeriodicConfig(unittest.TestCase):
 
     def test_periodic_config_start_date(self):
-        pc = PeriodicConfig(start_date_expression="2020,1,1,1,1,1,", )
+        pc = PeriodicConfig(trigger_config={'start_date': "2020,1,1,1,1,1,"})
         self.assertEqual(datetime(2020, 1, 1, 1, 1, 1), pc.get_start_date())
-        pc = PeriodicConfig(start_date_expression="2020,1,1,,,,Asia/Chongqing", )
+        pc = PeriodicConfig(trigger_config={'start_date': "2020,1,1,,,,Asia/Chongqing"})
         self.assertEqual(datetime(2020, 1, 1, tzinfo=timezone('Asia/Chongqing')), pc.get_start_date())
 
     def test_periodic_config_interval(self):
-        pc = PeriodicConfig(interval_expression="1,,,")
+        pc = PeriodicConfig(trigger_config={'interval': "1,,,"})
         self.assertEqual(timedelta(days=1), pc.get_interval())
-        pc = PeriodicConfig(interval_expression="1,1,1,1.5")
-        self.assertEqual(timedelta(days=1, hours=1, minutes=1, seconds=1.5), pc.get_interval())
+        pc = PeriodicConfig(trigger_config={'interval': "1,1,1,1"})
+        self.assertEqual(timedelta(days=1, hours=1, minutes=1, seconds=1), pc.get_interval())
+
+    def test_periodic_config_from_dict(self):
+        pc = PeriodicConfig.from_dict({'start_date': "2020,1,1,1,1,1,", 'cron': '* * * * * * *'})
+        self.assertEqual(datetime(2020, 1, 1, 1, 1, 1), pc.get_start_date())
+
+        pc = PeriodicConfig.from_dict({'start_date': "2020,1,1,1,1,1,", 'interval': '1,1,1,1'})
+        self.assertEqual(timedelta(days=1, hours=1, minutes=1, seconds=1), pc.get_interval())
+
+    def test_periodic_config_to_dict(self):
+        pc = PeriodicConfig.from_dict({'start_date': "2020,1,1,1,1,1,", 'cron': '* * * * * * *'})
+        data = PeriodicConfig.to_dict(pc)
+        self.assertEqual('2020,1,1,1,1,1,', data.get('start_date'))
+        self.assertEqual('* * * * * * *', data.get('cron'))
+
+        pc = PeriodicConfig.from_dict({'start_date': "2020,1,1,1,1,1,", 'interval': '1,1,1,1'})
+        data = PeriodicConfig.to_dict(pc)
+        self.assertEqual('1,1,1,1', data.get('interval'))
+
+
 
 
 if __name__ == '__main__':

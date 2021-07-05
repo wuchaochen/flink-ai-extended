@@ -23,7 +23,7 @@ from notification_service.base_notification import UNDEFINED_EVENT_TYPE, DEFAULT
 from ai_flow.graph.edge import Edge
 
 
-class MetCondition(str, Enum):
+class ConditionType(str, Enum):
     SUFFICIENT = "SUFFICIENT"
     NECESSARY = "NECESSARY"
 
@@ -50,19 +50,19 @@ class MetValueCondition(str, Enum):
     UPDATE: the condition that notification service has a update operation on the event key which event
             value belongs to
     """
-    EQUAL = "EQUAL"
-    UPDATE = "UPDATE"
+    EQUALS = "EQUALS"
+    UPDATED = "UPDATE"
 
 
-class MetConfig(Jsonable):
+class ConditionConfig(Jsonable):
     def __init__(self,
                  event_key: Text,
                  event_value: Text,
                  event_type: Text = UNDEFINED_EVENT_TYPE,
-                 condition: MetCondition = MetCondition.NECESSARY,
+                 condition: ConditionType = ConditionType.NECESSARY,
                  action: TaskAction = TaskAction.START,
                  life: EventLife = EventLife.ONCE,
-                 value_condition: MetValueCondition = MetValueCondition.EQUAL,
+                 value_condition: MetValueCondition = MetValueCondition.EQUALS,
                  namespace: Text = DEFAULT_NAMESPACE,
                  sender: Text = None
                  ):
@@ -80,42 +80,14 @@ class MetConfig(Jsonable):
 class ControlEdge(Edge):
 
     def __init__(self,
-                 head: Text,
-                 event_key: Text,
-                 event_value: Text,
-                 event_type: Text = UNDEFINED_EVENT_TYPE,
-                 condition: MetCondition = MetCondition.NECESSARY,
-                 action: TaskAction = TaskAction.START,
-                 life: EventLife = EventLife.ONCE,
-                 value_condition: MetValueCondition = MetValueCondition.EQUAL,
-                 namespace: Text = DEFAULT_NAMESPACE,
-                 sender: Text = None
+                 destination: Text,
+                 condition_config: ConditionConfig
                  ) -> None:
-        super().__init__(sender, head)
-        self.event_key = event_key
-        self.event_value = event_value
-        self.event_type = event_type
-        self.condition = condition
-        self.action = action
-        self.life = life
-        self.value_condition = value_condition
-        self.namespace = namespace
-        self.sender = sender
-
-    def generate_met_config(self) -> MetConfig:
-        return MetConfig(event_key=self.event_key,
-                         event_value=self.event_value,
-                         event_type=self.event_type,
-                         condition=self.condition,
-                         action=self.action,
-                         life=self.life,
-                         value_condition=self.value_condition,
-                         namespace=self.namespace,
-                         sender=self.sender)
+        super().__init__(condition_config.sender, destination)
+        self.condition_config = condition_config
 
 
-class AIFlowInnerEventType(object):
-    JOB_STATUS_CHANGED = "JOB_STATUS_CHANGED"
-    UPSTREAM_JOB_SUCCESS = "UPSTREAM_JOB_SUCCESS"
-    PERIODIC_ACTION = "PERIODIC_ACTION"
-    DATASET_CHANGED = "DATASET_CHANGED"
+class AIFlowInternalEventType(object):
+    JOB_STATUS_CHANGED = "JOB_STATUS_CHANGED"  # Indicates the job(ai_flow.workflow.job.Job) state changed event.
+    PERIODIC_ACTION = "PERIODIC_ACTION"  # Indicates the type of event that a job or workflow runs periodically.
+    DATASET_CHANGED = "DATASET_CHANGED"  # Indicates the type of dataset state changed event.

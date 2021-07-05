@@ -35,7 +35,7 @@ from ai_flow.plugin_interface.job_plugin_interface import AbstractJobPlugin, Job
 from ai_flow.plugin_interface.scheduler_interface import JobExecutionInfo
 from ai_flow.workflow.job import Job
 from ai_flow_plugins.job_plugins.flink.flink_job_config import FlinkJobConfig
-from ai_flow_plugins.job_plugins.flink.flink_executor import FlinkPythonExecutor, FlinkJavaExecutor, ExecutionContext
+from ai_flow_plugins.job_plugins.flink.flink_executor import FlinkPythonProcessor, FlinkJavaProcessor, ExecutionContext
 from ai_flow_plugins.job_plugins.flink.flink_env import get_flink_env, AbstractFlinkEnv
 from pyflink.dataset import ExecutionEnvironment
 from pyflink.table import TableConfig, BatchTableEnvironment, StreamTableEnvironment, TableEnvironment, StatementSet
@@ -59,11 +59,11 @@ class RunArgs(json_utils.Jsonable):
 
 
 def flink_execute_func(run_graph: RunGraph, job_execution_info: JobExecutionInfo, flink_env: AbstractFlinkEnv):
-    executors: List[FlinkPythonExecutor] = []
+    executors: List[FlinkPythonProcessor] = []
     contexts: List[ExecutionContext] = []
     exec_env, table_env, statement_set = flink_env.create_env()
     for index in range(len(run_graph.nodes)):
-        caller: FlinkPythonExecutor = serialization_utils.deserialize(run_graph.executor_bytes[index])
+        caller: FlinkPythonProcessor = serialization_utils.deserialize(run_graph.executor_bytes[index])
         executors.append(caller)
         node: AINode = run_graph.nodes[index]
         execution_context = ExecutionContext(config=node.node_config,
@@ -88,19 +88,18 @@ def flink_execute_func(run_graph: RunGraph, job_execution_info: JobExecutionInfo
     for i in range(len(run_graph.nodes)):
         node = run_graph.nodes[i]
         c = executors[i]
-        if node.instance_id in run_graph.dependencies:
-            ds = run_graph.dependencies[node.instance_id]
+        if node.node_id in run_graph.dependencies:
+            ds = run_graph.dependencies[node.node_id]
             params = []
             for d in ds:
-                params.append(value_map[d.tail][d.port])
-            value_map[node.instance_id] = c.execute(contexts[i], params)
+                params.append(value_map[d.source][d.port])
+            value_map[node.node_id] = c.process(contexts[i], params)
         else:
-            value_map[node.instance_id] = c.execute(contexts[i], [])
+            value_map[node.node_id] = c.process(contexts[i], [])
     close()
     job_client = statement_set.execute().get_job_client()
     if job_client is not None:
         with open('./job_id', 'w') as fp:
-            print('job_id {}'.format(job_client.get_job_id()))
             fp.write(str(job_client.get_job_id()))
         job_client.get_job_execution_result(user_class_loader=None).result()
 
@@ -158,10 +157,10 @@ class FlinkJobPlugin(AbstractJobPlugin, ABC):
         while processed_size != node_size:
             p_nodes = []
             for i in range(len(node_list)):
-                if node_list[i].instance_id in sub_graph.edges:
+                if node_list[i].node_id in sub_graph.edges:
                     flag = True
-                    for c in sub_graph.edges[node_list[i].instance_id]:
-                        if c.tail in processed_nodes:
+                    for c in sub_graph.edges[node_list[i].node_id]:
+                        if c.source in processed_nodes:
                             pass
                         else:
                             flag = False
@@ -174,27 +173,25 @@ class FlinkJobPlugin(AbstractJobPlugin, ABC):
                 raise Exception("graph has circle!")
             for n in p_nodes:
                 run_graph.nodes.append(n)
-                run_graph.executor_bytes.append(n.executor)
+                run_graph.executor_bytes.append(n.processor)
                 node_list.remove(n)
-                processed_nodes.add(n.instance_id)
+                processed_nodes.add(n.node_id)
             processed_size = len(processed_nodes)
         return run_graph
 
-    def generate(self, sub_graph: AISubGraph) -> Job:
+    def generate(self, sub_graph: AISubGraph, resource_dir: Text = None) -> Job:
         flink_job_config: FlinkJobConfig = sub_graph.config
         run_graph: RunGraph = self.build_run_graph(sub_graph)
         job = FlinkJob(job_config=flink_job_config)
-        tmp_dir = mkdtemp(prefix=job.job_name, dir='/tmp')
-        with NamedTemporaryFile(mode='w+b', dir=tmp_dir,
+        with NamedTemporaryFile(mode='w+b', dir=resource_dir,
                                 prefix='{}_run_graph_'.format(job.job_name), delete=False) as fp:
             job.run_graph_file = os.path.basename(fp.name)
             fp.write(serialization_utils.serialize(run_graph))
 
-        with NamedTemporaryFile(mode='w+b', dir=tmp_dir,
+        with NamedTemporaryFile(mode='w+b', dir=resource_dir,
                                 prefix='{}_flink_env_'.format(job.job_name), delete=False) as fp:
             job.flink_env_file = os.path.basename(fp.name)
             fp.write(serialization_utils.serialize(get_flink_env()))
-        job.resource_dir = tmp_dir
         return job
 
     def submit_job(self, job: Job, job_context: JobExecutionContext = None) -> JobHandler:

@@ -22,26 +22,26 @@ from ai_flow.util.json_utils import Jsonable
 
 
 class Edge(Jsonable):
-    """ the edge connect tow node"""
+    """ the edge connect two node"""
 
     def __init__(self,
-                 tail: Text,
-                 head: Text,
+                 source: Text,
+                 destination: Text,
                  ) -> None:
         """
 
-        :param tail: the node dependent the other node output id
-        :param head: the node id
+        :param source: the node send data
+        :param destination: the node receive data
         """
         super().__init__()
-        if tail is None or head is None:
-            raise Exception('target node id or source node id can not be None!')
-        self.tail = tail
-        self.head = head
+        if source is None or destination is None:
+            raise Exception('destination node id or source node id can not be None!')
+        self.source = source
+        self.destination = destination
 
     def __eq__(self, o: object) -> bool:
         if isinstance(o, Edge):
-            return self.head == o.head and self.tail == o.tail
+            return self.destination == o.destination and self.source == o.source
         else:
             return False
 

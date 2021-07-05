@@ -20,11 +20,11 @@ from typing import Text, List, Dict
 from ai_flow.exception.exceptions import EmptyGraphException
 from ai_flow.plugin_interface.blob_manager_interface import BlobManagerFactory
 from ai_flow.util import json_utils
-from ai_flow.ai_graph.ai_graph import default_graph
-from ai_flow.translator.translator import get_default_translator
+from ai_flow.ai_graph.ai_graph import current_graph
+from ai_flow.translator.translator import get_translator
 from ai_flow.client.ai_flow_client import get_ai_flow_client
-from ai_flow.context.project_context import project_config, project_description
-from ai_flow.context.workflow_context import workflow_config
+from ai_flow.context.project_context import current_project_config, current_project_context
+from ai_flow.context.workflow_config_loader import current_workflow_config
 from ai_flow.workflow.job import Job
 from ai_flow.workflow.workflow import Workflow, WorkflowPropertyKeys
 from ai_flow.plugin_interface.scheduler_interface import JobExecutionInfo, WorkflowExecutionInfo, WorkflowInfo
@@ -40,17 +40,17 @@ def _upload_project_package(workflow: Workflow):
 
     :param workflow: The generated workflow.
     """
-    project_desc = project_description()
-    blob_manager = BlobManagerFactory.get_blob_manager(project_config().get(WorkflowPropertyKeys.BLOB))
-    uploaded_project_path = blob_manager.upload_blob(str(workflow.workflow_id), project_desc.project_path)
+    blob_manager = BlobManagerFactory.get_blob_manager(current_project_config().get(WorkflowPropertyKeys.BLOB))
+    uploaded_project_path = blob_manager.upload_blob(str(workflow.workflow_snapshot_id),
+                                                     current_project_context().project_path)
     workflow.project_uri = uploaded_project_path
-    workflow.properties[WorkflowPropertyKeys.BLOB] = project_config().get(WorkflowPropertyKeys.BLOB)
+    workflow.properties[WorkflowPropertyKeys.BLOB] = current_project_config().get(WorkflowPropertyKeys.BLOB)
 
 
 def _register_job_meta(workflow_id: int, job):
     start_time = time.time()
     if job.job_config.job_name is None:
-        name = job.instance_id
+        name = job.node_id
     else:
         name = job.job_config.job_name
     job_name = str(workflow_id) + '_' + name[0:20] + '_' + str(start_time)
@@ -84,14 +84,14 @@ def submit_workflow(workflow_name: Text = None,
     :param args: The arguments of the submit action.
     :return: The result of the submit action.
     """
-    if default_graph().is_empty():
+    if current_graph().is_empty():
         raise EmptyGraphException("Cannot submit empty graph")
-    entry_module_path = project_description().get_workflow_entry_module(workflow_name=workflow_name)
-    namespace = project_config().get_project_name()
-    translator = get_default_translator()
-    workflow = translator.translate(graph=default_graph(), project_desc=project_description())
+    entry_module_path = current_project_context().get_workflow_entry_module(workflow_name=workflow_name)
+    namespace = current_project_config().get_project_name()
+    translator = get_translator()
+    workflow = translator.translate(graph=current_graph(), project_context=current_project_context())
     apply_full_info_to_workflow(entry_module_path, workflow)
-    default_graph().clear_graph()
+    current_graph().clear_graph()
     return proto_to_workflow(get_ai_flow_client()
                              .submit_workflow_to_scheduler(namespace=namespace,
                                                            workflow_json=json_utils.dumps(workflow),
@@ -100,7 +100,7 @@ def submit_workflow(workflow_name: Text = None,
 
 
 def apply_full_info_to_workflow(entry_module_path, workflow):
-    workflow.workflow_config = workflow_config()
+    workflow.current_workflow_config = current_workflow_config()
     _set_entry_module_path(workflow, entry_module_path)
     _upload_project_package(workflow)
     _set_job_plugins(workflow)
@@ -112,7 +112,7 @@ def delete_workflow(workflow_name: Text = None) -> WorkflowInfo:
     :param workflow_name: The ai flow workflow identify.
     :return: The result of the action.
     """
-    namespace = project_config().get_project_name()
+    namespace = current_project_config().get_project_name()
     return proto_to_workflow(get_ai_flow_client().delete_workflow(namespace, workflow_name))
 
 
@@ -122,7 +122,7 @@ def pause_workflow_scheduling(workflow_name: Text = None) -> WorkflowInfo:
     :param workflow_name: The ai flow workflow identify.
     :return: The result of the action.
     """
-    namespace = project_config().get_project_name()
+    namespace = current_project_config().get_project_name()
     return proto_to_workflow(get_ai_flow_client().pause_workflow_scheduling(namespace, workflow_name))
 
 
@@ -132,7 +132,7 @@ def resume_workflow_scheduling(workflow_name: Text = None) -> WorkflowInfo:
     :param workflow_name: The ai flow workflow identify.
     :return: The result of the action.
     """
-    namespace = project_config().get_project_name()
+    namespace = current_project_config().get_project_name()
     return proto_to_workflow(get_ai_flow_client().resume_workflow_scheduling(namespace, workflow_name))
 
 
@@ -142,7 +142,7 @@ def get_workflow(workflow_name: Text = None) -> WorkflowInfo:
     :param workflow_name: The ai flow workflow identify.
     :return: the workflow information.
     """
-    namespace = project_config().get_project_name()
+    namespace = current_project_config().get_project_name()
     return proto_to_workflow(get_ai_flow_client().get_workflow(namespace, workflow_name))
 
 
@@ -150,7 +150,7 @@ def list_workflows() -> List[WorkflowInfo]:
     """
     :return: All workflow information.
     """
-    namespace = project_config().get_project_name()
+    namespace = current_project_config().get_project_name()
     return proto_to_workflow_list(get_ai_flow_client().list_workflows(namespace))
 
 
@@ -160,7 +160,7 @@ def start_new_workflow_execution(workflow_name: Text) -> WorkflowExecutionInfo:
     :param workflow_name: The ai flow workflow identify.
     :return: The result of the run action.
     """
-    namespace = project_config().get_project_name()
+    namespace = current_project_config().get_project_name()
     return proto_to_workflow_execution(get_ai_flow_client().start_new_workflow_execution(namespace, workflow_name))
 
 
@@ -170,7 +170,7 @@ def kill_all_workflow_executions(workflow_name: Text) -> List[WorkflowExecutionI
     :param workflow_name: The ai flow workflow identify.
     :return: The result of the action.
     """
-    namespace = project_config().get_project_name()
+    namespace = current_project_config().get_project_name()
     return proto_to_workflow_execution_list(get_ai_flow_client().kill_all_workflow_executions(namespace, workflow_name))
 
 
@@ -197,7 +197,7 @@ def list_workflow_executions(workflow_name: Text) -> List[WorkflowExecutionInfo]
     :param workflow_name: The ai flow workflow identify.
     :return: All workflow executions of the workflow.
     """
-    namespace = project_config().get_project_name()
+    namespace = current_project_config().get_project_name()
     return proto_to_workflow_execution_list(get_ai_flow_client().list_workflow_executions(namespace, workflow_name))
 
 

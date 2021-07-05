@@ -16,7 +16,7 @@
 # under the License.
 from ai_flow.plugin_interface import register_job_plugin
 from ai_flow_plugins.job_plugins.python.python_job_plugin import PythonJobPlugin
-from ai_flow_plugins.job_plugins.python.python_executor import PythonExecutor
+from ai_flow_plugins.job_plugins.python.python_executor import PythonProcessor
 from ai_flow_plugins.job_plugins.python.python_job_config import PythonJobConfig
 
 register_job_plugin(PythonJobPlugin())

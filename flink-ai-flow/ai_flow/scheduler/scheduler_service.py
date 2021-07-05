@@ -19,7 +19,7 @@ import traceback
 from ai_flow.plugin_interface.blob_manager_interface import BlobManagerFactory
 
 from ai_flow.util import json_utils
-from ai_flow.project.project_description import ProjectDesc, get_project_description_from
+from ai_flow.context.project_context import ProjectContext, build_project_context
 from ai_flow.protobuf.message_pb2 import ResultProto, StatusProto
 from ai_flow.protobuf.scheduling_service_pb2_grpc import SchedulingServiceServicer
 from ai_flow.protobuf.scheduling_service_pb2 import \
@@ -56,19 +56,19 @@ class SchedulerService(SchedulingServiceServicer):
             # config['local_repository'] = self._scheduler_config.repository()
             blob_manager = BlobManagerFactory.get_blob_manager(config)
             project_path: Text = blob_manager\
-                .download_blob(workflow_id=workflow.workflow_id,
+                .download_blob(workflow_id=workflow.workflow_snapshot_id,
                                remote_path=workflow.project_uri,
                                local_path=self._scheduler_config.repository())
 
-            project_desc: ProjectDesc = get_project_description_from(project_path)
-            project_name = project_desc.project_name
+            project_context: ProjectContext = build_project_context(project_path)
+            project_name = project_context.project_name
             # update workflow
-            workflow.project_desc = project_desc
+            workflow.project_desc = project_context
             for n, j in workflow.jobs.items():
-                j.job_config.project_desc = project_desc
+                j.job_config.project_desc = project_context
                 j.job_config.project_path = project_path
 
-            workflow_info = self._scheduler.submit_workflow(workflow, project_desc)
+            workflow_info = self._scheduler.submit_workflow(workflow, project_context)
             if workflow_info is None:
                 return WorkflowInfoResponse(
                     result=ResultProto(status=StatusProto.ERROR,

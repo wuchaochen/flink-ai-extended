@@ -17,20 +17,20 @@
 import unittest
 from ai_flow.graph.channel import Channel
 from ai_flow.ai_graph.ai_node import AINode
-from ai_flow.ai_graph.ai_graph import default_graph, add_ai_node_to_graph
+from ai_flow.ai_graph.ai_graph import current_graph, add_ai_node_to_graph
 
 
 class TestAIGraph(unittest.TestCase):
 
-    def test_ai_graph(self):
-        node1 = AINode(executor=None, arg1='arg1_1', arg2='arg2_1')
+    def test_add_ai_node_to_graph(self):
+        node1 = AINode(processor=None, arg1='arg1_1', arg2='arg2_1')
         add_ai_node_to_graph(node1, inputs=None)
-        node2 = AINode(executor=None, arg1='arg1_2', arg2='arg2_2')
+        node2 = AINode(processor=None, arg1='arg1_2', arg2='arg2_2')
         add_ai_node_to_graph(node2, inputs=None)
-        node3 = AINode(executor=None, arg1='arg1_3', arg2='arg2_3')
-        add_ai_node_to_graph(node3, inputs=[Channel(node1.instance_id, 0), Channel(node2.instance_id, 0)])
-        self.assertEqual(3, len(default_graph().nodes))
-        self.assertEqual(1, len(default_graph().edges))
+        node3 = AINode(processor=None, arg1='arg1_3', arg2='arg2_3')
+        add_ai_node_to_graph(node3, inputs=[Channel(node1.node_id, 0), Channel(node2.node_id, 0)])
+        self.assertEqual(3, len(current_graph().nodes))
+        self.assertEqual(1, len(current_graph().edges))
 
 
 if __name__ == '__main__':

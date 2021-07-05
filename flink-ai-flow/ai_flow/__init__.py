@@ -19,12 +19,10 @@
 from ai_flow.api.ai_flow_context import init_ai_flow_context
 from ai_flow.api import workflow_operation
 from ai_flow.api.ops import read_dataset, write_dataset, transform, train, predict, evaluate, dataset_validate, \
-    model_validate, push_model, user_define_operation, action_on_event, action_on_state, run_after, periodic_run
-
-from ai_flow.context.project_context import project_description, project_config
-from ai_flow.context.workflow_context import workflow_config
+    model_validate, push_model, user_define_operation, action_on_event, action_on_status, periodic_run
+from ai_flow.context.project_context import current_project_context, current_project_config
+from ai_flow.context.workflow_config_loader import current_workflow_config
 from ai_flow.context.job_context import job_config
-
 from ai_flow.endpoint.server.server_runner import AIFlowServerRunner
 
 # ai_flow.client
@@ -43,7 +41,7 @@ from ai_flow.meta.model_meta import *
 from ai_flow.meta.model_meta import *
 from ai_flow.meta.project_meta import *
 
-from ai_flow.ai_graph.ai_graph import default_graph
+from ai_flow.ai_graph.ai_graph import current_graph
 from ai_flow.workflow.job_config import JobConfig
 from ai_flow.workflow.periodic_config import PeriodicConfig
 from ai_flow.workflow.workflow_config import WorkflowConfig

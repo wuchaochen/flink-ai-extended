@@ -20,9 +20,9 @@ from airflow.models.baseoperator import BaseOperator
 from airflow.utils.decorators import apply_defaults
 from ai_flow.common.module_load import import_string
 from ai_flow.plugin_interface.blob_manager_interface import BlobManagerFactory
-from ai_flow.plugin_interface.job_plugin_interface import BaseJobController, JobHandler, JobExecutionContext
+from ai_flow.plugin_interface.job_plugin_interface import JobController, JobHandler, JobExecutionContext
 from ai_flow.plugin_interface.scheduler_interface import JobExecutionInfo, WorkflowExecutionInfo, WorkflowInfo
-from ai_flow.project.project_description import get_project_description_from
+from ai_flow.context.project_context import build_project_context
 from ai_flow.workflow.job import Job
 from ai_flow.workflow.workflow import Workflow, WorkflowPropertyKeys
 from ai_flow_plugins.job_plugins.job_utils import prepare_job_runtime_env
@@ -42,7 +42,7 @@ class AIFlowOperator(BaseOperator):
         plugins = self.workflow.properties.get(WorkflowPropertyKeys.JOB_PLUGINS)
         module, name = plugins.get(self.job.job_config.job_type)
         class_object = import_string('{}.{}'.format(module, name))
-        self.job_controller: BaseJobController = class_object()
+        self.job_controller: JobController = class_object()
         self.job_handler: JobHandler = None
         self.job_context: JobExecutionContext = None
 
@@ -67,22 +67,24 @@ class AIFlowOperator(BaseOperator):
                 os.makedirs(local_repo)
             blob_manager = BlobManagerFactory.get_blob_manager(config)
             project_path: Text = blob_manager \
-                .download_blob(workflow_id=self.workflow.workflow_id,
+                .download_blob(workflow_id=self.workflow.workflow_snapshot_id,
                                remote_path=self.workflow.project_uri,
                                local_path=local_repo)
         else:
             project_path = self.workflow.project_uri
         self.log.info("project_path:" + project_path)
-        project_desc = get_project_description_from(project_path)
+        project_context = build_project_context(project_path)
 
-        job_execution_info: JobExecutionInfo = self.context_to_job_info(project_desc.project_name, context)
-        job_runtime_env = prepare_job_runtime_env(self.workflow.workflow_id,
+        job_execution_info: JobExecutionInfo = self.context_to_job_info(project_context.project_name, context)
+        root_working_dir = context['conf'].get('scheduler', 'working_dir')
+        job_runtime_env = prepare_job_runtime_env(self.workflow.workflow_snapshot_id,
                                                   self.workflow.workflow_name,
                                                   job_execution_info.job_name,
-                                                  project_desc)
+                                                  project_context,
+                                                  root_working_dir)
         self.job_context: JobExecutionContext \
             = JobExecutionContext(job_runtime_env=job_runtime_env,
-                                  project_config=project_desc.project_config,
+                                  project_config=project_context.project_config,
                                   workflow_config=self.workflow.workflow_config,
                                   job_execution_info=job_execution_info)
 

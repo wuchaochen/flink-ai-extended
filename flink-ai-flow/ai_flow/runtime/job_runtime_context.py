@@ -15,17 +15,14 @@
 # specific language governing permissions and limitations
 # under the License.
 from ai_flow.project.project_config import ProjectConfig
-from ai_flow.context.job_context import __default_job_context__
-from ai_flow.context.project_context import __default_project_context__
-from ai_flow.context.workflow_context import __default_workflow_context__
+from ai_flow.context.job_context import set_current_job_name
+from ai_flow.context.project_context import init_project_config
+from ai_flow.context.workflow_config_loader import init_workflow_config
 from ai_flow.runtime.job_runtime_env import JobRuntimeEnv
-from ai_flow.workflow.workflow_config import load_workflow_config
 
 
 def init_job_runtime_context(job_runtime_env: JobRuntimeEnv):
     """Set project config, workflow config"""
-    project_config = ProjectConfig()
-    project_config.load_from_file(job_runtime_env.project_config_file)
-    __default_project_context__.project_config = project_config
-    __default_workflow_context__.workflow_config = load_workflow_config(job_runtime_env.workflow_config_file)
-    __default_job_context__.current_job_name = job_runtime_env.job_name
+    init_project_config(job_runtime_env.project_config_file)
+    init_workflow_config(job_runtime_env.workflow_config_file)
+    set_current_job_name(job_runtime_env.job_name)

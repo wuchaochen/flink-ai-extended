@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import time
 import unittest
 import os
 import shutil
@@ -44,23 +45,24 @@ class TestBash(unittest.TestCase):
 
     def setUp(self):
         self.master._clear_db()
-        af.default_graph().clear_graph()
-        init_ai_flow_context(workflow_entry_file=__file__)
+        af.current_graph().clear_graph()
+        init_ai_flow_context()
 
     def tearDown(self):
         self.master._clear_db()
 
     def test_bash_task(self):
         with af.job_config('task_1'):
-            af.user_define_operation(executor=bash.BashExecutor(bash_command='echo "Xiao ming hello world!"'))
+            af.user_define_operation(processor=bash.BashExecutor(bash_command='echo "Xiao ming hello world!"'))
         w = af.workflow_operation.submit_workflow(workflow_name='test_bash')
         je = af.workflow_operation.start_job_execution(job_name='task_1', execution_id='1')
         je = af.workflow_operation.get_job_execution(job_name='task_1', execution_id='1')
         self.assertEqual(State.FINISHED, je.state)
 
     def test_stop_bash_task(self):
+        time.sleep(1)
         with af.job_config('task_1'):
-            af.user_define_operation(executor=bash.BashExecutor(bash_command='sleep 10'))
+            af.user_define_operation(processor=bash.BashExecutor(bash_command='sleep 10'))
         w = af.workflow_operation.submit_workflow(workflow_name='test_bash')
         je = af.workflow_operation.start_job_execution(job_name='task_1', execution_id='1')
         af.workflow_operation.stop_job_execution(job_name='task_1', execution_id='1')

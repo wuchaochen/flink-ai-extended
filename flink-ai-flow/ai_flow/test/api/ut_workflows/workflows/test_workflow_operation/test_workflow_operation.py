@@ -16,83 +16,20 @@
 # under the License.
 import unittest
 import os
-from typing import Text, List, Optional, Dict
-
-from ai_flow.ai_graph.ai_graph import default_graph
+from ai_flow.ai_graph.ai_graph import current_graph
 from ai_flow.ai_graph.ai_node import AINode
 from ai_flow.endpoint.server.server import AIFlowServer
 from ai_flow.api.ai_flow_context import init_ai_flow_context
-from ai_flow.context.workflow_context import workflow_config
-from ai_flow.plugin_interface.scheduler_interface import AbstractScheduler, JobExecutionInfo, WorkflowExecutionInfo, \
-    WorkflowInfo
-
-from ai_flow.project.project_description import ProjectDesc
-from ai_flow.workflow.state import State
-from ai_flow.workflow.workflow import Workflow
+from ai_flow.context.workflow_config_loader import current_workflow_config
 from ai_flow.api import workflow_operation
-from ai_flow.test.api import mock_plugins
+from ai_flow.test.api.mock_plugins import MockJob
 
 _SQLITE_DB_FILE = 'aiflow.db'
 _SQLITE_DB_URI = '%s%s' % ('sqlite:///', _SQLITE_DB_FILE)
 _PORT = '50051'
 
 
-class MockScheduler(AbstractScheduler):
-
-    def submit_workflow(self, workflow: Workflow, project_desc: ProjectDesc, args: Dict = None) -> WorkflowInfo:
-        return WorkflowInfo(namespace=project_desc.project_name, workflow_name=workflow.workflow_name)
-
-    def delete_workflow(self, project_name: Text, workflow_name: Text) -> Optional[WorkflowInfo]:
-        return WorkflowInfo(namespace=project_name, workflow_name=workflow_name)
-
-    def pause_workflow_scheduling(self, project_name: Text, workflow_name: Text) -> WorkflowInfo:
-        return WorkflowInfo(namespace=project_name, workflow_name=workflow_name)
-
-    def resume_workflow_scheduling(self, project_name: Text, workflow_name: Text) -> WorkflowInfo:
-        return WorkflowInfo(namespace=project_name, workflow_name=workflow_name)
-
-    def get_workflow(self, project_name: Text, workflow_name: Text) -> Optional[WorkflowInfo]:
-        return WorkflowInfo(namespace=project_name, workflow_name=workflow_name)
-
-    def list_workflows(self, project_name: Text) -> List[WorkflowInfo]:
-        return [WorkflowInfo(namespace=project_name, workflow_name='workflow_1'),
-                WorkflowInfo(namespace=project_name, workflow_name='workflow_2')]
-
-    def start_new_workflow_execution(self, project_name: Text, workflow_name: Text) -> Optional[WorkflowExecutionInfo]:
-        return WorkflowExecutionInfo(workflow_execution_id='1', state=State.RUNNING)
-
-    def kill_all_workflow_execution(self, project_name: Text, workflow_name: Text) -> List[WorkflowExecutionInfo]:
-        return [WorkflowExecutionInfo(workflow_execution_id='1', state=State.RUNNING),
-                WorkflowExecutionInfo(workflow_execution_id='2', state=State.RUNNING)]
-
-    def kill_workflow_execution(self, execution_id: Text) -> Optional[WorkflowExecutionInfo]:
-        return WorkflowExecutionInfo(workflow_execution_id='1', state=State.RUNNING)
-
-    def get_workflow_execution(self, execution_id: Text) -> Optional[WorkflowExecutionInfo]:
-        return WorkflowExecutionInfo(workflow_execution_id='1', state=State.RUNNING)
-
-    def list_workflow_executions(self, project_name: Text, workflow_name: Text) -> List[WorkflowExecutionInfo]:
-        return [WorkflowExecutionInfo(workflow_execution_id='1', state=State.RUNNING),
-                WorkflowExecutionInfo(workflow_execution_id='2', state=State.RUNNING)]
-
-    def start_job_execution(self, job_name: Text, execution_id: Text) -> JobExecutionInfo:
-        return JobExecutionInfo(job_name='task_1', state=State.RUNNING)
-
-    def stop_job_execution(self, job_name: Text, execution_id: Text) -> JobExecutionInfo:
-        return JobExecutionInfo(job_name='task_1', state=State.RUNNING)
-
-    def restart_job_execution(self, job_name: Text, execution_id: Text) -> JobExecutionInfo:
-        return JobExecutionInfo(job_name='task_1', state=State.RUNNING)
-
-    def get_job_executions(self, job_name: Text, execution_id: Text) -> List[JobExecutionInfo]:
-        return [JobExecutionInfo(job_name='task_1', state=State.RUNNING)]
-
-    def list_job_executions(self, execution_id: Text) -> List[JobExecutionInfo]:
-        return [JobExecutionInfo(job_name='task_1', state=State.RUNNING),
-                JobExecutionInfo(job_name='task_2', state=State.RUNNING)]
-
-
-SCHEDULER_CLASS = 'ai_flow.test.api.test_workflow_operation.MockScheduler'
+SCHEDULER_CLASS = 'ai_flow.test.api.mock_plugins.MockScheduler'
 
 
 class TestWorkflowOperation(unittest.TestCase):
@@ -118,24 +55,22 @@ class TestWorkflowOperation(unittest.TestCase):
             os.remove(_SQLITE_DB_FILE)
 
     def setUp(self):
-        init_ai_flow_context(os.path.join(os.path.dirname(__file__), 'ut_workflows', 'workflows',
-                                          'workflow_1', 'workflow_1.py'))
+        init_ai_flow_context()
         self.build_ai_graph()
 
     def tearDown(self):
-        default_graph().clear_graph()
-
+        current_graph().clear_graph()
 
     def build_ai_graph(self):
-        g = default_graph()
-        for jc in workflow_config().job_configs.values():
+        g = current_graph()
+        for jc in current_workflow_config().job_configs.values():
             n = AINode(name=jc.job_name)
             n.config = jc
             g.add_node(n)
 
     def test_submit_workflow(self):
-        w = workflow_operation.submit_workflow(workflow_name='workflow_1')
-        self.assertEqual('workflow_1', w.workflow_name)
+        w = workflow_operation.submit_workflow(workflow_name=current_workflow_config().workflow_name)
+        self.assertEqual('test_workflow_operation', w.workflow_name)
 
     def test_delete_workflow(self):
         w = workflow_operation.delete_workflow(workflow_name='workflow_1')

@@ -21,7 +21,7 @@ from ai_flow.util.json_utils import Jsonable
 
 
 class Channel(Jsonable):
-    """ Node Object output"""
+    """ The output of the Nodes. The Channels are used to establish Data Dependencies between the Nodes."""
 
     def __init__(self,
                  node_id: Text,
@@ -33,10 +33,3 @@ class Channel(Jsonable):
         super().__init__()
         self.node_id = node_id
         self.port = port
-
-
-class NoneChannel(Channel):
-    """ the node does not has output, identity the node"""
-
-    def __init__(self, node_id: Text) -> None:
-        super().__init__(node_id, None)

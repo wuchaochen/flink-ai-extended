@@ -37,7 +37,7 @@ class ExecutionContext(json_utils.Jsonable):
         self._statement_set = statement_set
 
     @property
-    def job_execution_info(self)-> JobExecutionInfo:
+    def job_execution_info(self) -> JobExecutionInfo:
         return self._job_execution_info
 
     @property
@@ -53,19 +53,19 @@ class ExecutionContext(json_utils.Jsonable):
         return self._config
 
     @property
-    def execution_env(self)->ExecutionEnvironment:
+    def execution_env(self) -> ExecutionEnvironment:
         return self._execution_env
 
     @property
-    def table_env(self)->TableEnvironment:
+    def table_env(self) -> TableEnvironment:
         return self._table_env
 
     @property
-    def statement_set(self)->StatementSet:
+    def statement_set(self) -> StatementSet:
         return self._statement_set
 
 
-class FlinkPythonExecutor(object):
+class FlinkPythonProcessor(object):
 
     def __init__(self) -> None:
         super().__init__()
@@ -75,7 +75,7 @@ class FlinkPythonExecutor(object):
     """
 
     @abstractmethod
-    def execute(self, execution_context: ExecutionContext, input_list: List[Table] = None) -> List[Table]:
+    def process(self, execution_context: ExecutionContext, input_list: List[Table] = None) -> List[Table]:
         pass
 
     """
@@ -95,7 +95,7 @@ class FlinkPythonExecutor(object):
         pass
 
 
-class FlinkJavaExecutor(object):
+class FlinkJavaProcessor(object):
     def __init__(self, entry_class: Text) -> None:
         super().__init__()
         self.entry_class = entry_class

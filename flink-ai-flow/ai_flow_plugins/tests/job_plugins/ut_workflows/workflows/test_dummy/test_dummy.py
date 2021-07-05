@@ -43,15 +43,15 @@ class TestDummy(unittest.TestCase):
 
     def setUp(self):
         self.master._clear_db()
-        af.default_graph().clear_graph()
-        init_ai_flow_context(workflow_entry_file=__file__)
+        af.current_graph().clear_graph()
+        init_ai_flow_context()
 
     def tearDown(self):
         self.master._clear_db()
 
     def test_dummy_task(self):
         with af.job_config('task_1'):
-            af.user_define_operation(executor=None)
+            af.user_define_operation(processor=None)
         w = af.workflow_operation.submit_workflow(workflow_name='test_dummy')
         je = af.workflow_operation.start_job_execution(job_name='task_1', execution_id='1')
         self.assertEqual('1', je.job_execution_id)

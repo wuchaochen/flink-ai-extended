@@ -18,7 +18,7 @@
 from typing import Tuple, List, Dict
 import json
 import copy
-from ai_flow.workflow.control_edge import MetConfig, MetCondition, EventLife, MetValueCondition, TaskAction
+from ai_flow.workflow.control_edge import ConditionConfig, ConditionType, EventLife, MetValueCondition, TaskAction
 from airflow.executors.scheduling_action import SchedulingAction
 from airflow.models.eventhandler import EventHandler
 from notification_service.base_notification import BaseEvent, ANY_CONDITION
@@ -78,23 +78,23 @@ class AIFlowHandler(EventHandler):
 
     @staticmethod
     def parse_configs(config_str: str):
-        configs: List[MetConfig] = []
+        configs: List[ConditionConfig] = []
         config_json = json.loads(config_str)
         for config in config_json:
-            met_config = MetConfig(event_key=config['event_key'],
-                                   event_value=config['event_value'],
-                                   event_type=config['event_type'],
-                                   action=TaskAction(config['action']),
-                                   condition=MetCondition(config['condition']),
-                                   value_condition=MetValueCondition(config['value_condition']),
-                                   life=EventLife(config['life']),
-                                   namespace=config['namespace'],
-                                   sender=config['sender'])
+            met_config = ConditionConfig(event_key=config['event_key'],
+                                         event_value=config['event_value'],
+                                         event_type=config['event_type'],
+                                         action=TaskAction(config['action']),
+                                         condition=ConditionType(config['condition']),
+                                         value_condition=MetValueCondition(config['value_condition']),
+                                         life=EventLife(config['life']),
+                                         namespace=config['namespace'],
+                                         sender=config['sender'])
             configs.append(met_config)
         return configs
 
     def handle_event(self, event: BaseEvent, task_state: object) -> Tuple[SchedulingAction, object]:
-        configs: List[MetConfig] = AIFlowHandler.parse_configs(self.config)
+        configs: List[ConditionConfig] = AIFlowHandler.parse_configs(self.config)
         if task_state is None:
             task_state = AiFlowTs()
         af_ts = copy.deepcopy(task_state)
@@ -142,13 +142,13 @@ class AIFlowHandler(EventHandler):
             value = met_config.event_value
             event_type = met_config.event_type
             events = self._match_config_events(namespace, event_type, sender, key, event_map)
-            if met_config.condition == MetCondition.SUFFICIENT:
+            if met_config.condition == ConditionType.SUFFICIENT:
                 if 0 == len(events):
                     continue
                 for event in events:
                     v, event_time = event.value, event.create_time
                     if met_config.life == EventLife.ONCE:
-                        if met_config.value_condition == MetValueCondition.EQUAL:
+                        if met_config.value_condition == MetValueCondition.EQUALS:
                             if v == value and event_time > schedule_time:
                                 aw.action = met_config.action
                                 return True
@@ -157,7 +157,7 @@ class AIFlowHandler(EventHandler):
                                 aw.action = met_config.action
                                 return True
                     else:
-                        if met_config.value_condition == MetValueCondition.EQUAL:
+                        if met_config.value_condition == MetValueCondition.EQUALS:
                             if v == value:
                                 aw.action = met_config.action
                                 return True
@@ -173,7 +173,7 @@ class AIFlowHandler(EventHandler):
                     flag = True
                     v, event_time = event.value, event.create_time
                     if met_config.life == EventLife.ONCE:
-                        if met_config.value_condition == MetValueCondition.EQUAL:
+                        if met_config.value_condition == MetValueCondition.EQUALS:
                             if schedule_time >= event_time:
                                 flag = False
                             else:
@@ -184,7 +184,7 @@ class AIFlowHandler(EventHandler):
                                 flag = False
 
                     else:
-                        if met_config.value_condition == MetValueCondition.EQUAL:
+                        if met_config.value_condition == MetValueCondition.EQUALS:
                             if v != value:
                                 flag = False
 

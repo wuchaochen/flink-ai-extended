@@ -24,11 +24,11 @@ from ai_flow.graph.edge import Edge
 
 class TestEdge(unittest.TestCase):
 
-    def test_edge(self):
-        channel = Edge("a", 'b')
-        json_text = json_utils.dumps(channel)
+    def test_edge_serde(self):
+        edge = Edge("a", 'b')
+        json_text = json_utils.dumps(edge)
         c2: Edge = json_utils.loads(json_text)
-        self.assertEqual(channel.tail, c2.tail)
+        self.assertEqual(edge.source, c2.source)
 
 
 if __name__ == '__main__':

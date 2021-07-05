@@ -17,10 +17,10 @@
 from typing import Text, List, Optional, Dict
 
 from ai_flow.common.module_load import import_string
-from ai_flow.plugin_interface.job_plugin_interface import BaseJobController, JobHandler, JobExecutionContext
+from ai_flow.plugin_interface.job_plugin_interface import JobController, JobHandler, JobExecutionContext
 from ai_flow.plugin_interface.scheduler_interface import AbstractScheduler, JobExecutionInfo, WorkflowExecutionInfo, \
     WorkflowInfo, SchedulerConfig
-from ai_flow.project.project_description import ProjectDesc
+from ai_flow.context.project_context import ProjectContext
 from ai_flow.runtime.job_runtime_env import JobRuntimeEnv
 from ai_flow.workflow.state import State
 from ai_flow.workflow.workflow import Workflow, WorkflowPropertyKeys
@@ -31,20 +31,20 @@ class SingleJobScheduler(AbstractScheduler):
     def __init__(self, config: SchedulerConfig):
         super().__init__(config)
         self.workflow: Workflow = None
-        self.project_desc: ProjectDesc = None
-        self.job_controller: BaseJobController = None
+        self.project_desc: ProjectContext = None
+        self.job_controller: JobController = None
         self.job_handler: JobHandler = None
         self.job_context: JobExecutionContext = None
 
-    def submit_workflow(self, workflow: Workflow, project_desc: ProjectDesc, args: Dict = None) -> WorkflowInfo:
+    def submit_workflow(self, workflow: Workflow, project_desc: ProjectContext, args: Dict = None) -> WorkflowInfo:
         self.workflow = workflow
         self.project_desc = project_desc
         return WorkflowInfo(workflow_name=workflow.workflow_name)
 
     def delete_workflow(self, project_name: Text, workflow_name: Text) -> Optional[WorkflowInfo]:
         self.workflow: Workflow = None
-        self.project_desc: ProjectDesc = None
-        self.job_controller: BaseJobController = None
+        self.project_desc: ProjectContext = None
+        self.job_controller: JobController = None
         self.job_handler: JobHandler = None
         self.job_context: JobExecutionContext = None
         return WorkflowInfo(workflow_name=workflow_name)
@@ -81,11 +81,12 @@ class SingleJobScheduler(AbstractScheduler):
         plugins = self.workflow.properties.get(WorkflowPropertyKeys.JOB_PLUGINS)
         module, name = plugins.get(job.job_config.job_type)
         class_object = import_string('{}.{}'.format(module, name))
-        self.job_controller: BaseJobController = class_object()
-        job_runtime_env: JobRuntimeEnv = prepare_job_runtime_env(workflow_id=self.workflow.workflow_id,
-                                                                 workflow_name=self.workflow.workflow_name,
-                                                                 job_name=job_name,
-                                                                 project_desc=self.project_desc)
+        self.job_controller: JobController = class_object()
+        job_runtime_env: JobRuntimeEnv = prepare_job_runtime_env(
+            workflow_snapshot_id=self.workflow.workflow_snapshot_id,
+            workflow_name=self.workflow.workflow_name,
+            job_name=job_name,
+            project_context=self.project_desc)
         job_execution_info = JobExecutionInfo(job_execution_id='1', job_name=job_name,
                                               workflow_execution
                                               =WorkflowExecutionInfo(workflow_execution_id='1',

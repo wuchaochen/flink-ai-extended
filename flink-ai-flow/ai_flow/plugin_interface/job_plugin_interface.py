@@ -23,8 +23,7 @@ from ai_flow.plugin_interface.scheduler_interface import JobExecutionInfo
 from ai_flow.project.project_config import ProjectConfig
 from ai_flow.runtime.job_runtime_env import JobRuntimeEnv
 from ai_flow.workflow.workflow_config import WorkflowConfig
-from ai_flow.translator.translator import register_job_generator
-from ai_flow.translator.base_translator import BaseJobGenerator
+from ai_flow.translator.translator import register_job_generator, JobGenerator
 from ai_flow.workflow.job import Job
 
 
@@ -36,7 +35,7 @@ class JobHandler(Jsonable):
         self.job: Job = job
         self.job_execution: JobExecutionInfo = job_execution
 
-    def get_result(self)->object:
+    def get_result(self) -> object:
         """If the job execution has a result, then return it."""
         pass
 
@@ -62,7 +61,7 @@ class JobExecutionContext(object):
         self.job_execution_info: JobExecutionInfo = job_execution_info
 
 
-class BaseJobController(ABC):
+class JobController(ABC):
     """
     Used for submitting an executable job to specific platform when it's scheduled to run in workflow scheduler.
     The submitter is able to control the lifecycle of a workflow job. Users can also implement custom job submitter with
@@ -114,8 +113,8 @@ class JobControllerManager(BaseRegistry):
         job_controller = self.get_job_controller(job)
         return job_controller.submit_job(job, job_context)
 
-    def get_job_controller(self, job: Job)->BaseJobController:
-        job_controller: BaseJobController = self.get_object(job.job_config.job_type)
+    def get_job_controller(self, job: Job) -> JobController:
+        job_controller: JobController = self.get_object(job.job_config.job_type)
         if job_controller is None:
             raise Exception("job submitter not found! job_type {}".format(job.job_config.job_type))
         return job_controller
@@ -132,7 +131,7 @@ class JobControllerManager(BaseRegistry):
 __default_job_controller_manager__ = JobControllerManager()
 
 
-def register_job_controller(job_type: Text, job_controller: BaseJobController):
+def register_job_controller(job_type: Text, job_controller: JobController):
     __default_job_controller_manager__.register(job_type, job_controller)
 
 
@@ -140,7 +139,7 @@ def get_default_job_controller_manager() -> JobControllerManager:
     return __default_job_controller_manager__
 
 
-class AbstractJobPlugin(BaseJobGenerator, BaseJobController):
+class AbstractJobPlugin(JobGenerator, JobController):
 
     def __init__(self) -> None:
         super().__init__()
@@ -159,7 +158,7 @@ def register_job_plugin(plugin: AbstractJobPlugin):
     register_job_controller(job_type=plugin.job_type(), job_controller=plugin)
 
 
-def get_registered_job_plugins()-> Dict:
+def get_registered_job_plugins() -> Dict:
     result = {}
     jm = get_default_job_controller_manager()
     for job_type, plugin in jm.object_dict.items():

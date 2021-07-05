@@ -16,10 +16,18 @@
 ## specific language governing permissions and limitations
 ## under the License.
 ##
-server_ip: localhost
-server_port: 50051
-db_uri: sqlite:///aiflow.db
-db_type: sql_lite
-start_scheduler_service: True
-scheduler:
-  scheduler_class_name: ai_flow_plugins.tests.scheduler_plugins.airflow.test_dag_generator.MockScheduler
+
+task_1:
+  job_type: mock
+
+task_2:
+  job_type: mock
+
+task_3:
+  job_type: mock
+
+task_4:
+  job_type: mock
+
+task_5:
+  job_type: mock

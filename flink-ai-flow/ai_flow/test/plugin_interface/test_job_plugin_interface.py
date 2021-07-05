@@ -30,7 +30,7 @@ class MockJobPlugin1(AbstractJobPlugin):
     def job_type(self) -> Text:
         return "mock1"
 
-    def generate(self, sub_graph: AISubGraph) -> Job:
+    def generate(self, sub_graph: AISubGraph, resource_dir: Text = None) -> Job:
         pass
 
     def submit_job(self, job: Job, job_context: JobExecutionContext) -> JobHandler:
@@ -48,7 +48,7 @@ class MockJobPlugin2(AbstractJobPlugin):
     def job_type(self) -> Text:
         return "mock2"
 
-    def generate(self, sub_graph: AISubGraph) -> Job:
+    def generate(self, sub_graph: AISubGraph, resource_dir: Text = None) -> Job:
         pass
 
     def submit_job(self, job: Job, job_context: JobExecutionContext) -> JobHandler:

@@ -31,8 +31,8 @@ import ai_flow as af
 project_path = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 
 
-class Transformer(flink.FlinkPythonExecutor):
-    def execute(self, execution_context: flink.ExecutionContext, input_list: List[Table] = None) -> List[Table]:
+class Transformer(flink.FlinkPythonProcessor):
+    def process(self, execution_context: flink.ExecutionContext, input_list: List[Table] = None) -> List[Table]:
         return [input_list[0].group_by('word').select('word, count(1)')]
 
 
@@ -43,16 +43,16 @@ class SleepUDF(ScalarFunction):
         return s
 
 
-class Transformer2(flink.FlinkPythonExecutor):
-    def execute(self, execution_context: flink.ExecutionContext, input_list: List[Table] = None) -> List[Table]:
+class Transformer2(flink.FlinkPythonProcessor):
+    def process(self, execution_context: flink.ExecutionContext, input_list: List[Table] = None) -> List[Table]:
         execution_context.table_env.register_function("sleep_func", udf(SleepUDF(),
                                                                         input_types=[DataTypes.STRING()],
                                                                         result_type=DataTypes.STRING()))
         return [input_list[0].group_by('word').select('sleep_func(word), count(1)')]
 
 
-class Source(flink.FlinkPythonExecutor):
-    def execute(self, execution_context: flink.ExecutionContext, input_list: List[Table] = None) -> List[Table]:
+class Source(flink.FlinkPythonProcessor):
+    def process(self, execution_context: flink.ExecutionContext, input_list: List[Table] = None) -> List[Table]:
         input_file = os.path.join(os.getcwd(), 'resources', 'word_count.txt')
         t_env = execution_context.table_env
         t_env.connect(FileSystem().path(input_file)) \
@@ -64,8 +64,8 @@ class Source(flink.FlinkPythonExecutor):
         return [t_env.from_path('mySource')]
 
 
-class Sink(flink.FlinkPythonExecutor):
-    def execute(self, execution_context: flink.ExecutionContext, input_list: List[Table] = None) -> List[Table]:
+class Sink(flink.FlinkPythonProcessor):
+    def process(self, execution_context: flink.ExecutionContext, input_list: List[Table] = None) -> List[Table]:
         output_file = os.path.join(os.getcwd(), 'output')
         if os.path.exists(output_file):
             os.remove(output_file)
@@ -104,27 +104,28 @@ class TestFlink(unittest.TestCase):
 
     def setUp(self):
         self.master._clear_db()
-        af.default_graph().clear_graph()
-        init_ai_flow_context(workflow_entry_file=__file__)
+        af.current_graph().clear_graph()
+        init_ai_flow_context()
 
     def tearDown(self):
         self.master._clear_db()
 
     def test_local_flink_task(self):
         with af.job_config('task_1'):
-            input_example = af.user_define_operation(executor=Source())
-            processed = af.transform(input_data=[input_example], executor=Transformer())
-            af.user_define_operation(input_data=[processed], executor=Sink())
-        w = af.workflow_operation.submit_workflow(workflow_name=af.workflow_config().workflow_name)
+            input_example = af.user_define_operation(processor=Source())
+            processed = af.transform(input_data=[input_example], processor=Transformer())
+            af.user_define_operation(input_data=[processed], processor=Sink())
+        w = af.workflow_operation.submit_workflow(workflow_name=af.current_workflow_config().workflow_name)
         je = af.workflow_operation.start_job_execution(job_name='task_1', execution_id='1')
         je = af.workflow_operation.get_job_execution(job_name='task_1', execution_id='1')
         self.assertEqual(State.FINISHED, je.state)
 
     def test_stop_local_flink_task(self):
+        time.sleep(1)
         with af.job_config('task_1'):
-            input_example = af.user_define_operation(executor=Source())
-            processed = af.transform(input_data=[input_example], executor=Transformer2())
-            af.user_define_operation(input_data=[processed], executor=Sink())
+            input_example = af.user_define_operation(processor=Source())
+            processed = af.transform(input_data=[input_example], processor=Transformer2())
+            af.user_define_operation(input_data=[processed], processor=Sink())
         w = af.workflow_operation.submit_workflow(workflow_name='test_python')
         je = af.workflow_operation.start_job_execution(job_name='task_1', execution_id='1')
         time.sleep(2)
@@ -136,10 +137,10 @@ class TestFlink(unittest.TestCase):
     @unittest.skip("need start flink cluster")
     def test_cluster_flink_task(self):
         with af.job_config('task_2'):
-            input_example = af.user_define_operation(executor=Source())
-            processed = af.transform(input_data=[input_example], executor=Transformer())
-            af.user_define_operation(input_data=[processed], executor=Sink())
-        w = af.workflow_operation.submit_workflow(workflow_name=af.workflow_config().workflow_name)
+            input_example = af.user_define_operation(processor=Source())
+            processed = af.transform(input_data=[input_example], processor=Transformer())
+            af.user_define_operation(input_data=[processed], processor=Sink())
+        w = af.workflow_operation.submit_workflow(workflow_name=af.current_workflow_config().workflow_name)
         je = af.workflow_operation.start_job_execution(job_name='task_2', execution_id='1')
         je = af.workflow_operation.get_job_execution(job_name='task_2', execution_id='1')
         self.assertEqual(State.FINISHED, je.state)
@@ -147,9 +148,9 @@ class TestFlink(unittest.TestCase):
     @unittest.skip("need start flink cluster")
     def test_cluster_stop_local_flink_task(self):
         with af.job_config('task_2'):
-            input_example = af.user_define_operation(executor=Source())
-            processed = af.transform(input_data=[input_example], executor=Transformer2())
-            af.user_define_operation(input_data=[processed], executor=Sink())
+            input_example = af.user_define_operation(processor=Source())
+            processed = af.transform(input_data=[input_example], processor=Transformer2())
+            af.user_define_operation(input_data=[processed], processor=Sink())
         w = af.workflow_operation.submit_workflow(workflow_name='test_python')
         je = af.workflow_operation.start_job_execution(job_name='task_2', execution_id='1')
         time.sleep(20)

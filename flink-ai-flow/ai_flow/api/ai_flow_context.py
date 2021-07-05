@@ -16,22 +16,19 @@
 # under the License.
 import os
 import traceback
-from typing import Text
-from ai_flow.context.project_context import init_project_context, project_config
-from ai_flow.context.workflow_context import init_workflow_context
+from ai_flow.context.project_context import init_project_context, current_project_config
+from ai_flow.context.workflow_config_loader import init_workflow_config
 from ai_flow.client.ai_flow_client import get_ai_flow_client
 
 
-def init_ai_flow_context(workflow_entry_file: Text = None):
+def init_ai_flow_context():
     """
     Init project description, project config, workflow config.
-    :param workflow_entry_file: The workflow definition python file.
     If workflow_entry_file is None, it means this function is called in workflow definition file.
     :return: None
     """
-    if workflow_entry_file is None:
-        stack = traceback.extract_stack()
-        workflow_entry_file = stack[-2].filename
+    stack = traceback.extract_stack()
+    workflow_entry_file = stack[-2].filename
     workflows_path = os.path.dirname(os.path.dirname(workflow_entry_file))
     # workflow_name/workflow_name.py len(.py) == 3
     workflow_name = os.path.basename(workflow_entry_file)[:-3]
@@ -39,22 +36,22 @@ def init_ai_flow_context(workflow_entry_file: Text = None):
     init_project_context(project_path)
     __ensure_project_registered()
     # workflow_name/workflow_name.yaml
-    init_workflow_context(workflow_config_file
-                          =os.path.join(workflows_path, workflow_name, '{}.yaml'.format(workflow_name)))
+    init_workflow_config(workflow_config_file
+                         =os.path.join(workflows_path, workflow_name, '{}.yaml'.format(workflow_name)))
 
 
 def __ensure_project_registered():
     """ Ensure the project configured in project.yaml has been registered. """
 
     client = get_ai_flow_client()
-    project_meta = client.get_project_by_name(project_config().get_project_name())
+    project_meta = client.get_project_by_name(current_project_config().get_project_name())
     pp = {}
-    for k, v in project_config().items():
+    for k, v in current_project_config().items():
         pp[k] = str(v)
     if project_meta is None:
-        project_meta = client.register_project(name=project_config().get_project_name(),
+        project_meta = client.register_project(name=current_project_config().get_project_name(),
                                                properties=pp)
     else:
-        project_meta = client.update_project(project_name=project_config().get_project_name(), properties=pp)
+        project_meta = client.update_project(project_name=current_project_config().get_project_name(), properties=pp)
 
-    project_config().set_project_uuid(str(project_meta.uuid))
+    current_project_config().set_project_uuid(str(project_meta.uuid))

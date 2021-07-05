@@ -18,9 +18,9 @@
 #
 import unittest
 import os
-from ai_flow.context.job_context import job_config, current_job_name
-from ai_flow.context.project_context import project_config
-from ai_flow.context.workflow_context import workflow_config
+from ai_flow.context.job_context import current_job_name
+from ai_flow.context.project_context import current_project_config
+from ai_flow.context.workflow_config_loader import current_workflow_config
 from ai_flow.runtime.job_runtime_env import JobRuntimeEnv
 from ai_flow.runtime.job_runtime_context import init_job_runtime_context
 
@@ -31,9 +31,9 @@ class TestJobRuntimeContext(unittest.TestCase):
         working_dir = os.path.dirname(__file__)
         job_runtime_env = JobRuntimeEnv(working_dir=working_dir, workflow_name='workflow_1', job_name='task_1')
         init_job_runtime_context(job_runtime_env)
-        self.assertEqual('workflow_1', workflow_config().workflow_name)
-        self.assertEqual('task_1', workflow_config().job_configs[current_job_name()].job_name)
-        self.assertEqual('test_project', project_config().get_project_name())
+        self.assertEqual('workflow_1', current_workflow_config().workflow_name)
+        self.assertEqual('task_1', current_workflow_config().job_configs[current_job_name()].job_name)
+        self.assertEqual('test_project', current_project_config().get_project_name())
 
 
 if __name__ == '__main__':

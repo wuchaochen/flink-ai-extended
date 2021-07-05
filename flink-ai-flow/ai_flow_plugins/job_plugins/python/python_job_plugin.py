@@ -34,14 +34,14 @@ from ai_flow.plugin_interface.job_plugin_interface import AbstractJobPlugin, Job
 from ai_flow.plugin_interface.scheduler_interface import JobExecutionInfo
 from ai_flow.workflow.job import Job
 from ai_flow_plugins.job_plugins.python.python_job_config import PythonJobConfig
-from ai_flow_plugins.job_plugins.python.python_executor import PythonExecutor, ExecutionContext
+from ai_flow_plugins.job_plugins.python.python_executor import PythonProcessor, ExecutionContext
 
 
 class RunGraph(json_utils.Jsonable):
     def __init__(self) -> None:
         super().__init__()
         self.nodes: List[AINode] = []
-        self.executor_bytes: List[bytes] = []
+        self.processor_bytes: List[bytes] = []
         self.dependencies: Dict[Text, List[DataEdge]] = {}
 
 
@@ -55,38 +55,38 @@ class RunArgs(json_utils.Jsonable):
 
 
 def python_execute_func(run_graph: RunGraph, job_execution_info: JobExecutionInfo):
-    executors: List[PythonExecutor] = []
+    processor: List[PythonProcessor] = []
     contexts: List[ExecutionContext] = []
     for index in range(len(run_graph.nodes)):
-        caller: PythonExecutor = serialization_utils.deserialize(run_graph.executor_bytes[index])
-        executors.append(caller)
+        caller: PythonProcessor = serialization_utils.deserialize(run_graph.processor_bytes[index])
+        processor.append(caller)
         node: AINode = run_graph.nodes[index]
         execution_context = ExecutionContext(config=node.node_config, job_execution_info=job_execution_info)
         contexts.append(execution_context)
 
     def setup():
-        for ii in range(len(executors)):
-            cc = executors[ii]
+        for ii in range(len(processor)):
+            cc = processor[ii]
             cc.setup(contexts[ii])
 
     def close():
-        for ii in range(len(executors)):
-            cc = executors[ii]
+        for ii in range(len(processor)):
+            cc = processor[ii]
             cc.close(contexts[ii])
 
     setup()
     value_map = {}
     for i in range(len(run_graph.nodes)):
         node = run_graph.nodes[i]
-        c = executors[i]
-        if node.instance_id in run_graph.dependencies:
-            ds = run_graph.dependencies[node.instance_id]
+        c = processor[i]
+        if node.node_id in run_graph.dependencies:
+            ds = run_graph.dependencies[node.node_id]
             params = []
             for d in ds:
-                params.append(value_map[d.tail][d.port])
-            value_map[node.instance_id] = c.execute(contexts[i], params)
+                params.append(value_map[d.source][d.port])
+            value_map[node.node_id] = c.process(contexts[i], params)
         else:
-            value_map[node.instance_id] = c.execute(contexts[i], [])
+            value_map[node.node_id] = c.process(contexts[i], [])
     close()
 
 
@@ -138,10 +138,10 @@ class PythonJobPlugin(AbstractJobPlugin, ABC):
         while processed_size != node_size:
             p_nodes = []
             for i in range(len(node_list)):
-                if node_list[i].instance_id in sub_graph.edges:
+                if node_list[i].node_id in sub_graph.edges:
                     flag = True
-                    for c in sub_graph.edges[node_list[i].instance_id]:
-                        if c.tail in processed_nodes:
+                    for c in sub_graph.edges[node_list[i].node_id]:
+                        if c.source in processed_nodes:
                             pass
                         else:
                             flag = False
@@ -154,21 +154,19 @@ class PythonJobPlugin(AbstractJobPlugin, ABC):
                 raise Exception("graph has circle!")
             for n in p_nodes:
                 run_graph.nodes.append(n)
-                run_graph.executor_bytes.append(n.executor)
+                run_graph.processor_bytes.append(n.processor)
                 node_list.remove(n)
-                processed_nodes.add(n.instance_id)
+                processed_nodes.add(n.node_id)
             processed_size = len(processed_nodes)
         return run_graph
 
-    def generate(self, sub_graph: AISubGraph) -> Job:
+    def generate(self, sub_graph: AISubGraph, resource_dir: Text = None) -> Job:
         python_job_config: PythonJobConfig = sub_graph.config
         run_graph: RunGraph = self.build_run_graph(sub_graph)
         job = PythonJob(job_config=python_job_config)
-        tmp_dir = mkdtemp(prefix=job.job_name, dir='/tmp')
-        with NamedTemporaryFile(mode='w+b', dir=tmp_dir, prefix='{}_python_'.format(job.job_name), delete=False) as fp:
+        with NamedTemporaryFile(mode='w+b', dir=resource_dir, prefix='{}_python_'.format(job.job_name), delete=False) as fp:
             job.run_graph_file = os.path.basename(fp.name)
             fp.write(serialization_utils.serialize(run_graph))
-        job.resource_dir = tmp_dir
         return job
 
     def submit_job(self, job: Job, job_context: JobExecutionContext = None) -> JobHandler:

@@ -30,7 +30,7 @@ from ai_flow.endpoint.client.metadata_client import MetadataClient
 from ai_flow.endpoint.client.metric_client import MetricClient
 from ai_flow.endpoint.client.model_center_client import ModelCenterClient
 from ai_flow.endpoint.client.scheduler_client import SchedulerClient
-from ai_flow.context.project_context import project_config
+from ai_flow.context.project_context import current_project_config
 from ai_flow.endpoint.server.high_availability import proto_to_member, sleep_and_detecting_running
 from ai_flow.project.project_config import ProjectConfig
 from ai_flow.protobuf.high_availability_pb2 import ListMembersRequest, ReturnStatus
@@ -58,22 +58,22 @@ def get_ai_flow_client():
 
     global _default_ai_flow_client, _default_server_uri
     if _default_ai_flow_client is None:
-        current_uri = project_config().get_server_uri()
+        current_uri = current_project_config().get_server_uri()
         if current_uri is None:
             return None
         else:
             _default_server_uri = current_uri
             _default_ai_flow_client \
                 = AIFlowClient(server_uri=_default_server_uri,
-                               notification_service_uri=project_config().get_notification_service_uri())
+                               notification_service_uri=current_project_config().get_notification_service_uri())
             return _default_ai_flow_client
     else:
-        current_uri = project_config().get_server_uri()
+        current_uri = current_project_config().get_server_uri()
         if current_uri != _default_server_uri:
             _default_server_uri = current_uri
             _default_ai_flow_client \
                 = AIFlowClient(server_uri=_default_server_uri,
-                               notification_service_uri=project_config().get_notification_service_uri())
+                               notification_service_uri=current_project_config().get_notification_service_uri())
 
         return _default_ai_flow_client
 

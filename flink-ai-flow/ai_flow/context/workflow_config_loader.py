@@ -15,22 +15,20 @@
 # specific language governing permissions and limitations
 # under the License.
 from typing import Text
-
 from ai_flow.workflow.workflow_config import WorkflowConfig, load_workflow_config
 
-
-class WorkflowContext(object):
-    def __init__(self) -> None:
-        self.workflow_config: WorkflowConfig = None
+__current_workflow_config__ = WorkflowConfig()
 
 
-__default_workflow_context__ = WorkflowContext()
+def init_workflow_config(workflow_config_file: Text):
+    global __current_workflow_config__
+    __current_workflow_config__ = load_workflow_config(workflow_config_file)
 
 
-def init_workflow_context(workflow_config_file: Text):
-    __default_workflow_context__.workflow_config \
-        = load_workflow_config(workflow_config_file)
+def current_workflow_config() -> WorkflowConfig:
+    return __current_workflow_config__
 
 
-def workflow_config() -> WorkflowConfig:
-    return __default_workflow_context__.workflow_config
+def set_current_workflow_config(workflow_config):
+    global __current_workflow_config__
+    __current_workflow_config__ = workflow_config

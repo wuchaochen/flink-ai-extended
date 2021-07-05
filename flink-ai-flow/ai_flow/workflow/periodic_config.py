@@ -26,36 +26,42 @@ class PeriodicConfig(Jsonable):
     """
 
     def __init__(self,
-                 start_date_expression: Text = None,
-                 cron_expression: Text = None,
-                 interval_expression: Text = None) -> None:
+                 trigger_config: Dict) -> None:
         """
-        :param start_date_expression:
+        Support two types of configuration:
+        1. cron config: {'start_date': 'start_date_expression', 'cron': 'cron_expression'}
+        start_date_expression:
         year:int,month:int,day:int,hour:int,minute:int,second:int,Option[tzinfo: str]
-        :param cron_expression:
+        cron_expression:
         seconds minutes hours days months weeks years
-        :param interval_expression:
-        days:float,hours:float,minutes:float,seconds:float
+        2. interval config {'start_date': 'start_date_expression', 'interval': 'interval_expression'}
+        start_date_expression:
+        year:int,month:int,day:int,hour:int,minute:int,second:int,Option[tzinfo: str]
+        interval_expression:
+        days:int,hours:int,minutes:int,seconds:int
         """
         super().__init__()
-        self.start_date_expression = start_date_expression
-        self.cron_expression = cron_expression
-        self.interval_expression = interval_expression
+        self.trigger_config: Dict = trigger_config
 
     @classmethod
     def to_dict(cls, config: 'PeriodicConfig') -> Dict:
-        return {'start_date': config.start_date_expression,
-                'cron': config.cron_expression,
-                'interval': config.interval_expression}
+        if 'cron' in config.trigger_config:
+            return {'start_date': config.trigger_config.get('start_date'),
+                    'cron': config.trigger_config.get('cron')}
+        elif 'interval' in config.trigger_config:
+            return {'start_date': config.trigger_config.get('start_date'),
+                    'interval': config.trigger_config.get('interval')}
+        else:
+            raise Exception('Periodic config must be one of:\n'
+                            """1. cron config: {'start_date': 'start_date_expression', 'cron': 'cron_expression'}\n"""
+                            """2. interval config {'start_date': 'start_date_expression', 'interval': 'interval_expression'}""")
 
     @classmethod
     def from_dict(cls, data: Dict) -> 'PeriodicConfig':
-        return PeriodicConfig(start_date_expression=data['start_date'],
-                              cron_expression=data['cron'],
-                              interval_expression=data['interval'])
+        return PeriodicConfig(trigger_config=data)
 
     def get_cron_items(self):
-        cron_list = self.cron_expression.split(' ')
+        cron_list = self.trigger_config.get('cron').split(' ')
         if len(cron_list) != 7:
             raise Exception('cron expression {} is not validated! '
                             'Usage: seconds minutes hours days months weeks years')
@@ -65,7 +71,7 @@ class PeriodicConfig(Jsonable):
         return result
 
     def get_start_date_items(self):
-        start_date_list = self.start_date_expression.split(',')
+        start_date_list = self.trigger_config.get('start_date').split(',')
         if len(start_date_list) == 7:
             result = []
             for i in range(len(start_date_list)):
@@ -92,17 +98,17 @@ class PeriodicConfig(Jsonable):
             raise Exception('start expression {} is not validated! '
                             'Usage: year:int,month:int,day:int,hour:int,minute:int,second:int,Option[tzinfo: str]')
 
-    def get_interval_items(self)->List[float]:
-        interval_list = self.interval_expression.split(',')
+    def get_interval_items(self) -> List[float]:
+        interval_list = self.trigger_config.get('interval').split(',')
         if len(interval_list) != 4:
             raise Exception('interval expression {} is not validated! '
                             'Usage: days:float,hours:float,minutes:float,seconds:float')
         result = []
         for i in interval_list:
             if len(i.strip()) == 0:
-                result.append(0.0)
+                result.append(0)
             else:
-                result.append(float(i.strip()))
+                result.append(int(i.strip()))
         return result
 
     def get_start_date(self) -> datetime:

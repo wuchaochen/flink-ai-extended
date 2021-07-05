@@ -22,9 +22,8 @@ from ai_flow.workflow.job_config import JobConfig
 
 class BashJobConfig(JobConfig):
     def __init__(self, job_name: Text = None,
-                 exec_mode: Optional[ExecutionMode] = ExecutionMode.BATCH,
                  properties: Dict[Text, Jsonable] = None) -> None:
-        super().__init__(job_name, 'bash', exec_mode, properties)
+        super().__init__(job_name, 'bash', properties)
 
     @property
     def env(self):

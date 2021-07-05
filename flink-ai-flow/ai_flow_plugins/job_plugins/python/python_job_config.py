@@ -22,9 +22,8 @@ from ai_flow.workflow.job_config import JobConfig
 
 class PythonJobConfig(JobConfig):
     def __init__(self, job_name: Text = None,
-                 exec_mode: Optional[ExecutionMode] = ExecutionMode.BATCH,
                  properties: Dict[Text, Jsonable] = None) -> None:
-        super().__init__(job_name, 'python', exec_mode, properties)
+        super().__init__(job_name, 'python', properties)
 
     @property
     def env(self):

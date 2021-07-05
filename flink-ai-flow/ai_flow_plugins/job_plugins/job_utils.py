@@ -15,14 +15,21 @@
 # specific language governing permissions and limitations
 # under the License.
 import os
-
-from ai_flow.project.project_description import ProjectDesc
+import time
+from ai_flow.context.project_context import ProjectContext
 from ai_flow.runtime.job_runtime_env import JobRuntimeEnv
 
 
-def prepare_job_runtime_env(workflow_id, workflow_name, job_name, project_desc: ProjectDesc) -> JobRuntimeEnv:
-    temp_path = project_desc.get_absolute_temp_path()
-    working_dir = os.path.join(temp_path, workflow_id, job_name)
+def prepare_job_runtime_env(workflow_snapshot_id,
+                            workflow_name,
+                            job_name,
+                            project_context: ProjectContext,
+                            root_working_dir=None) -> JobRuntimeEnv:
+    if root_working_dir is None:
+        temp_path = os.path.join(project_context.project_path, 'temp')
+    else:
+        temp_path = root_working_dir
+    working_dir = os.path.join(temp_path, workflow_name, job_name, str(time.strftime("%Y%m%d%H%M%S", time.localtime())))
     job_runtime_env: JobRuntimeEnv = JobRuntimeEnv(working_dir=working_dir,
                                                    workflow_name=workflow_name,
                                                    job_name=job_name)
@@ -30,16 +37,16 @@ def prepare_job_runtime_env(workflow_id, workflow_name, job_name, project_desc: 
         os.makedirs(job_runtime_env.log_dir)
         job_runtime_env.save_workflow_name()
         job_runtime_env.save_job_name()
-        os.symlink(project_desc.get_absolute_workflow_entry_file(workflow_name=workflow_name),
+        os.symlink(project_context.get_workflow_entry_file(workflow_name=workflow_name),
                    os.path.join(working_dir, '{}.py'.format(workflow_name)))
-        os.symlink(project_desc.get_absolute_workflow_config_file(workflow_name=workflow_name),
+        os.symlink(project_context.get_workflow_config_file(workflow_name=workflow_name),
                    os.path.join(working_dir, '{}.yaml'.format(workflow_name)))
-        if os.path.exists(project_desc.get_absolute_generated_path()):
-            os.symlink(os.path.join(project_desc.get_absolute_generated_path(), workflow_id, job_name),
+        if os.path.exists(project_context.get_generated_path()):
+            os.symlink(os.path.join(project_context.get_generated_path(), workflow_snapshot_id, job_name),
                        job_runtime_env.generated_dir)
-        if os.path.exists(project_desc.get_absolute_resources_path()):
-            os.symlink(project_desc.get_absolute_resources_path(), job_runtime_env.resource_dir)
-        if os.path.exists(project_desc.get_absolute_dependencies_path()):
-            os.symlink(project_desc.get_absolute_dependencies_path(), job_runtime_env.dependencies_dir)
-        os.symlink(project_desc.get_absolute_project_config_file(), job_runtime_env.project_config_file)
+        if os.path.exists(project_context.get_resources_path()):
+            os.symlink(project_context.get_resources_path(), job_runtime_env.resource_dir)
+        if os.path.exists(project_context.get_dependencies_path()):
+            os.symlink(project_context.get_dependencies_path(), job_runtime_env.dependencies_dir)
+        os.symlink(project_context.get_project_config_file(), job_runtime_env.project_config_file)
     return job_runtime_env

@@ -17,7 +17,7 @@
 import unittest
 from typing import Text, List, Dict
 
-from ai_flow.project.project_description import ProjectDesc
+from ai_flow.context.project_context import ProjectContext
 from ai_flow.scheduler.scheduler_factory import SchedulerFactory
 from ai_flow.plugin_interface.scheduler_interface import AbstractScheduler, SchedulerConfig
 from ai_flow.workflow.workflow import Workflow
@@ -40,7 +40,7 @@ class UnitTestScheduler(AbstractScheduler):
     def list_job_executions(self, execution_id: Text) -> List[JobExecutionInfo]:
         pass
 
-    def submit_workflow(self, workflow: Workflow, project_desc: ProjectDesc, args: Dict = None) -> WorkflowInfo:
+    def submit_workflow(self, workflow: Workflow, project_desc: ProjectContext, args: Dict = None) -> WorkflowInfo:
         pass
 
     def delete_workflow(self, project_name: Text, workflow_name: Text) -> WorkflowInfo:

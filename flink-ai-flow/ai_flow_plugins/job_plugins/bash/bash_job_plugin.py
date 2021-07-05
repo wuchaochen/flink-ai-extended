@@ -74,17 +74,15 @@ class BashJobPlugin(AbstractJobPlugin):
     def __init__(self) -> None:
         super().__init__()
 
-    def generate(self, sub_graph: AISubGraph) -> Job:
+    def generate(self, sub_graph: AISubGraph, resource_dir: Text = None) -> Job:
         bash_job_config: BashJobConfig = sub_graph.config
         job = BashJob(job_config=bash_job_config)
         executors = {}
         for k, v in sub_graph.nodes.items():
-            executors[k] = v.get_executor()
-        tmp_dir = mkdtemp(prefix=job.job_name, dir='/tmp')
-        with NamedTemporaryFile(mode='w+b', dir=tmp_dir, prefix='{}_bash_'.format(job.job_name), delete=False) as fp:
+            executors[k] = v.get_processor()
+        with NamedTemporaryFile(mode='w+b', dir=resource_dir, prefix='{}_bash_'.format(job.job_name), delete=False) as fp:
             job.sub_graph_path = os.path.basename(fp.name)
             fp.write(serialization_utils.serialize(executors))
-        job.resource_dir = tmp_dir
         return job
 
     def submit_job(self, job: Job, job_context: JobExecutionContext) -> JobHandler:

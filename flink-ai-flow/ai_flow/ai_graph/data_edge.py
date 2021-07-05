@@ -14,27 +14,23 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Text, Dict
-
-from ai_flow.util.json_utils import Jsonable
+from typing import Text
 
 from ai_flow.graph.edge import Edge
 
 
 class DataEdge(Edge):
     def __init__(self,
-                 tail: Text,
-                 head: Text,
-                 port: int = 0,
-                 data_config: Dict[Text, Jsonable] = None) -> None:
-        super().__init__(head=head, tail=tail)
+                 source: Text,
+                 destination: Text,
+                 port: int = 0) -> None:
+        super().__init__(destination=destination, source=source)
         self.port = port
-        self.data_config = data_config
 
     def __eq__(self, o: object) -> bool:
         if isinstance(o, DataEdge):
-            return self.head == o.head \
-                   and self.tail == o.tail \
+            return self.destination == o.destination \
+                   and self.source == o.source \
                    and self.port == o.port
         else:
             return False

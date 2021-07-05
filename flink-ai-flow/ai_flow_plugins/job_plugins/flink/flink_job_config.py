@@ -29,10 +29,10 @@ class FlinkJobConfig(JobConfig):
             |-language: python or java (default python)
             |-run_mode: local or cluster (default python)
     """
+
     def __init__(self, job_name: Text = None,
-                 exec_mode: Optional[ExecutionMode] = ExecutionMode.BATCH,
                  properties: Dict[Text, Jsonable] = None) -> None:
-        super().__init__(job_name, 'flink', exec_mode, properties)
+        super().__init__(job_name, 'flink', properties)
 
     @property
     def env(self):
@@ -67,7 +67,6 @@ class FlinkJobConfig(JobConfig):
             return None
 
     @classmethod
-    def from_job_config(cls, job_config: JobConfig)->'FlinkJobConfig':
+    def from_job_config(cls, job_config: JobConfig) -> 'FlinkJobConfig':
         return FlinkJobConfig(job_name=job_config.job_name,
-                              exec_mode=job_config.exec_mode,
                               properties=job_config.properties)

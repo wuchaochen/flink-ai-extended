@@ -17,11 +17,12 @@
 # under the License.
 #
 import unittest
-from ai_flow.ai_graph.ai_node import AINode
+from ai_flow.meta.dataset_meta import DatasetMeta
+from ai_flow.ai_graph.ai_node import AINode, IONode
+from ai_flow.workflow.control_edge import ConditionConfig
 from ai_flow.workflow.job_config import JobConfig
-from ai_flow.workflow.workflow_config import WorkflowConfig
 from ai_flow.project.project_config import ProjectConfig
-from ai_flow.context.workflow_context import __default_workflow_context__
+from ai_flow.context.workflow_config_loader import init_workflow_config
 from ai_flow.translator.translator import *
 
 
@@ -30,56 +31,66 @@ def build_ai_graph(node_number, job_number) -> AIGraph:
     for i in range(node_number):
         j = i % job_number
         config = JobConfig(job_name='job_{}'.format(j), job_type='mock')
-        ai_node = AINode(instance_id="node_" + str(i))
+        if 0 == i:
+            ai_node = IONode(dataset=DatasetMeta(name='source'), is_source=True)
+        elif 3 == i:
+            ai_node = IONode(dataset=DatasetMeta(name='source'), is_source=False)
+        else:
+            ai_node = AINode()
         ai_node.config = config
-        graph.nodes[ai_node.instance_id] = ai_node
+        graph.nodes[ai_node.node_id] = ai_node
 
-    add_data_edge(graph=graph, head='node_6', tail='node_0')
-    add_data_edge(graph=graph, head='node_6', tail='node_3')
+    add_data_edge(graph=graph, to_='AINode_4', from_='IONode_0')
+    add_data_edge(graph=graph, to_='AINode_4', from_='IONode_1')
     add_control_edge(graph, 'job_2', 'job_0')
     add_control_edge(graph, 'job_2', 'job_1')
 
     return graph
 
 
-def add_data_edge(graph, head, tail):
-    graph.add_edge(head, DataEdge(head=head, tail=tail))
+def add_data_edge(graph, to_, from_):
+    graph.add_edge(to_, DataEdge(destination=to_, source=from_))
 
 
 def add_control_edge(graph, job_name, upstream_job_name):
     graph.add_edge(job_name,
-                   ControlEdge(head=job_name,
-                               sender=upstream_job_name,
-                               event_key='',
-                               event_value=''))
+                   ControlEdge(destination=job_name,
+                               condition_config=ConditionConfig(
+                                   sender=upstream_job_name,
+                                   event_key='',
+                                   event_value='')))
 
 
-class MockJobGenerator(BaseJobGenerator):
+class MockJobGenerator(JobGenerator):
 
-    def generate(self, sub_graph: AISubGraph) -> Job:
+    def generate(self, sub_graph: AISubGraph, resource_dir: Text = None) -> Job:
         return Job(job_config=sub_graph.config)
 
 
 class TestTranslator(unittest.TestCase):
 
-    def test_translate_graph(self):
-        __default_workflow_context__.workflow_config = WorkflowConfig(workflow_name='workflow_1')
-        project_desc = ProjectDesc()
+    def test_translate_ai_graph_to_workflow(self):
+        init_workflow_config(os.path.join(os.path.dirname(__file__), 'workflow_1.yaml'))
+        project_desc = ProjectContext()
         project_desc.project_path = '/tmp'
         project_desc.project_config = ProjectConfig()
         project_desc.project_config.set_project_name('test_project')
         graph: AIGraph = build_ai_graph(9, 3)
         splitter = GraphSplitter()
-        split_graph = splitter.split(graph,project_desc)
+        split_graph = splitter.split(graph)
         self.assertEqual(3, len(split_graph.nodes))
         self.assertEqual(1, len(split_graph.edges))
         self.assertEqual(2, len(split_graph.edges.get('job_2')))
         sub_graph = split_graph.nodes.get('job_0')
-        self.assertTrue('node_6' in sub_graph.edges)
+        self.assertTrue('AINode_4' in sub_graph.nodes)
+        self.assertTrue('AINode_4' in sub_graph.edges)
         constructor = WorkflowConstructor()
         constructor.register_job_generator('mock', MockJobGenerator())
         workflow = constructor.build_workflow(split_graph, project_desc)
         self.assertEqual(3, len(workflow.nodes))
+        job = workflow.jobs.get('job_0')
+        self.assertEqual(1, len(job.input_dataset_list))
+        self.assertEqual(1, len(job.output_dataset_list))
 
 
 if __name__ == '__main__':

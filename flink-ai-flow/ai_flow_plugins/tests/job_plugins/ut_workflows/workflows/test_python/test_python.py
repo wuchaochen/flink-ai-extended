@@ -29,16 +29,16 @@ from ai_flow_plugins.job_plugins.python.python_executor import ExecutionContext
 project_path = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 
 
-class PyExecutor1(python.PythonExecutor):
+class PyProcessor1(python.PythonProcessor):
 
-    def execute(self, execution_context: ExecutionContext, input_list: List) -> List:
+    def process(self, execution_context: ExecutionContext, input_list: List) -> List:
         print("Zhang san hello world!")
         return []
 
 
-class PyExecutor2(python.PythonExecutor):
+class PyProcessor2(python.PythonProcessor):
 
-    def execute(self, execution_context: ExecutionContext, input_list: List) -> List:
+    def process(self, execution_context: ExecutionContext, input_list: List) -> List:
         print("Li si hello world!")
         time.sleep(100)
         return []
@@ -63,23 +63,24 @@ class TestPython(unittest.TestCase):
 
     def setUp(self):
         self.master._clear_db()
-        af.default_graph().clear_graph()
-        init_ai_flow_context(workflow_entry_file=__file__)
+        af.current_graph().clear_graph()
+        init_ai_flow_context()
 
     def tearDown(self):
         self.master._clear_db()
 
     def test_python_task(self):
         with af.job_config('task_1'):
-            af.user_define_operation(executor=PyExecutor1())
-        w = af.workflow_operation.submit_workflow(workflow_name=af.workflow_config().workflow_name)
+            af.user_define_operation(processor=PyProcessor1())
+        w = af.workflow_operation.submit_workflow(workflow_name=af.current_workflow_config().workflow_name)
         je = af.workflow_operation.start_job_execution(job_name='task_1', execution_id='1')
         je = af.workflow_operation.get_job_execution(job_name='task_1', execution_id='1')
         self.assertEqual(State.FINISHED, je.state)
 
     def test_stop_python_task(self):
+        time.sleep(1)
         with af.job_config('task_1'):
-            af.user_define_operation(executor=PyExecutor2())
+            af.user_define_operation(processor=PyProcessor2())
         w = af.workflow_operation.submit_workflow(workflow_name='test_python')
         je = af.workflow_operation.start_job_execution(job_name='task_1', execution_id='1')
         time.sleep(2)

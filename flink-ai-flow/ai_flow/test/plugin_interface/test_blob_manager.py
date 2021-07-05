@@ -23,7 +23,7 @@ from ai_flow.plugin_interface.blob_manager_interface import BlobManagerFactory, 
 
 class MockBlockManager(BlobManager):
     def __init__(self, config):
-        pass
+        super().__init__(config)
 
     def upload_blob(self, workflow_id: Text, prj_pkg_path: Text) -> Text:
         return 'upload'

@@ -23,6 +23,7 @@ class JobRuntimeEnv(object):
     """
     The job runtime environment
     """
+
     def __init__(self,
                  working_dir: Text,
                  workflow_name: Text = None,
@@ -32,18 +33,18 @@ class JobRuntimeEnv(object):
         self._job_name: Text = job_name
 
     @property
-    def working_dir(self)->Text:
+    def working_dir(self) -> Text:
         return self._working_dir
 
     @property
-    def workflow_name(self)->Text:
+    def workflow_name(self) -> Text:
         if self._workflow_name is None:
             self._workflow_name = serialization_utils.read_object_from_serialized_file(
                 os.path.join(self.working_dir, 'workflow_name'))
         return self._workflow_name
 
     @property
-    def job_name(self)->Text:
+    def job_name(self) -> Text:
         if self._job_name is None:
             self._job_name = serialization_utils.read_object_from_serialized_file(
                 os.path.join(self.working_dir, 'job_name')
@@ -55,19 +56,19 @@ class JobRuntimeEnv(object):
         return os.path.join(self._working_dir, 'logs')
 
     @property
-    def resource_dir(self)->Text:
+    def resource_dir(self) -> Text:
         return os.path.join(self._working_dir, 'resources')
 
     @property
-    def generated_dir(self)->Text:
+    def generated_dir(self) -> Text:
         return os.path.join(self._working_dir, 'generated')
 
     @property
-    def dependencies_dir(self)->Text:
+    def dependencies_dir(self) -> Text:
         return os.path.join(self._working_dir, 'dependencies')
 
     @property
-    def python_dep_dir(self)->Text:
+    def python_dep_dir(self) -> Text:
         return os.path.join(self.dependencies_dir, 'python')
 
     @property
@@ -79,11 +80,11 @@ class JobRuntimeEnv(object):
         return os.path.join(self.dependencies_dir, 'jar')
 
     @property
-    def project_config_file(self)->Text:
+    def project_config_file(self) -> Text:
         return os.path.join(self.working_dir, 'project.yaml')
 
     @property
-    def workflow_config_file(self)->Text:
+    def workflow_config_file(self) -> Text:
         return os.path.join(self.working_dir, '{}.yaml'.format(self.workflow_name))
 
     @property

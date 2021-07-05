@@ -16,27 +16,28 @@
 # specific language governing permissions and limitations
 # under the License.
 #
+import enum
 from typing import Text, List, Dict
-from ai_flow.graph.node import BaseNode
+
+from ai_flow.meta.dataset_meta import DatasetMeta
+from ai_flow.graph.node import Node
 from ai_flow.workflow.job import JobConfig
 from ai_flow.util import serialization_utils
-from ai_flow.graph.channel import Channel, NoneChannel
+from ai_flow.graph.channel import Channel
 
 
-class AINode(BaseNode):
+class AINode(Node):
     def __init__(self,
-                 executor: object = None,
+                 processor: object = None,
                  name: Text = None,
-                 instance_id: Text = None,
                  output_num: int = 1,
                  config: JobConfig = None,
                  node_type: Text = 'AINode',
                  **kwargs) -> None:
         super().__init__(properties=None,
                          name=name,
-                         instance_id=instance_id,
                          output_num=output_num)
-        self.executor: bytes = serialization_utils.serialize(executor)
+        self.processor: bytes = serialization_utils.serialize(processor)
         self.config: JobConfig = config
         self.node_config: Dict = kwargs
         self.node_config['name'] = name
@@ -46,13 +47,41 @@ class AINode(BaseNode):
         if self.output_num > 0:
             result = []
             for i in range(self.output_num):
-                result.append(Channel(node_id=self.instance_id, port=i))
+                result.append(Channel(node_id=self.node_id, port=i))
             return result
         else:
-            return [NoneChannel(self.instance_id)]
+            return None
 
-    def get_executor(self)->object:
-        if self.executor is None:
+    def get_processor(self) -> object:
+        if self.processor is None:
             return None
         else:
-            return serialization_utils.deserialize(self.executor)
+            return serialization_utils.deserialize(self.processor)
+
+    def node_type(self):
+        return self.node_config.get('node_type')
+
+    def name(self):
+        return self.node_config.get('name')
+
+
+class IONode(AINode):
+    def __init__(self,
+                 dataset: DatasetMeta,
+                 is_source: bool = True,
+                 processor: object = None,
+                 name: Text = None,
+                 output_num: int = 1,
+                 config: JobConfig = None,
+                 node_type: Text = 'AINode', **kwargs) -> None:
+        super().__init__(processor, name, output_num, config, node_type, **kwargs)
+        if dataset is None:
+            raise Exception('dataset can not be None!')
+        self.node_config['dataset'] = dataset
+        self.node_config['is_source'] = is_source
+
+    def dataset(self):
+        return self.node_config.get('dataset')
+
+    def is_source(self) -> bool:
+        return self.node_config['is_source']

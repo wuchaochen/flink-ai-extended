@@ -28,7 +28,7 @@ class ExecutionContext(json_utils.Jsonable):
         self._config: Dict = config
 
     @property
-    def job_execution_info(self)-> JobExecutionInfo:
+    def job_execution_info(self) -> JobExecutionInfo:
         return self._job_execution_info
 
     @property
@@ -40,11 +40,11 @@ class ExecutionContext(json_utils.Jsonable):
         return self._config['node_type']
 
     @property
-    def config(self)->Dict:
+    def config(self) -> Dict:
         return self._config
 
 
-class PythonExecutor(object):
+class PythonProcessor(object):
 
     def __init__(self) -> None:
         super().__init__()
@@ -54,7 +54,7 @@ class PythonExecutor(object):
     """
 
     @abstractmethod
-    def execute(self, execution_context: ExecutionContext, input_list: List) -> List:
+    def process(self, execution_context: ExecutionContext, input_list: List) -> List:
         pass
 
     """

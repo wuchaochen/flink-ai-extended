@@ -17,17 +17,16 @@
 # under the License.
 #
 import unittest
-
 from ai_flow.util import json_utils
-from ai_flow.graph.node import BaseNode
+from ai_flow.graph.node import Node
 
 
 class TestNode(unittest.TestCase):
 
-    def test_node(self):
-        node = BaseNode(name="a")
+    def test_node_serde(self):
+        node = Node(name="a")
         json_text = json_utils.dumps(node)
-        n2: BaseNode = json_utils.loads(json_text)
+        n2: Node = json_utils.loads(json_text)
         self.assertEqual(node.name, n2.name)
 
 

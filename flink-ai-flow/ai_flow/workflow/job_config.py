@@ -30,32 +30,28 @@ class JobConfig(Jsonable):
     def __init__(self,
                  job_name: Text = None,
                  job_type: Text = None,
-                 exec_mode: Optional[ExecutionMode] = ExecutionMode.BATCH,
                  properties: Dict[Text, Jsonable] = None) -> None:
         """
         The job config
         :param job_name: Name of the configured job.
         :param job_type: The engine of the job.
-        :param exec_mode: The mode(Batch or Stream) of the job.
         :param properties: Properties of the configured job.
         """
         super().__init__()
         self.job_name: Text = job_name
         self.job_type = job_type
-        self.exec_mode: Optional[ExecutionMode] = exec_mode
         if properties is None:
             self.properties: Dict[Text, Jsonable] = {}
         else:
             self.properties: Dict[Text, Jsonable] = properties
 
     @staticmethod
-    def from_dict(job_name: Text, data: Dict) -> 'JobConfig':
+    def from_dict(data: Dict) -> 'JobConfig':
+        job_name = list(data.keys())[0]
         return JobConfig(job_name=job_name,
-                         job_type=data.get('job_type', None),
-                         exec_mode=ExecutionMode.value_of(data.get('exec_mode', ExecutionMode.BATCH.value)),
-                         properties=data.get('properties', {}))
+                         job_type=data[job_name].get('job_type', None),
+                         properties=data[job_name].get('properties', {}))
 
     @staticmethod
     def to_dict(job_config: 'JobConfig') -> Dict:
-        return {'job_type': job_config.job_type,
-                'exec_mode': job_config.exec_mode.value, 'properties': job_config.properties}
+        return {job_config.job_name: {'job_type': job_config.job_type, 'properties': job_config.properties}}

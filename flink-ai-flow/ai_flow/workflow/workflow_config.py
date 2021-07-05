@@ -23,9 +23,9 @@ from ai_flow.workflow.job_config import JobConfig
 from ai_flow.workflow.periodic_config import PeriodicConfig
 from ai_flow.util import yaml_utils
 
-WORKFLOW_PROPERTIES = "properties"
-WORKFLOW_DEPENDENCIES = "dependencies"
-PERIODIC_CONFIG = "periodic_config"
+WORKFLOW_PROPERTIES = "properties"  # The configuration item that represents the properties of the workflow.
+WORKFLOW_DEPENDENCIES = "dependencies"  # The configuration item of the workflow runtime dependency files.
+PERIODIC_CONFIG = "periodic_config"  # The configuration item of cycle scheduling of the workflow.
 
 
 class WorkflowConfig(Jsonable):
@@ -49,6 +49,7 @@ def load_workflow_config(config_path: Text) -> WorkflowConfig:
         workflow_config: WorkflowConfig = loads(workflow_config_json)
         return workflow_config
     elif config_path.endswith('.yaml'):
+        # -5 is length of .yaml; The config file name equals workflow name.
         workflow_name = os.path.basename(config_path)[:-5]
         workflow_data = yaml_utils.load_yaml_file(config_path)
 
@@ -67,7 +68,7 @@ def load_workflow_config(config_path: Text) -> WorkflowConfig:
         for k, v in workflow_data.items():
             if k == WORKFLOW_DEPENDENCIES or k == WORKFLOW_PROPERTIES:
                 continue
-            job_config = JobConfig.from_dict(k, v)
+            job_config = JobConfig.from_dict({k: v})
             workflow_config.add_job_config(k, job_config)
         return workflow_config
     else:

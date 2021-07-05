@@ -34,28 +34,38 @@
 # specific language governing permissions and limitations
 # under the License.
 #
+from abc import abstractmethod, ABC
 from typing import Dict, Text
 import copy
 import time
 import os
 import shutil
-from ai_flow.context.workflow_context import workflow_config
-from ai_flow.translator.base_translator import BaseGraphSplitter, BaseJobGenerator, BaseWorkflowConstructor, \
-    BaseTranslator
+
+from ai_flow.ai_graph.ai_node import IONode
+from ai_flow.context.workflow_config_loader import current_workflow_config
 from ai_flow.workflow.workflow import Workflow
 from ai_flow.workflow.job import Job
 from ai_flow.ai_graph.ai_graph import AIGraph, SplitGraph, AISubGraph
 from ai_flow.ai_graph.data_edge import DataEdge
 from ai_flow.workflow.control_edge import ControlEdge
-from ai_flow.project.project_description import ProjectDesc
+from ai_flow.context.project_context import ProjectContext
 
 
-class GraphSplitter(BaseGraphSplitter):
+class JobGenerator(ABC):
+    def __init__(self) -> None:
+        super().__init__()
+
+    @abstractmethod
+    def generate(self, sub_graph: AISubGraph, resource_dir: Text = None) -> Job:
+        pass
+
+
+class GraphSplitter(object):
 
     def __init__(self) -> None:
         super().__init__()
 
-    def split(self, graph: AIGraph, project_desc: ProjectDesc) -> SplitGraph:
+    def split(self, graph: AIGraph) -> SplitGraph:
 
         split_graph = SplitGraph()
 
@@ -71,28 +81,28 @@ class GraphSplitter(BaseGraphSplitter):
         # add data edge to sub graph
         for sub_graph in split_graph.nodes.values():
             for n in sub_graph.nodes.values():
-                if n.instance_id in graph.edges:
-                    for e in graph.edges[n.instance_id]:
+                if n.node_id in graph.edges:
+                    for e in graph.edges[n.node_id]:
                         if isinstance(e, DataEdge):
-                            sub_graph.add_edge(n.instance_id, e)
+                            sub_graph.add_edge(n.node_id, e)
 
         for e in graph.edges:
             for ee in graph.edges[e]:
                 if isinstance(ee, ControlEdge):
-                    split_graph.add_edge(ee.head, ee)
+                    split_graph.add_edge(ee.destination, ee)
         return split_graph
 
 
-class WorkflowConstructor(BaseWorkflowConstructor):
+class WorkflowConstructor(object):
     class JobGeneratorRegistry(object):
         def __init__(self) -> None:
             super().__init__()
-            self.object_dict: Dict[Text, BaseJobGenerator] = {}
+            self.object_dict: Dict[Text, JobGenerator] = {}
 
-        def register(self, key: Text, value: BaseJobGenerator):
+        def register(self, key: Text, value: JobGenerator):
             self.object_dict[key] = value
 
-        def get_object(self, key: Text) -> BaseJobGenerator:
+        def get_object(self, key: Text) -> JobGenerator:
             return self.object_dict[key]
 
     def __init__(self) -> None:
@@ -100,29 +110,41 @@ class WorkflowConstructor(BaseWorkflowConstructor):
         self.job_generator_registry: WorkflowConstructor.JobGeneratorRegistry \
             = WorkflowConstructor.JobGeneratorRegistry()
 
-    def register_job_generator(self, engine, generator: BaseJobGenerator):
+    def register_job_generator(self, engine, generator: JobGenerator):
         self.job_generator_registry.register(engine, generator)
 
-    def build_workflow(self, split_graph: SplitGraph, project_desc: ProjectDesc) -> Workflow:
+    def build_workflow(self, split_graph: SplitGraph, project_context: ProjectContext) -> Workflow:
         workflow = Workflow()
-        workflow.workflow_config = workflow_config()
-        workflow.workflow_id = '{}.{}.{}'.format(project_desc.project_name, workflow.workflow_name,
-                                                 round(time.time() * 1000))
+        workflow.workflow_config = current_workflow_config()
+        workflow.workflow_snapshot_id = '{}.{}.{}'.format(project_context.project_name, workflow.workflow_name,
+                                                          round(time.time() * 1000))
         # add ai_nodes to workflow
         for sub in split_graph.nodes.values():
             if sub.config.job_type not in self.job_generator_registry.object_dict:
                 raise Exception("job generator not support job_type {}"
                                 .format(sub.config.job_type))
-            generator: BaseJobGenerator = self.job_generator_registry \
+            generator: JobGenerator = self.job_generator_registry \
                 .get_object(sub.config.job_type)
-            job: Job = generator.generate(sub_graph=sub)
+
+            # set job resource dir
+            job_resource_dir = os.path.join(project_context.get_generated_path(),
+                                            workflow.workflow_snapshot_id,
+                                            sub.config.job_name)
+            if not os.path.exists(job_resource_dir):
+                os.makedirs(job_resource_dir)
+
+            job: Job = generator.generate(sub_graph=sub, resource_dir=job_resource_dir)
+            job.resource_dir = job_resource_dir
+
+            # set input output dataset
+            for node in sub.nodes.values():
+                if isinstance(node, IONode):
+                    if node.is_source():
+                        job.input_dataset_list.append(node.dataset())
+                    else:
+                        job.output_dataset_list.append(node.dataset())
+
             workflow.add_job(job)
-            # copy job resource
-            job_resource_dir = os.path.join(project_desc.get_absolute_generated_path(),
-                                            workflow.workflow_id,
-                                            job.job_name)
-            if job.resource_dir is not None and os.path.isdir(job.resource_dir):
-                shutil.copytree(job.resource_dir, job_resource_dir)
 
         def validate_edge(head, tail):
             if head not in workflow.jobs:
@@ -133,12 +155,12 @@ class WorkflowConstructor(BaseWorkflowConstructor):
         for edges in split_graph.edges.values():
             for e in edges:
                 control_edge = copy.deepcopy(e)
-                validate_edge(control_edge.head, control_edge.tail)
-                workflow.add_edge(control_edge.head, control_edge)
+                validate_edge(control_edge.destination, control_edge.source)
+                workflow.add_edge(control_edge.destination, control_edge)
         return workflow
 
 
-class Translator(BaseTranslator):
+class Translator(object):
     def __init__(self,
                  graph_splitter: GraphSplitter,
                  workflow_constructor: WorkflowConstructor
@@ -147,21 +169,20 @@ class Translator(BaseTranslator):
         self.graph_splitter = graph_splitter
         self.workflow_constructor = workflow_constructor
 
-    def translate(self, graph: AIGraph, project_desc: ProjectDesc) -> Workflow:
-        split_graph = self.graph_splitter.split(graph=graph,
-                                                project_desc=project_desc)
+    def translate(self, graph: AIGraph, project_context: ProjectContext) -> Workflow:
+        split_graph = self.graph_splitter.split(graph=graph)
         workflow = self.workflow_constructor.build_workflow(split_graph=split_graph,
-                                                            project_desc=project_desc)
+                                                            project_context=project_context)
         return workflow
 
 
-__default_translator__ = Translator(graph_splitter=GraphSplitter(),
+__current_translator__ = Translator(graph_splitter=GraphSplitter(),
                                     workflow_constructor=WorkflowConstructor())
 
 
-def get_default_translator() -> BaseTranslator:
-    return __default_translator__
+def get_translator() -> Translator:
+    return __current_translator__
 
 
-def register_job_generator(job_type, generator: BaseJobGenerator) -> None:
-    __default_translator__.workflow_constructor.register_job_generator(job_type, generator)
+def register_job_generator(job_type, generator: JobGenerator) -> None:
+    __current_translator__.workflow_constructor.register_job_generator(job_type, generator)

@@ -18,7 +18,7 @@
 #
 from typing import Optional, Text, List, Tuple, Union
 
-from ai_flow.context.project_context import project_config
+from ai_flow.context.project_context import current_project_config
 from ai_flow.client.ai_flow_client import get_ai_flow_client
 from ai_flow.common.properties import Properties
 from ai_flow.common.status import Status
@@ -122,8 +122,8 @@ def get_model_by_name(model_name) -> Optional[ModelMeta]:
 
 
 def register_model(model_name: Text, model_desc: Text = None) -> ModelMeta:
-    project_config_ = project_config()
-    project_id = int(project_config_.get_project_uuid())
+    project_config = current_project_config()
+    project_id = int(project_config.get_project_uuid())
     return get_ai_flow_client().register_model(model_name, project_id, model_desc)
 
 

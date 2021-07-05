@@ -19,28 +19,28 @@
 import unittest
 
 from ai_flow.util import json_utils
-from ai_flow.graph.node import BaseNode
+from ai_flow.graph.node import Node
 from ai_flow.graph.edge import Edge
 from ai_flow.graph.graph import Graph
 
 
 class TestGraph(unittest.TestCase):
 
-    def test_graph(self):
+    def test_graph_serde(self):
         graph = Graph()
         nodes = []
         for i in range(3):
-            node = BaseNode(name=str(i))
+            node = Node(name=str(i))
             graph.add_node(node)
             nodes.append(node)
-        edge = Edge(head=nodes[0].instance_id, tail=nodes[1].instance_id)
-        graph.add_edge(nodes[0].instance_id, edge)
-        edge = Edge(head=nodes[0].instance_id, tail=nodes[2].instance_id)
-        graph.add_edge(nodes[0].instance_id, edge)
+        edge = Edge(destination=nodes[0].node_id, source=nodes[1].node_id)
+        graph.add_edge(nodes[0].node_id, edge)
+        edge = Edge(destination=nodes[0].node_id, source=nodes[2].node_id)
+        graph.add_edge(nodes[0].node_id, edge)
         json_text = json_utils.dumps(graph)
         g: Graph = json_utils.loads(json_text)
         self.assertEqual(3, len(g.nodes))
-        self.assertEqual(2, len(graph.edges.get(nodes[0].instance_id)))
+        self.assertEqual(2, len(graph.edges.get(nodes[0].node_id)))
 
 
 if __name__ == '__main__':

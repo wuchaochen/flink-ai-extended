@@ -15,11 +15,10 @@
 # specific language governing permissions and limitations
 # under the License.
 from abc import ABC
-from typing import Text, Any
+from typing import Text
 
 from ai_flow.ai_graph.ai_graph import AISubGraph
 from ai_flow.plugin_interface.job_plugin_interface import AbstractJobPlugin, JobHandler, JobExecutionContext
-from ai_flow.project.project_description import ProjectDesc
 from ai_flow.workflow.job import Job
 
 
@@ -28,7 +27,7 @@ class DummyJobPlugin(AbstractJobPlugin, ABC):
     def __init__(self) -> None:
         super().__init__()
 
-    def generate(self, sub_graph: AISubGraph) -> Job:
+    def generate(self, sub_graph: AISubGraph, resource_dir: Text = None) -> Job:
         job = Job(job_config=sub_graph.config)
         return job
 

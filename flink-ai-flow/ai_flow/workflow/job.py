@@ -16,25 +16,29 @@
 # specific language governing permissions and limitations
 # under the License.
 #
-from typing import Text
-from ai_flow.graph.node import BaseNode
+from typing import Text, List
+
+from ai_flow.meta.dataset_meta import DatasetMeta
+
+from ai_flow.graph.node import Node
 from ai_flow.workflow.job_config import JobConfig
 
 
-class Job(BaseNode):
+class Job(Node):
     """
-    A Job contains the common information of a ai flow job. Users can implement custom jobs by adding other
-    execution information for a specific job_type.
+    A job is a description of an executable job, including job configuration files, job type and other information.
     """
     def __init__(self,
                  job_config: JobConfig) -> None:
         """
-        :param job_config: Job configuration information, including job name, running environment, etc.
+        :param job_config: Job configuration information. type: ai_flow.workflow.job_config.JobConfig
         """
         super().__init__()
         self.job_config = job_config
         self._project_uri: Text = None  # project code uri
         self._resource_dir: Text = None  # job resource dir
+        self.input_dataset_list: List[DatasetMeta] = []  # the job read dataset information
+        self.output_dataset_list: List[DatasetMeta] = []  # the job write dataset information
 
     @property
     def job_name(self):

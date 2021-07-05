@@ -18,11 +18,11 @@ import os
 from tempfile import NamedTemporaryFile
 from typing import Dict, Text, List, Optional
 from ai_flow_plugins.scheduler_plugins.airflow.dag_generator import DAGGenerator
-from ai_flow.project.project_description import ProjectDesc
+from ai_flow.context.project_context import ProjectContext
 from ai_flow.plugin_interface.scheduler_interface import AbstractScheduler, SchedulerConfig, \
     WorkflowInfo, JobExecutionInfo, WorkflowExecutionInfo
 from ai_flow.workflow.workflow import Workflow
-from ai_flow.workflow import state
+from ai_flow.workflow import status
 from airflow.executors.scheduling_action import SchedulingAction
 from airflow.models.taskexecution import TaskExecution
 from airflow.models.taskinstance import TaskInstance
@@ -97,7 +97,7 @@ class AirFlowScheduler(AbstractScheduler):
                                                         namespace=SCHEDULER_NAMESPACE)
         return self._airflow_client
 
-    def submit_workflow(self, workflow: Workflow, project_desc: ProjectDesc, args: Dict = None) -> WorkflowInfo:
+    def submit_workflow(self, workflow: Workflow, project_desc: ProjectContext, args: Dict = None) -> WorkflowInfo:
         dag_id = self.airflow_dag_id(project_desc.project_name, workflow.workflow_name)
         code_text = self.dag_generator.generate(workflow=workflow,
                                                 project_name=project_desc.project_name,
@@ -185,12 +185,12 @@ class AirFlowScheduler(AbstractScheduler):
         context: ExecutionContext = self.airflow_client.schedule_dag(dag_id)
         return WorkflowExecutionInfo(workflow_info=WorkflowInfo(namespace=project_name, workflow_name=workflow_name),
                                      workflow_execution_id=context.dagrun_id,
-                                     state=state.State.INIT)
+                                     state=status.State.INIT)
 
     def kill_all_workflow_execution(self, project_name: Text, workflow_name: Text) -> List[WorkflowExecutionInfo]:
         workflow_execution_list = self.list_workflow_executions(project_name, workflow_name)
         for we in workflow_execution_list:
-            if we.state == state.State.RUNNING:
+            if we.state == status.State.RUNNING:
                 self.kill_workflow_execution(we.workflow_execution_id)
         return workflow_execution_list
 
@@ -205,7 +205,7 @@ class AirFlowScheduler(AbstractScheduler):
             return WorkflowExecutionInfo(workflow_info=WorkflowInfo(namespace=project_name,
                                                                     workflow_name=workflow_name),
                                          workflow_execution_id=current_context.dagrun_id,
-                                         state=state.State.KILLING)
+                                         state=status.State.KILLING)
 
     def get_workflow_execution(self, execution_id: Text) -> Optional[WorkflowExecutionInfo]:
         with create_session() as session:

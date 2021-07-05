@@ -20,7 +20,7 @@ from datetime import datetime, timedelta
 from typing import Text, List, Dict, Optional
 from ai_flow.workflow.job import Job
 from ai_flow.util import json_utils
-from ai_flow.workflow.control_edge import MetConfig, AIFlowInnerEventType
+from ai_flow.workflow.control_edge import ConditionConfig, AIFlowInternalEventType
 from ai_flow.workflow.periodic_config import PeriodicConfig
 from ai_flow.workflow.workflow import Workflow, WorkflowPropertyKeys
 
@@ -92,7 +92,7 @@ op_{0} = AIFlowOperator(task_id='{2}', job=job_{0}, workflow=workflow, dag=dag)
         return DAGTemplate.EVENT_DEPS.format(op, met_config.event_key, met_config.event_type,
                                              met_config.namespace, sender)
 
-    def generate_handler(self, op, configs: List[MetConfig]):
+    def generate_handler(self, op, configs: List[ConditionConfig]):
         return DAGTemplate.MET_HANDLER.format(op, json_utils.dumps(configs))
 
     def generate(self,
@@ -133,18 +133,18 @@ op_{0} = AIFlowOperator(task_id='{2}', job=job_{0}, workflow=workflow, dag=dag)
             if name in workflow.control_edges:
                 edges = workflow.control_edges.get(name)
                 for edge in edges:
-                    if AIFlowInnerEventType.PERIODIC_ACTION == edge.event_type:
-                        periodic_config: PeriodicConfig = json_utils.loads(edge.event_value)
-                        if periodic_config.cron_expression is not None:
+                    if AIFlowInternalEventType.PERIODIC_ACTION == edge.condition_config.event_type:
+                        periodic_config: PeriodicConfig = json_utils.loads(edge.condition_config.event_value)
+                        if periodic_config.trigger_config.get('cron') is not None:
                             code_text += \
                                 DAGTemplate.PERIODIC_CONFIG.format(self.op_count,
-                                                                   str({'cron': periodic_config.cron_expression}))
-                        elif periodic_config.interval_expression is not None:
+                                                                   str({'cron': periodic_config.trigger_config.get('cron')}))
+                        elif periodic_config.trigger_config.get('interval') is not None:
                             code_text += DAGTemplate.\
                                 PERIODIC_CONFIG.format(self.op_count,
-                                                       str({'interval': periodic_config.interval_expression}))
+                                                       str({'interval': periodic_config.trigger_config.get('interval')}))
                         else:
-                            raise Exception('periodic_config must set one of interval_expression or cron_expression!')
+                            raise Exception('periodic_config must set one of interval config or cron config!')
 
         for job_name, edges in workflow.control_edges.items():
             if job_name in task_map:
@@ -152,41 +152,35 @@ op_{0} = AIFlowOperator(task_id='{2}', job=job_{0}, workflow=workflow, dag=dag)
                 configs = []
                 upstream_configs = []
                 for edge in edges:
-                    met_config: MetConfig = edge.generate_met_config()
-                    if AIFlowInnerEventType.UPSTREAM_JOB_SUCCESS == met_config.event_type:
-                        upstream_configs.append(met_config)
-                    else:
-                        def reset_met_config():
-                            if met_config.sender is None or '' == met_config.sender:
-                                target_node_id = edge.tail
-                                if target_node_id is not None and '' != target_node_id:
-                                    target_job: Job = workflow.jobs.get(target_node_id)
-                                    if target_job.job_name is not None:
-                                        met_config.sender = target_job.job_name
-                                else:
-                                    met_config.sender = '*'
-                        reset_met_config()
+                    condition_config: ConditionConfig = edge.condition_config
 
-                        if edge.tail in task_map:
-                            from_op_name = task_map[edge.tail]
-                        else:
-                            from_op_name = ''
-                        code = self.generate_event_deps(op_name, from_op_name, met_config)
-                        code_text += code
-                        configs.append(met_config)
+                    def reset_met_config():
+                        if condition_config.sender is None or '' == condition_config.sender:
+                            target_node_id = edge.source
+                            if target_node_id is not None and '' != target_node_id:
+                                target_job: Job = workflow.jobs.get(target_node_id)
+                                if target_job.job_name is not None:
+                                    condition_config.sender = target_job.job_name
+                            else:
+                                condition_config.sender = '*'
+                    reset_met_config()
+
+                    if edge.source in task_map:
+                        from_op_name = task_map[edge.source]
+                    else:
+                        from_op_name = ''
+                    code = self.generate_event_deps(op_name, from_op_name, condition_config)
+                    code_text += code
+                    configs.append(condition_config)
 
                 if len(configs) > 0:
                     code = self.generate_handler(op_name, configs)
                     code_text += code
 
-                if len(upstream_configs) > 0:
-                    for c in upstream_configs:
-                        code_text += """{}.set_upstream({})\n""".format(op_name, task_map[c.sender])
-
         return code_text
 
     def set_periodic_config(self, exec_args, periodic_config):
-        if periodic_config.start_date_expression is not None:
+        if periodic_config.trigger_config.get('start_date') is not None:
             stat_date_items = periodic_config.get_start_date_items()
             if stat_date_items[6] is None:
                 exec_args['start_date'] = DAGTemplate.DATETIME.format(stat_date_items[0],
@@ -204,13 +198,13 @@ op_{0} = AIFlowOperator(task_id='{2}', job=job_{0}, workflow=workflow, dag=dag)
                                                                               stat_date_items[5],
                                                                               stat_date_items[6])
 
-        if periodic_config.cron_expression is not None:
+        if periodic_config.trigger_config.get('cron') is not None:
             cron_items = periodic_config.get_cron_items()
             # airflow cron: minutes hours days months years weeks seconds
             cron_airflow = ' '.join([cron_items[1], cron_items[2], cron_items[3], cron_items[4],
                                      cron_items[6], cron_items[5], cron_items[0]])
             exec_args['schedule_interval'] = """'{}'""".format(cron_airflow)
-        elif periodic_config.interval_expression is not None:
+        elif periodic_config.trigger_config.get('interval') is not None:
             items = periodic_config.get_interval_items()
             exec_args['schedule_interval'] = DAGTemplate.DELTA_TIME.format(items[0], items[1], items[2], items[3])
         else:

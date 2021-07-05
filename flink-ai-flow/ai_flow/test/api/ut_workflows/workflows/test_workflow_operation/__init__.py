@@ -1,4 +1,3 @@
-#
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -15,21 +14,3 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-#
-import unittest
-import os
-from ai_flow.context.workflow_context import init_workflow_context, workflow_config
-
-
-class TestWorkflowContext(unittest.TestCase):
-
-    def test_workflow_context(self):
-        workflow_file = os.path.join(os.path.dirname(__file__), 'workflow_1.yaml')
-        init_workflow_context(workflow_file)
-        workflow_config_ = workflow_config()
-        self.assertEqual('workflow_1', workflow_config_.workflow_name)
-        self.assertEqual(3, len(workflow_config_.job_configs))
-
-
-if __name__ == '__main__':
-    unittest.main()

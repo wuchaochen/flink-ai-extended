@@ -19,7 +19,7 @@ from typing import Dict, Text, List, Optional
 from ai_flow.common.configuration import AIFlowConfiguration
 from ai_flow.util import json_utils
 from ai_flow.workflow.workflow import Workflow
-from ai_flow.project.project_description import ProjectDesc
+from ai_flow.context.project_context import ProjectContext
 
 
 class WorkflowInfo(json_utils.Jsonable):
@@ -255,7 +255,7 @@ class AbstractScheduler(ABC):
         return self._config
 
     @abstractmethod
-    def submit_workflow(self, workflow: Workflow, project_desc: ProjectDesc, args: Dict = None) -> WorkflowInfo:
+    def submit_workflow(self, workflow: Workflow, project_desc: ProjectContext, args: Dict = None) -> WorkflowInfo:
         """
         Submit the workflow to scheduler.
         :param workflow: ai_flow.workflow.workflow.Workflow type.

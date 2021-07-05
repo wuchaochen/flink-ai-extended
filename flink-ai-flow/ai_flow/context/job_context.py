@@ -16,7 +16,7 @@
 # under the License.
 from contextlib import contextmanager
 from typing import Text
-from ai_flow.context.workflow_context import workflow_config
+from ai_flow.context.workflow_config_loader import current_workflow_config
 
 
 class JobContext(object):
@@ -25,7 +25,7 @@ class JobContext(object):
         self.job_depth = 0
 
 
-__default_job_context__ = JobContext()
+__current_job_context__ = JobContext()
 
 
 @contextmanager
@@ -34,16 +34,22 @@ def job_config(job_name: Text):
     Set the specific job config.
     :param job_name: The job name
     """
-    __default_job_context__.current_job_name = job_name
-    __default_job_context__.job_depth += 1
-    if __default_job_context__.job_depth > 1:
+    __current_job_context__.current_job_name = job_name
+    __current_job_context__.job_depth += 1
+    if __current_job_context__.job_depth > 1:
         raise Exception("job_config can not nesting")
     try:
-        yield workflow_config().job_configs.get(__default_job_context__.current_job_name)
+        yield current_workflow_config().job_configs.get(__current_job_context__.current_job_name)
     finally:
-        __default_job_context__.current_job_name = None
-        __default_job_context__.job_depth -= 1
+        __current_job_context__.current_job_name = None
+        __current_job_context__.job_depth -= 1
 
 
 def current_job_name() -> Text:
-    return __default_job_context__.current_job_name
+    return __current_job_context__.current_job_name
+
+
+def set_current_job_name(job_name):
+    global __current_job_context__
+    __current_job_context__.job_depth = 1
+    __current_job_context__.current_job_name = job_name

@@ -16,7 +16,7 @@
 # under the License.
 from ai_flow.plugin_interface import register_job_plugin
 from ai_flow_plugins.job_plugins.flink.flink_job_plugin import FlinkJobPlugin
-from ai_flow_plugins.job_plugins.flink.flink_executor import FlinkPythonExecutor, FlinkJavaExecutor, ExecutionContext
+from ai_flow_plugins.job_plugins.flink.flink_executor import FlinkPythonProcessor, FlinkJavaProcessor, ExecutionContext
 from ai_flow_plugins.job_plugins.flink.flink_job_config import FlinkJobConfig
 from ai_flow_plugins.job_plugins.flink.flink_env import get_flink_env, set_flink_env, AbstractFlinkEnv, \
     FlinkBatchEnv, FlinkStreamEnv
