@@ -14,9 +14,9 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from ai_flow.plugin_interface import register_job_plugin
-from ai_flow_plugins.job_plugins.bash.bash_job_plugin import BashJobPlugin
-from ai_flow_plugins.job_plugins.bash.bash_executor import BashExecutor
+from ai_flow.plugin_interface import register_job_plugin_factory
+from ai_flow_plugins.job_plugins.bash.bash_job_plugin import BashJobPluginFactory
+from ai_flow_plugins.job_plugins.bash.bash_processor import BashProcessor
 from ai_flow_plugins.job_plugins.bash.bash_job_config import BashJobConfig
 
-register_job_plugin(BashJobPlugin())
+register_job_plugin_factory(BashJobPluginFactory())

@@ -101,7 +101,7 @@ class AIFlowHandler(EventHandler):
         af_ts.event_map[(event.namespace, event.event_type, event.sender, event.key)] = event
         af_ts.latest_time = event.create_time
         aw = ActionWrapper()
-        res = self.met_sc(configs, af_ts, aw)
+        res = self._check_condition(configs, af_ts, aw)
         if res:
             if SchedulingAction(aw.action) in SchedulingAction:
                 af_ts.schedule_time = af_ts.latest_time
@@ -131,7 +131,7 @@ class AIFlowHandler(EventHandler):
                 events.append(event)
         return events
 
-    def met_sc(self, configs, ts: AiFlowTs, aw: ActionWrapper) -> bool:
+    def _check_condition(self, configs, ts: AiFlowTs, aw: ActionWrapper) -> bool:
         event_map: Dict = ts.event_map
         schedule_time = ts.schedule_time
         has_necessary_edge = False

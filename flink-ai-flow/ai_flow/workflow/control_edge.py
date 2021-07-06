@@ -59,12 +59,12 @@ class ConditionConfig(Jsonable):
                  event_key: Text,
                  event_value: Text,
                  event_type: Text = UNDEFINED_EVENT_TYPE,
+                 namespace: Text = DEFAULT_NAMESPACE,
+                 sender: Text = None,
                  condition: ConditionType = ConditionType.NECESSARY,
                  action: TaskAction = TaskAction.START,
                  life: EventLife = EventLife.ONCE,
-                 value_condition: MetValueCondition = MetValueCondition.EQUALS,
-                 namespace: Text = DEFAULT_NAMESPACE,
-                 sender: Text = None
+                 value_condition: MetValueCondition = MetValueCondition.EQUALS
                  ):
         self.event_type = event_type
         self.event_key = event_key

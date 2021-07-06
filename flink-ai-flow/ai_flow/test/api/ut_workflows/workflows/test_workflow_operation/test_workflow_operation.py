@@ -22,7 +22,8 @@ from ai_flow.endpoint.server.server import AIFlowServer
 from ai_flow.api.ai_flow_context import init_ai_flow_context
 from ai_flow.context.workflow_config_loader import current_workflow_config
 from ai_flow.api import workflow_operation
-from ai_flow.test.api.mock_plugins import MockJob
+from ai_flow.scheduler.scheduler_service import SchedulerServiceConfig
+from ai_flow.test.api.mock_plugins import MockJobFactory
 
 _SQLITE_DB_FILE = 'aiflow.db'
 _SQLITE_DB_URI = '%s%s' % ('sqlite:///', _SQLITE_DB_FILE)
@@ -38,14 +39,15 @@ class TestWorkflowOperation(unittest.TestCase):
 
         if os.path.exists(_SQLITE_DB_FILE):
             os.remove(_SQLITE_DB_FILE)
-        config = {"scheduler_class_name": SCHEDULER_CLASS}
+        config = SchedulerServiceConfig()
+        config.set_scheduler_class_name(SCHEDULER_CLASS)
         cls.server = AIFlowServer(store_uri=_SQLITE_DB_URI, port=_PORT,
                                   start_default_notification=False,
                                   start_meta_service=True,
                                   start_metric_service=False,
                                   start_model_center_service=False,
                                   start_scheduler_service=True,
-                                  scheduler_config=config)
+                                  scheduler_service_config=config)
         cls.server.run()
 
     @classmethod
@@ -72,10 +74,6 @@ class TestWorkflowOperation(unittest.TestCase):
         w = workflow_operation.submit_workflow(workflow_name=current_workflow_config().workflow_name)
         self.assertEqual('test_workflow_operation', w.workflow_name)
 
-    def test_delete_workflow(self):
-        w = workflow_operation.delete_workflow(workflow_name='workflow_1')
-        self.assertEqual('workflow_1', w.workflow_name)
-
     def test_pause_workflow(self):
 
         w = workflow_operation.pause_workflow_scheduling(workflow_name='workflow_1')
@@ -85,16 +83,6 @@ class TestWorkflowOperation(unittest.TestCase):
 
         w = workflow_operation.resume_workflow_scheduling(workflow_name='workflow_1')
         self.assertEqual('workflow_1', w.workflow_name)
-
-    def test_get_workflow(self):
-
-        w = workflow_operation.get_workflow(workflow_name='workflow_1')
-        self.assertEqual('workflow_1', w.workflow_name)
-
-    def test_list_workflows(self):
-
-        ws = workflow_operation.list_workflows()
-        self.assertEqual(2, len(ws))
 
     def test_start_new_workflow_execution(self):
 

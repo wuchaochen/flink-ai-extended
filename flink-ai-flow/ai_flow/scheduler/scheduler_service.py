@@ -16,6 +16,9 @@
 # under the License.
 from typing import Text
 import traceback
+
+from ai_flow.common.configuration import AIFlowConfiguration
+
 from ai_flow.plugin_interface.blob_manager_interface import BlobManagerFactory
 
 from ai_flow.util import json_utils
@@ -33,40 +36,71 @@ from ai_flow.protobuf.scheduling_service_pb2 import \
      JobInfoResponse,
      ListJobInfoResponse)
 from ai_flow.scheduler.scheduler_factory import SchedulerFactory
-from ai_flow.plugin_interface.scheduler_interface import AbstractScheduler, SchedulerConfig
+from ai_flow.plugin_interface.scheduler_interface import AbstractScheduler
 from ai_flow.workflow.workflow import Workflow
 from ai_flow.endpoint.server.workflow_proto_utils import workflow_to_proto, workflow_list_to_proto, \
     workflow_execution_to_proto, workflow_execution_list_to_proto, job_to_proto, job_list_to_proto
 
 
+class SchedulerServiceConfig(AIFlowConfiguration):
+
+    def __init__(self):
+        super().__init__()
+        self['scheduler_config'] = {}
+
+    def repository(self):
+        if 'repository' not in self:
+            return '/tmp'
+        else:
+            return self['repository']
+
+    def set_repository(self, value):
+        self['repository'] = value
+
+    def scheduler_class_name(self):
+        if self.get('scheduler_class_name') is not None:
+            return self.get('scheduler_class_name')
+        else:
+            return None
+
+    def set_scheduler_class_name(self, value):
+        self['scheduler_class_name'] = value
+
+    def scheduler_config(self):
+        if 'scheduler_config' not in self:
+            return None
+        return self['scheduler_config']
+
+    def set_scheduler_config(self, value):
+        self['scheduler_config'] = value
+
+
 class SchedulerService(SchedulingServiceServicer):
     def __init__(self,
-                 scheduler_config: SchedulerConfig):
-        self._scheduler_config = scheduler_config
-        self._scheduler: AbstractScheduler = SchedulerFactory.create_scheduler(scheduler_config)
+                 scheduler_service_config: SchedulerServiceConfig):
+        self._scheduler_service_config = scheduler_service_config
+        self._scheduler: AbstractScheduler \
+            = SchedulerFactory.create_scheduler(scheduler_service_config.scheduler_class_name(),
+                                                scheduler_service_config.scheduler_config())
 
     # workflow interface
-
     def submitWorkflow(self, request, context):
         try:
             rq: ScheduleWorkflowRequest = request
+            if rq.workflow_json is None or '' == rq.workflow_json:
+                return WorkflowInfoResponse(result=ResultProto(status=StatusProto.ERROR,
+                                                               error_message='workflow json is empty!'))
             workflow: Workflow = json_utils.loads(rq.workflow_json)
             config = {}
             config.update(workflow.properties['blob'])
-            # config['local_repository'] = self._scheduler_config.repository()
             blob_manager = BlobManagerFactory.get_blob_manager(config)
             project_path: Text = blob_manager\
-                .download_blob(workflow_id=workflow.workflow_snapshot_id,
-                               remote_path=workflow.project_uri,
-                               local_path=self._scheduler_config.repository())
+                .download_project(workflow_id=workflow.workflow_snapshot_id,
+                                  remote_path=workflow.project_uri,
+                                  local_path=self._scheduler_service_config.repository())
 
             project_context: ProjectContext = build_project_context(project_path)
             project_name = project_context.project_name
-            # update workflow
-            workflow.project_desc = project_context
-            for n, j in workflow.jobs.items():
-                j.job_config.project_desc = project_context
-                j.job_config.project_path = project_path
 
             workflow_info = self._scheduler.submit_workflow(workflow, project_context)
             if workflow_info is None:
@@ -81,18 +115,8 @@ class SchedulerService(SchedulingServiceServicer):
                                                            error_message=traceback.format_exc()))
 
     def deleteWorkflow(self, request, context):
-        try:
-            rq: ScheduleWorkflowRequest = request
-            workflow_info = self._scheduler.delete_workflow(rq.namespace, rq.workflow_name)
-            if workflow_info is None:
-                return WorkflowInfoResponse(
-                    result=ResultProto(status=StatusProto.ERROR,
-                                       error_message='{},{} do not exist!'.format(rq.namespace, rq.workflow_name)))
-            return WorkflowInfoResponse(result=ResultProto(status=StatusProto.OK),
-                                        workflow=workflow_to_proto(workflow_info))
-        except Exception as err:
-            return WorkflowInfoResponse(result=ResultProto(status=StatusProto.ERROR,
-                                                           error_message=traceback.format_exc()))
+        return WorkflowInfoResponse(result=ResultProto(status=StatusProto.ERROR,
+                                                       error_message='Do not support deleteWorkflow'))
 
     def pauseWorkflowScheduling(self, request, context):
         try:
@@ -123,30 +147,12 @@ class SchedulerService(SchedulingServiceServicer):
                                                            error_message=traceback.format_exc()))
 
     def getWorkflow(self, request, context):
-        try:
-            rq: ScheduleWorkflowRequest = request
-            workflow_info = self._scheduler.get_workflow(rq.namespace, rq.workflow_name)
-            if workflow_info is None:
-                return WorkflowInfoResponse(
-                    result=ResultProto(status=StatusProto.ERROR,
-                                       error_message='{} do not exist!'.format(rq.workflow_name)))
-            return WorkflowInfoResponse(result=ResultProto(status=StatusProto.OK),
-                                        workflow=workflow_to_proto(workflow_info))
-        except Exception as err:
-            return WorkflowInfoResponse(result=ResultProto(status=StatusProto.ERROR,
-                                                           error_message=traceback.format_exc()))
+        return WorkflowInfoResponse(result=ResultProto(status=StatusProto.ERROR,
+                                                       error_message='Do not support getWorkflow'))
 
     def listWorkflows(self, request, context):
-        try:
-            rq: ScheduleWorkflowRequest = request
-            workflow_info_list = self._scheduler.list_workflows(rq.namespace)
-            workflow_proto_list = workflow_list_to_proto(workflow_info_list)
-            response = ListWorkflowInfoResponse(result=ResultProto(status=StatusProto.OK))
-            response.workflow_list.extend(workflow_proto_list)
-            return response
-        except Exception as err:
-            return ListWorkflowInfoResponse(result=ResultProto(status=StatusProto.ERROR,
-                                                               error_message=traceback.format_exc()))
+        return WorkflowInfoResponse(result=ResultProto(status=StatusProto.ERROR,
+                                                       error_message='Do not support listWorkflows'))
 
     # workflow execution interface
 

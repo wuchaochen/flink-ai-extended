@@ -14,41 +14,29 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import unittest
-import os
 from typing import Text, List, Optional, Dict
 
 from ai_flow.plugin_interface.scheduler_interface import AbstractScheduler, JobExecutionInfo, WorkflowExecutionInfo, \
-    WorkflowInfo, SchedulerConfig
+    WorkflowInfo
 from ai_flow.context.project_context import ProjectContext
 from ai_flow.workflow.workflow import Workflow
 from ai_flow_plugins.scheduler_plugins.airflow.dag_generator import DAGGenerator
 
 
 class MockScheduler(AbstractScheduler):
-    def __init__(self, config: SchedulerConfig):
+    def __init__(self, config: Dict):
         super().__init__(config)
         self.dag_generator = DAGGenerator()
 
     def submit_workflow(self, workflow: Workflow, project_context: ProjectContext, args: Dict = None) -> WorkflowInfo:
         code_text = self.dag_generator.generate(workflow=workflow,
-                                                project_name=project_context.project_name,
-                                                args=args)
+                                                project_name=project_context.project_name)
         return WorkflowInfo(workflow_name='test', properties={'code': code_text})
-
-    def delete_workflow(self, project_name: Text, workflow_name: Text) -> Optional[WorkflowInfo]:
-        pass
 
     def pause_workflow_scheduling(self, project_name: Text, workflow_name: Text) -> WorkflowInfo:
         pass
 
     def resume_workflow_scheduling(self, project_name: Text, workflow_name: Text) -> WorkflowInfo:
-        pass
-
-    def get_workflow(self, project_name: Text, workflow_name: Text) -> Optional[WorkflowInfo]:
-        pass
-
-    def list_workflows(self, project_name: Text) -> List[WorkflowInfo]:
         pass
 
     def start_new_workflow_execution(self, project_name: Text, workflow_name: Text) -> Optional[WorkflowExecutionInfo]:

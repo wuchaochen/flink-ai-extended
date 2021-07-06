@@ -18,11 +18,13 @@ from abc import ABC
 from typing import Text
 
 from ai_flow.ai_graph.ai_graph import AISubGraph
-from ai_flow.plugin_interface.job_plugin_interface import AbstractJobPlugin, JobHandler, JobExecutionContext
+from ai_flow.plugin_interface.job_plugin_interface import AbstractJobPluginFactory, JobHandler, JobRuntimeEnv, \
+    JobController
+from ai_flow.translator.translator import JobGenerator
 from ai_flow.workflow.job import Job
 
 
-class DummyJobPlugin(AbstractJobPlugin, ABC):
+class DummyJobPluginFactory(AbstractJobPluginFactory, JobGenerator, JobController):
 
     def __init__(self) -> None:
         super().__init__()
@@ -31,15 +33,21 @@ class DummyJobPlugin(AbstractJobPlugin, ABC):
         job = Job(job_config=sub_graph.config)
         return job
 
-    def submit_job(self, job: Job, job_context: JobExecutionContext) -> JobHandler:
-        return JobHandler(job=job, job_execution=job_context.job_execution_info)
+    def submit_job(self, job: Job, job_runtime_env: JobRuntimeEnv) -> JobHandler:
+        return JobHandler(job=job, job_execution=job_runtime_env.job_execution_info)
 
-    def stop_job(self, job_handler: JobHandler, job_context: JobExecutionContext):
+    def stop_job(self, job_handler: JobHandler, job_runtime_env: JobRuntimeEnv):
         pass
 
-    def cleanup_job(self, job_handler: JobHandler, job_context: JobExecutionContext):
+    def cleanup_job(self, job_handler: JobHandler, job_runtime_env: JobRuntimeEnv):
         pass
 
     def job_type(self) -> Text:
         return "dummy"
+
+    def get_job_generator(self) -> JobGenerator:
+        return self
+
+    def get_job_controller(self) -> JobController:
+        return self
 

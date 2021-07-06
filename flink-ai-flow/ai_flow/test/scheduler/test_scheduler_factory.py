@@ -19,7 +19,7 @@ from typing import Text, List, Dict
 
 from ai_flow.context.project_context import ProjectContext
 from ai_flow.scheduler.scheduler_factory import SchedulerFactory
-from ai_flow.plugin_interface.scheduler_interface import AbstractScheduler, SchedulerConfig
+from ai_flow.plugin_interface.scheduler_interface import AbstractScheduler
 from ai_flow.workflow.workflow import Workflow
 from ai_flow.plugin_interface.scheduler_interface import JobExecutionInfo, WorkflowExecutionInfo, WorkflowInfo
 
@@ -40,22 +40,13 @@ class UnitTestScheduler(AbstractScheduler):
     def list_job_executions(self, execution_id: Text) -> List[JobExecutionInfo]:
         pass
 
-    def submit_workflow(self, workflow: Workflow, project_desc: ProjectContext, args: Dict = None) -> WorkflowInfo:
-        pass
-
-    def delete_workflow(self, project_name: Text, workflow_name: Text) -> WorkflowInfo:
+    def submit_workflow(self, workflow: Workflow, project_context: ProjectContext) -> WorkflowInfo:
         pass
 
     def pause_workflow_scheduling(self, project_name: Text, workflow_name: Text) -> WorkflowInfo:
         pass
 
     def resume_workflow_scheduling(self, project_name: Text, workflow_name: Text) -> WorkflowInfo:
-        pass
-
-    def get_workflow(self, project_name: Text, workflow_name: Text) -> WorkflowInfo:
-        pass
-
-    def list_workflows(self, project_name: Text) -> List[WorkflowInfo]:
         pass
 
     def start_new_workflow_execution(self, project_name: Text, workflow_name: Text) -> WorkflowExecutionInfo:
@@ -78,7 +69,6 @@ class TestSchedulerFactory(unittest.TestCase):
 
     def test_create_scheduler(self):
         print(AbstractScheduler.__class__.__name__, AbstractScheduler.__class__.__module__)
-        config = SchedulerConfig()
-        config.set_scheduler_class_name('ai_flow.test.scheduler.test_scheduler_factory.UnitTestScheduler')
-        sc = SchedulerFactory.create_scheduler(config)
+        class_name = 'ai_flow.test.scheduler.test_scheduler_factory.UnitTestScheduler'
+        sc = SchedulerFactory.create_scheduler(class_name=class_name, config={})
         self.assertTrue(isinstance(sc, AbstractScheduler))

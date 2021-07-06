@@ -16,7 +16,6 @@
 # under the License.
 from abc import ABC, abstractmethod
 from typing import Dict, Text, List, Optional
-from ai_flow.common.configuration import AIFlowConfiguration
 from ai_flow.util import json_utils
 from ai_flow.workflow.workflow import Workflow
 from ai_flow.context.project_context import ProjectContext
@@ -66,7 +65,7 @@ class WorkflowExecutionInfo(json_utils.Jsonable):
     def __init__(self,
                  workflow_execution_id: Text,
                  workflow_info: WorkflowInfo = None,
-                 state: Text = None,
+                 status: Text = None,
                  properties: Dict = None,
                  start_date: Text = None,
                  end_date: Text = None):
@@ -75,7 +74,7 @@ class WorkflowExecutionInfo(json_utils.Jsonable):
         self._properties = properties
         self._workflow_execution_id = workflow_execution_id
         self._workflow_info = workflow_info
-        self._state = state
+        self._status = status
         self._start_date = start_date
         self._end_date = end_date
 
@@ -96,12 +95,12 @@ class WorkflowExecutionInfo(json_utils.Jsonable):
         self._workflow_info = value
 
     @property
-    def state(self):
-        return self._state
+    def status(self):
+        return self._status
 
-    @state.setter
-    def state(self, value):
-        self._state = value
+    @status.setter
+    def status(self, value):
+        self._status = value
 
     @property
     def properties(self):
@@ -134,7 +133,7 @@ class WorkflowExecutionInfo(json_utils.Jsonable):
 class JobExecutionInfo(json_utils.Jsonable):
     def __init__(self,
                  job_name: Text = None,
-                 state: Text = None,
+                 status: Text = None,
                  workflow_execution: WorkflowExecutionInfo = None,
                  job_execution_id: Text = None,
                  start_date: Text = None,
@@ -142,7 +141,7 @@ class JobExecutionInfo(json_utils.Jsonable):
                  properties: Dict = None,
                  ):
         self._job_name = job_name
-        self._state = state
+        self._status = status
         self._workflow_execution = workflow_execution
         self._start_date = start_date
         self._end_date = end_date
@@ -160,12 +159,12 @@ class JobExecutionInfo(json_utils.Jsonable):
         self._job_name = value
 
     @property
-    def state(self):
-        return self._state
+    def status(self):
+        return self._status
 
-    @state.setter
-    def state(self, value):
-        self._state = value
+    @status.setter
+    def status(self, value):
+        self._status = value
 
     @property
     def workflow_execution(self):
@@ -211,43 +210,8 @@ class JobExecutionInfo(json_utils.Jsonable):
         return json_utils.dumps(self)
 
 
-class SchedulerConfig(AIFlowConfiguration):
-
-    def repository(self):
-        if 'repository' not in self:
-            return '/tmp'
-        else:
-            return self['repository']
-
-    def set_repository(self, value):
-        self['repository'] = value
-
-    def scheduler_class_name(self):
-        if self.get('scheduler_class_name') is not None:
-            return self.get('scheduler_class_name')
-        else:
-            return None
-
-    def set_scheduler_class_name(self, value):
-        self['scheduler_class_name'] = value
-
-    def notification_service_uri(self):
-        return self.get('notification_service_uri', None)
-
-    def set_notification_service_uri(self, value):
-        self['notification_service_uri'] = value
-
-    def properties(self):
-        if 'properties' not in self:
-            return None
-        return self['properties']
-
-    def set_properties(self, value):
-        self['properties'] = value
-
-
 class AbstractScheduler(ABC):
-    def __init__(self, config: SchedulerConfig):
+    def __init__(self, config: Dict):
         self._config = config
 
     @property
@@ -255,22 +219,11 @@ class AbstractScheduler(ABC):
         return self._config
 
     @abstractmethod
-    def submit_workflow(self, workflow: Workflow, project_desc: ProjectContext, args: Dict = None) -> WorkflowInfo:
+    def submit_workflow(self, workflow: Workflow, project_context: ProjectContext) -> WorkflowInfo:
         """
         Submit the workflow to scheduler.
         :param workflow: ai_flow.workflow.workflow.Workflow type.
-        :param project_desc: ai_flow.project.project_description.ProjectDesc type.
-        :param args: arguments pass to scheduler.
-        :return: The workflow information.
-        """
-        pass
-
-    @abstractmethod
-    def delete_workflow(self, project_name: Text, workflow_name: Text) -> Optional[WorkflowInfo]:
-        """
-        Delete the workflow from scheduler.
-        :param project_name: The project name.
-        :param workflow_name: The workflow name.
+        :param project_context: ai_flow.context.project_context.ProjectContext type.
         :return: The workflow information.
         """
         pass
@@ -291,25 +244,6 @@ class AbstractScheduler(ABC):
         Make the scheduler resume scheduling the workflow.
         :param project_name: The project name.
         :param workflow_name: The workflow name.
-        :return: The workflow information.
-        """
-        pass
-
-    @abstractmethod
-    def get_workflow(self, project_name: Text, workflow_name: Text) -> Optional[WorkflowInfo]:
-        """
-        Get the workflow information.
-        :param project_name: The project name.
-        :param workflow_name: The workflow name.
-        :return: The workflow information.
-        """
-        pass
-
-    @abstractmethod
-    def list_workflows(self, project_name: Text) -> List[WorkflowInfo]:
-        """
-        List the workflow information.
-        :param project_name: The project name.
         :return: The workflow information.
         """
         pass
@@ -386,7 +320,7 @@ class AbstractScheduler(ABC):
     @abstractmethod
     def restart_job_execution(self, job_name: Text, execution_id: Text) -> JobExecutionInfo:
         """
-        Make the scheduler restart a job execution.
+        Make the scheduler restart a job execution. If job status is running, first stop the job and then start it.
         :param job_name: The job name.
         :param execution_id: The workflow execution id.
         :return: The job execution information.

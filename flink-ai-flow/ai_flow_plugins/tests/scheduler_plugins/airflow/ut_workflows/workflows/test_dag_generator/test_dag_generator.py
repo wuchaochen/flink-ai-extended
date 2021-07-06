@@ -19,8 +19,8 @@ import os
 from ai_flow import AIFlowServerRunner, init_ai_flow_context, PeriodicConfig
 import ai_flow as af
 from ai_flow.workflow.control_edge import TaskAction
-from ai_flow.workflow.state import State
-from ai_flow.test.api.mock_plugins import MockJob
+from ai_flow.workflow.status import Status
+from ai_flow.test.api.mock_plugins import MockJobFactory
 
 
 class TestDagGenerator(unittest.TestCase):
@@ -69,7 +69,7 @@ class TestDagGenerator(unittest.TestCase):
             af.user_define_operation(processor=None)
         af.action_on_event(job_name='task_3', event_key='a', event_type='a', event_value='a', sender='task_1')
         af.action_on_status(job_name='task_3', upstream_job_name='task_2',
-                            upstream_job_status=State.FINISHED,
+                            upstream_job_status=Status.FINISHED,
                             action=TaskAction.START)
         w = af.workflow_operation.submit_workflow(workflow_name='test_dag_generator')
         code = w.properties.get('code')

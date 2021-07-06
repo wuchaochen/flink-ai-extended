@@ -20,12 +20,19 @@ import unittest
 from typing import Text
 
 from ai_flow.ai_graph.ai_graph import AISubGraph
-from ai_flow.plugin_interface.job_plugin_interface import AbstractJobPlugin, \
-    register_job_plugin, get_registered_job_plugins, JobHandler, JobExecutionContext
+from ai_flow.plugin_interface.job_plugin_interface import AbstractJobPluginFactory, \
+    register_job_plugin_factory, get_registered_job_plugin_factory_list, JobHandler, JobRuntimeEnv, JobController
+from ai_flow.translator.translator import JobGenerator
 from ai_flow.workflow.job import Job
 
 
-class MockJobPlugin1(AbstractJobPlugin):
+class MockJobPluginFactory1(AbstractJobPluginFactory, JobGenerator, JobController):
+
+    def get_job_generator(self) -> JobGenerator:
+        return self
+
+    def get_job_controller(self) -> JobController:
+        return self
 
     def job_type(self) -> Text:
         return "mock1"
@@ -33,17 +40,23 @@ class MockJobPlugin1(AbstractJobPlugin):
     def generate(self, sub_graph: AISubGraph, resource_dir: Text = None) -> Job:
         pass
 
-    def submit_job(self, job: Job, job_context: JobExecutionContext) -> JobHandler:
+    def submit_job(self, job: Job, job_runtime_env: JobRuntimeEnv) -> JobHandler:
         pass
 
-    def stop_job(self, job_handler: JobHandler, job_context: JobExecutionContext):
+    def stop_job(self, job_handler: JobHandler, job_runtime_env: JobRuntimeEnv):
         pass
 
-    def cleanup_job(self, job_handler: JobHandler, job_context: JobExecutionContext):
+    def cleanup_job(self, job_handler: JobHandler, job_runtime_env: JobRuntimeEnv):
         pass
 
 
-class MockJobPlugin2(AbstractJobPlugin):
+class MockJobPluginFactory2(AbstractJobPluginFactory, JobGenerator, JobController):
+
+    def get_job_generator(self) -> JobGenerator:
+        return self
+
+    def get_job_controller(self) -> JobController:
+        return self
 
     def job_type(self) -> Text:
         return "mock2"
@@ -51,24 +64,24 @@ class MockJobPlugin2(AbstractJobPlugin):
     def generate(self, sub_graph: AISubGraph, resource_dir: Text = None) -> Job:
         pass
 
-    def submit_job(self, job: Job, job_context: JobExecutionContext) -> JobHandler:
+    def submit_job(self, job: Job, job_runtime_env: JobRuntimeEnv) -> JobHandler:
         pass
 
-    def stop_job(self, job_handler: JobHandler, job_context: JobExecutionContext):
+    def stop_job(self, job_handler: JobHandler, job_runtime_env: JobRuntimeEnv):
         pass
 
-    def cleanup_job(self, job_handler: JobHandler, job_context: JobExecutionContext):
+    def cleanup_job(self, job_handler: JobHandler, job_runtime_env: JobRuntimeEnv):
         pass
 
 
 class TestJobPlugin(unittest.TestCase):
 
-    def test_job_plugin(self):
-        register_job_plugin(MockJobPlugin1())
-        register_job_plugin(MockJobPlugin2())
-        self.assertEqual(2, len(get_registered_job_plugins()))
-        self.assertTrue('mock1' in get_registered_job_plugins())
-        self.assertTrue('mock2' in get_registered_job_plugins())
+    def test_register_job_plugin(self):
+        register_job_plugin_factory(MockJobPluginFactory1())
+        register_job_plugin_factory(MockJobPluginFactory2())
+        self.assertEqual(2, len(get_registered_job_plugin_factory_list()))
+        self.assertTrue('mock1' in get_registered_job_plugin_factory_list())
+        self.assertTrue('mock2' in get_registered_job_plugin_factory_list())
 
 
 if __name__ == '__main__':

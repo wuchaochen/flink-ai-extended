@@ -28,10 +28,10 @@ class TestBlobManager(unittest.TestCase):
         project_path = get_file_dir(__file__)
         config = {'blob_manager_class': 'ai_flow_plugins.blob_manager_plugins.local_blob_manager.LocalBlobManager'}
         blob_manager = BlobManagerFactory.get_blob_manager(config)
-        uploaded_path = blob_manager.upload_blob('1', project_path)
+        uploaded_path = blob_manager.upload_project('1', project_path)
         self.assertEqual(uploaded_path, project_path)
 
-        downloaded_path = blob_manager.download_blob('1', uploaded_path)
+        downloaded_path = blob_manager.download_project('1', uploaded_path)
         self.assertEqual(project_path, downloaded_path)
 
     def test_project_upload_download_local_2(self):
@@ -40,9 +40,9 @@ class TestBlobManager(unittest.TestCase):
                   'blob_manager_class': 'ai_flow_plugins.blob_manager_plugins.local_blob_manager.LocalBlobManager'}
 
         blob_manager = BlobManagerFactory.get_blob_manager(config)
-        uploaded_path = blob_manager.upload_blob('1', project_path)
+        uploaded_path = blob_manager.upload_project('1', project_path)
 
-        downloaded_path = blob_manager.download_blob('1', uploaded_path)
+        downloaded_path = blob_manager.download_project('1', uploaded_path)
         self.assertEqual('/tmp/workflow_1_project/blob_manager_plugins', downloaded_path)
 
     @unittest.skipUnless((os.environ.get('blob_server.endpoint') is not None
@@ -63,9 +63,9 @@ class TestBlobManager(unittest.TestCase):
         }
 
         blob_manager = BlobManagerFactory.get_blob_manager(config)
-        uploaded_path = blob_manager.upload_blob('1', project_path)
+        uploaded_path = blob_manager.upload_project('1', project_path)
 
-        downloaded_path = blob_manager.download_blob('1', uploaded_path)
+        downloaded_path = blob_manager.download_project('1', uploaded_path)
         self.assertEqual('/tmp/workflow_1_project/project', downloaded_path)
 
 

@@ -29,33 +29,33 @@ class BlobManager(ABC):
         self.config = config
 
     @abstractmethod
-    def upload_blob(self, workflow_id: Text, prj_pkg_path: Text) -> Text:
+    def upload_project(self, workflow_id: Text, project_path: Text) -> Text:
         """
         upload a given project to blob server for remote execution.
 
         :param workflow_id: a unique identity for this workflow in a ai flow project execution.
-        :param prj_pkg_path: the path of this project.
+        :param project_path: the path of this project.
         :return the uri of the uploaded project file in blob server.
         """
         pass
 
     @abstractmethod
-    def download_blob(self, workflow_id, remote_path: Text, local_path: Text = None) -> Text:
+    def download_project(self, workflow_id, remote_path: Text, local_path: Text = None) -> Text:
         """
         download the needed resource from remote blob server to local process for remote execution.
 
-        :param local_path:
         :param workflow_id: a unique identity for this workflow in a ai flow project execution.
         :param remote_path: the remote path of the blob server.
+        :param local_path: the download destination local directory.
         :return a local path for downloaded project directory.
         """
         pass
 
-    def clean_blob(self, workflow_id, remote_path: Text):
+    def cleanup_project(self, workflow_id, remote_path: Text):
         """
         clean up the project files downloaded or created during this execution.
         :param workflow_id: a unique identity for this workflow in a ai flow project execution.
-        :param remote_path:
+        :param remote_path: the project package uri.
         """
         pass
 

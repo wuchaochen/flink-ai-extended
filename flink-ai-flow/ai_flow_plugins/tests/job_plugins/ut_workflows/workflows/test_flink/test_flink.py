@@ -24,7 +24,7 @@ from pyflink.table.descriptors import Schema, OldCsv, FileSystem
 from pyflink.table.udf import udf
 
 from ai_flow import AIFlowServerRunner, init_ai_flow_context
-from ai_flow.workflow.state import State
+from ai_flow.workflow.status import Status
 from ai_flow_plugins.job_plugins import flink
 import ai_flow as af
 
@@ -95,12 +95,12 @@ class TestFlink(unittest.TestCase):
     @classmethod
     def tearDownClass(cls) -> None:
         cls.master.stop()
-        generated = '{}/generated'.format(project_path)
-        if os.path.exists(generated):
-            shutil.rmtree(generated)
-        temp = '{}/temp'.format(project_path)
-        if os.path.exists(temp):
-            shutil.rmtree(temp)
+        # generated = '{}/generated'.format(project_path)
+        # if os.path.exists(generated):
+        #     shutil.rmtree(generated)
+        # temp = '{}/temp'.format(project_path)
+        # if os.path.exists(temp):
+        #     shutil.rmtree(temp)
 
     def setUp(self):
         self.master._clear_db()
@@ -113,50 +113,50 @@ class TestFlink(unittest.TestCase):
     def test_local_flink_task(self):
         with af.job_config('task_1'):
             input_example = af.user_define_operation(processor=Source())
-            processed = af.transform(input_data=[input_example], processor=Transformer())
-            af.user_define_operation(input_data=[processed], processor=Sink())
+            processed = af.transform(input=[input_example], transform_processor=Transformer())
+            af.user_define_operation(input=[processed], processor=Sink())
         w = af.workflow_operation.submit_workflow(workflow_name=af.current_workflow_config().workflow_name)
         je = af.workflow_operation.start_job_execution(job_name='task_1', execution_id='1')
         je = af.workflow_operation.get_job_execution(job_name='task_1', execution_id='1')
-        self.assertEqual(State.FINISHED, je.state)
+        self.assertEqual(Status.FINISHED, je.status)
 
     def test_stop_local_flink_task(self):
         time.sleep(1)
         with af.job_config('task_1'):
             input_example = af.user_define_operation(processor=Source())
-            processed = af.transform(input_data=[input_example], processor=Transformer2())
-            af.user_define_operation(input_data=[processed], processor=Sink())
+            processed = af.transform(input=[input_example], transform_processor=Transformer2())
+            af.user_define_operation(input=[processed], processor=Sink())
         w = af.workflow_operation.submit_workflow(workflow_name='test_python')
         je = af.workflow_operation.start_job_execution(job_name='task_1', execution_id='1')
         time.sleep(2)
         af.workflow_operation.stop_job_execution(job_name='task_1', execution_id='1')
         je = af.workflow_operation.get_job_execution(job_name='task_1', execution_id='1')
-        self.assertEqual(State.FAILED, je.state)
+        self.assertEqual(Status.FAILED, je.status)
         self.assertTrue('err' in je.properties)
 
     @unittest.skip("need start flink cluster")
     def test_cluster_flink_task(self):
         with af.job_config('task_2'):
             input_example = af.user_define_operation(processor=Source())
-            processed = af.transform(input_data=[input_example], processor=Transformer())
-            af.user_define_operation(input_data=[processed], processor=Sink())
+            processed = af.transform(input=[input_example], transform_processor=Transformer())
+            af.user_define_operation(input=[processed], processor=Sink())
         w = af.workflow_operation.submit_workflow(workflow_name=af.current_workflow_config().workflow_name)
         je = af.workflow_operation.start_job_execution(job_name='task_2', execution_id='1')
         je = af.workflow_operation.get_job_execution(job_name='task_2', execution_id='1')
-        self.assertEqual(State.FINISHED, je.state)
+        self.assertEqual(Status.FINISHED, je.status)
 
     @unittest.skip("need start flink cluster")
     def test_cluster_stop_local_flink_task(self):
         with af.job_config('task_2'):
             input_example = af.user_define_operation(processor=Source())
-            processed = af.transform(input_data=[input_example], processor=Transformer2())
-            af.user_define_operation(input_data=[processed], processor=Sink())
+            processed = af.transform(input=[input_example], transform_processor=Transformer2())
+            af.user_define_operation(input=[processed], processor=Sink())
         w = af.workflow_operation.submit_workflow(workflow_name='test_python')
         je = af.workflow_operation.start_job_execution(job_name='task_2', execution_id='1')
         time.sleep(20)
         af.workflow_operation.stop_job_execution(job_name='task_2', execution_id='1')
         je = af.workflow_operation.get_job_execution(job_name='task_2', execution_id='1')
-        self.assertEqual(State.FAILED, je.state)
+        self.assertEqual(Status.FAILED, je.status)
         self.assertTrue('err' in je.properties)
 
 

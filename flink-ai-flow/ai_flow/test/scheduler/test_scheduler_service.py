@@ -20,13 +20,14 @@ import unittest
 
 from typing import Text, List, Dict
 
-from ai_flow.workflow.state import State
+from ai_flow.scheduler.scheduler_service import SchedulerServiceConfig
+from ai_flow.workflow.status import Status
 from ai_flow.protobuf.message_pb2 import StateProto
 
 from ai_flow.endpoint.client.scheduler_client import SchedulerClient
 from ai_flow.endpoint.server.server import AIFlowServer
 from ai_flow.context.project_context import ProjectContext
-from ai_flow.plugin_interface.scheduler_interface import AbstractScheduler, SchedulerConfig
+from ai_flow.plugin_interface.scheduler_interface import AbstractScheduler
 from ai_flow.workflow.workflow import Workflow
 from ai_flow.plugin_interface.scheduler_interface import JobExecutionInfo, WorkflowExecutionInfo, WorkflowInfo
 
@@ -51,22 +52,13 @@ class MockScheduler(AbstractScheduler):
     def list_job_executions(self, execution_id: Text) -> List[JobExecutionInfo]:
         pass
 
-    def submit_workflow(self, workflow: Workflow, project_desc: ProjectContext, args: Dict = None) -> WorkflowInfo:
-        pass
-
-    def delete_workflow(self, project_name: Text, workflow_name: Text) -> WorkflowInfo:
+    def submit_workflow(self, workflow: Workflow, project_context: ProjectContext) -> WorkflowInfo:
         pass
 
     def pause_workflow_scheduling(self, project_name: Text, workflow_name: Text) -> WorkflowInfo:
         pass
 
     def resume_workflow_scheduling(self, project_name: Text, workflow_name: Text) -> WorkflowInfo:
-        pass
-
-    def get_workflow(self, project_name: Text, workflow_name: Text) -> WorkflowInfo:
-        pass
-
-    def list_workflows(self, project_name: Text) -> List[WorkflowInfo]:
         pass
 
     def start_new_workflow_execution(self, project_name: Text, workflow_name: Text) -> WorkflowExecutionInfo:
@@ -90,8 +82,9 @@ SCHEDULER_CLASS = 'ai_flow.test.scheduler.test_scheduler_service.MockScheduler'
 
 class TestSchedulerService(unittest.TestCase):
     def setUp(self):
-        config = SchedulerConfig()
+        config = SchedulerServiceConfig()
         config.set_scheduler_class_name(SCHEDULER_CLASS)
+        config.set_scheduler_config({})
         if os.path.exists(_SQLITE_DB_FILE):
             os.remove(_SQLITE_DB_FILE)
         self.server = AIFlowServer(store_uri=_SQLITE_DB_URI, port=_PORT,
@@ -100,7 +93,7 @@ class TestSchedulerService(unittest.TestCase):
                                    start_metric_service=False,
                                    start_model_center_service=False,
                                    start_scheduler_service=True,
-                                   scheduler_config=config)
+                                   scheduler_service_config=config)
         self.server.run()
 
     def tearDown(self):
@@ -108,33 +101,15 @@ class TestSchedulerService(unittest.TestCase):
         if os.path.exists(_SQLITE_DB_FILE):
             os.remove(_SQLITE_DB_FILE)
 
-    # def test_submit_workflow(self):
-    #     with mock.patch(SCHEDULER_CLASS) as mockScheduler:
-    #         instance = mockScheduler.return_value
-    #         instance.submit_workflow.return_value = WorkflowInfo(workflow_name='test_workflow')
-    #         client = SchedulingClient("localhost:{}".format(_PORT))
-    #         workflow = client.submit_workflow_to_scheduler(namespace='namespace', workflow_name='test_workflow')
-    #         print(workflow)
-
-    def test_delete_none_workflow(self):
+    def test_submit_workflow(self):
         with mock.patch(SCHEDULER_CLASS) as mockScheduler:
             instance = mockScheduler.return_value
-            self.server.scheduler_service._scheduler = instance
-
-            instance.delete_workflow.return_value = None
+            instance.submit_workflow.return_value = WorkflowInfo(workflow_name='test_workflow')
             client = SchedulerClient("localhost:{}".format(_PORT))
             with self.assertRaises(Exception) as context:
-                workflow = client.delete_workflow(namespace='namespace', workflow_name='test_workflow')
-
-    def test_delete_workflow(self):
-        with mock.patch(SCHEDULER_CLASS) as mockScheduler:
-            instance = mockScheduler.return_value
-            self.server.scheduler_service._scheduler = instance
-
-            instance.delete_workflow.return_value = WorkflowInfo(workflow_name='test_workflow')
-            client = SchedulerClient("localhost:{}".format(_PORT))
-            workflow = client.delete_workflow(namespace='namespace', workflow_name='test_workflow')
-            self.assertTrue('test_workflow', workflow.name)
+                workflow = client.submit_workflow_to_scheduler(namespace='namespace', workflow_name='test_workflow',
+                                                               workflow_json='')
+            self.assertTrue('workflow json is empty' in str(context.exception))
 
     def test_pause_workflow(self):
         with mock.patch(SCHEDULER_CLASS) as mockScheduler:
@@ -156,34 +131,13 @@ class TestSchedulerService(unittest.TestCase):
             workflow = client.resume_workflow_scheduling(namespace='namespace', workflow_name='test_workflow')
             self.assertTrue('test_workflow', workflow.name)
 
-    def test_get_workflow(self):
-        with mock.patch(SCHEDULER_CLASS) as mockScheduler:
-            instance = mockScheduler.return_value
-            self.server.scheduler_service._scheduler = instance
-
-            instance.get_workflow.return_value = WorkflowInfo(workflow_name='test_workflow')
-            client = SchedulerClient("localhost:{}".format(_PORT))
-            workflow = client.get_workflow(namespace='namespace', workflow_name='test_workflow')
-            self.assertTrue('test_workflow', workflow.name)
-
-    def test_list_workflows(self):
-        with mock.patch(SCHEDULER_CLASS) as mockScheduler:
-            instance = mockScheduler.return_value
-            self.server.scheduler_service._scheduler = instance
-
-            instance.list_workflows.return_value = [WorkflowInfo(workflow_name='test_workflow_1'),
-                                                    WorkflowInfo(workflow_name='test_workflow_2')]
-            client = SchedulerClient("localhost:{}".format(_PORT))
-            workflow_list = client.list_workflows(namespace='namespace')
-            self.assertTrue(2, len(workflow_list))
-
     def test_start_new_workflow_execution(self):
         with mock.patch(SCHEDULER_CLASS) as mockScheduler:
             instance = mockScheduler.return_value
             self.server.scheduler_service._scheduler = instance
 
             instance.start_new_workflow_execution.return_value \
-                = WorkflowExecutionInfo(workflow_execution_id='id', state=State.INIT)
+                = WorkflowExecutionInfo(workflow_execution_id='id', status=Status.INIT)
             client = SchedulerClient("localhost:{}".format(_PORT))
             workflow_execution = client.start_new_workflow_execution(namespace='namespace',
                                                                      workflow_name='test_workflow')
@@ -196,8 +150,8 @@ class TestSchedulerService(unittest.TestCase):
             self.server.scheduler_service._scheduler = instance
 
             instance.kill_all_workflow_execution.return_value \
-                = [WorkflowExecutionInfo(workflow_execution_id='id_1', state=State.INIT),
-                   WorkflowExecutionInfo(workflow_execution_id='id_2', state=State.INIT)]
+                = [WorkflowExecutionInfo(workflow_execution_id='id_1', status=Status.INIT),
+                   WorkflowExecutionInfo(workflow_execution_id='id_2', status=Status.INIT)]
             client = SchedulerClient("localhost:{}".format(_PORT))
             workflow_execution_list = client.kill_all_workflow_executions(namespace='namespace',
                                                                           workflow_name='test_workflow')
@@ -209,7 +163,7 @@ class TestSchedulerService(unittest.TestCase):
             self.server.scheduler_service._scheduler = instance
 
             instance.kill_workflow_execution.return_value \
-                = WorkflowExecutionInfo(workflow_execution_id='id', state=State.RUNNING)
+                = WorkflowExecutionInfo(workflow_execution_id='id', status=Status.RUNNING)
             client = SchedulerClient("localhost:{}".format(_PORT))
             workflow_execution = client.kill_workflow_execution(execution_id='id')
             self.assertEqual('id', workflow_execution.execution_id)
@@ -221,7 +175,7 @@ class TestSchedulerService(unittest.TestCase):
             self.server.scheduler_service._scheduler = instance
 
             instance.get_workflow_execution.return_value \
-                = WorkflowExecutionInfo(workflow_execution_id='id', state=State.INIT)
+                = WorkflowExecutionInfo(workflow_execution_id='id', status=Status.INIT)
             client = SchedulerClient("localhost:{}".format(_PORT))
             workflow_execution = client.get_workflow_execution(execution_id='id')
             self.assertEqual('id', workflow_execution.execution_id)
@@ -233,8 +187,8 @@ class TestSchedulerService(unittest.TestCase):
             self.server.scheduler_service._scheduler = instance
 
             instance.list_workflow_executions.return_value \
-                = [WorkflowExecutionInfo(workflow_execution_id='id_1', state=State.INIT),
-                   WorkflowExecutionInfo(workflow_execution_id='id_2', state=State.INIT)]
+                = [WorkflowExecutionInfo(workflow_execution_id='id_1', status=Status.INIT),
+                   WorkflowExecutionInfo(workflow_execution_id='id_2', status=Status.INIT)]
             client = SchedulerClient("localhost:{}".format(_PORT))
             workflow_execution_list = client.list_workflow_executions(namespace='namespace',
                                                                       workflow_name='test_workflow')
@@ -247,9 +201,9 @@ class TestSchedulerService(unittest.TestCase):
 
             instance.start_job_execution.return_value \
                 = JobExecutionInfo(job_name='job_name',
-                                   state=State.RUNNING,
+                                   status=Status.RUNNING,
                                    workflow_execution=WorkflowExecutionInfo(workflow_execution_id='id',
-                                                                            state=State.INIT))
+                                                                            status=Status.INIT))
             client = SchedulerClient("localhost:{}".format(_PORT))
             job = client.start_job(job_name='job_name', execution_id='id')
             self.assertEqual('job_name', job.name)
@@ -264,9 +218,9 @@ class TestSchedulerService(unittest.TestCase):
 
             instance.stop_job_execution.return_value \
                 = JobExecutionInfo(job_name='job_name',
-                                   state=State.RUNNING,
+                                   status=Status.RUNNING,
                                    workflow_execution=WorkflowExecutionInfo(workflow_execution_id='id',
-                                                                            state=State.INIT))
+                                                                            status=Status.INIT))
             client = SchedulerClient("localhost:{}".format(_PORT))
             job = client.stop_job(job_name='job_name', execution_id='id')
             self.assertEqual('job_name', job.name)
@@ -281,9 +235,9 @@ class TestSchedulerService(unittest.TestCase):
 
             instance.restart_job_execution.return_value \
                 = JobExecutionInfo(job_name='job_name',
-                                   state=State.RUNNING,
+                                   status=Status.RUNNING,
                                    workflow_execution=WorkflowExecutionInfo(workflow_execution_id='id',
-                                                                            state=State.INIT))
+                                                                            status=Status.INIT))
             client = SchedulerClient("localhost:{}".format(_PORT))
             job = client.restart_job(job_name='job_name', execution_id='id')
             self.assertEqual('job_name', job.name)
@@ -298,9 +252,9 @@ class TestSchedulerService(unittest.TestCase):
 
             instance.get_job_executions.return_value \
                 = [JobExecutionInfo(job_name='job_name',
-                                    state=State.RUNNING,
+                                    status=Status.RUNNING,
                                     workflow_execution=WorkflowExecutionInfo(workflow_execution_id='id',
-                                                                             state=State.INIT))]
+                                                                             status=Status.INIT))]
             client = SchedulerClient("localhost:{}".format(_PORT))
             job = client.get_job(job_name='job_name', execution_id='id')
             self.assertEqual('job_name', job.name)
@@ -315,13 +269,13 @@ class TestSchedulerService(unittest.TestCase):
 
             instance.list_job_executions.return_value \
                 = [JobExecutionInfo(job_name='job_name_1',
-                                    state=State.RUNNING,
+                                    status=Status.RUNNING,
                                     workflow_execution=WorkflowExecutionInfo(workflow_execution_id='id',
-                                                                             state=State.INIT)),
+                                                                             status=Status.INIT)),
                    JobExecutionInfo(job_name='job_name_2',
-                                    state=State.RUNNING,
+                                    status=Status.RUNNING,
                                     workflow_execution=WorkflowExecutionInfo(workflow_execution_id='id',
-                                                                             state=State.INIT))]
+                                                                             status=Status.INIT))]
             client = SchedulerClient("localhost:{}".format(_PORT))
             job_list = client.list_jobs(execution_id='id')
             self.assertEqual(2, len(job_list))

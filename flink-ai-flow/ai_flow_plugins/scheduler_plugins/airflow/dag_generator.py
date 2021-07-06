@@ -40,7 +40,7 @@ from pytz import timezone
 from airflow.models.dag import DAG
 from ai_flow_plugins.scheduler_plugins.airflow.event_handler import AIFlowHandler
 from ai_flow_plugins.scheduler_plugins.airflow.ai_flow_operator import AIFlowOperator
-from ai_flow.project.project_description import get_project_description_from
+from ai_flow.context.project_context import build_project_context
 from ai_flow.util import json_utils
 
 """
@@ -97,8 +97,7 @@ op_{0} = AIFlowOperator(task_id='{2}', job=job_{0}, workflow=workflow, dag=dag)
 
     def generate(self,
                  workflow: Workflow,
-                 project_name: Text,
-                 args: Optional[Dict] = None) -> Text:
+                 project_name: Text) -> Text:
         code_text = DAGTemplate.AIRFLOW_IMPORT
         code_text += import_job_plugins_text(workflow)
         code_text += DAGTemplate.LOAD_CONFIG.format(json_utils.dumps(workflow))

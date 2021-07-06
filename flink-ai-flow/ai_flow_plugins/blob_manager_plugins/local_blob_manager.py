@@ -31,7 +31,7 @@ class LocalBlobManager(BlobManager):
         self._local_repo = config.get('local_repository', None)
         self._remote_repo = config.get('remote_repository', None)
 
-    def upload_blob(self, workflow_id: Text, prj_pkg_path: Text) -> Text:
+    def upload_project(self, workflow_id: Text, project_path: Text) -> Text:
         if self._remote_repo is not None:
             with tempfile.TemporaryDirectory() as temp_dir:
                 zip_file_name = 'workflow_{}_project.zip'.format(workflow_id)
@@ -40,13 +40,13 @@ class LocalBlobManager(BlobManager):
                     os.remove(upload_file_path)
                 temp_dir_path = Path(temp_dir)
                 zip_file_path = temp_dir_path / zip_file_name
-                make_dir_zipfile(prj_pkg_path, zip_file_path)
+                make_dir_zipfile(project_path, zip_file_path)
                 os.rename(zip_file_path, upload_file_path)
                 return str(upload_file_path)
         else:
-            return prj_pkg_path
+            return project_path
 
-    def download_blob(self, workflow_id, remote_path: Text, local_path: Text = None) -> Text:
+    def download_project(self, workflow_id, remote_path: Text, local_path: Text = None) -> Text:
         if local_path is not None or self._local_repo is not None:
             repo_path = local_path if local_path is not None else self._local_repo
             local_zip_file_name = 'workflow_{}_project'.format(workflow_id)
@@ -65,6 +65,6 @@ class LocalBlobManager(BlobManager):
         else:
             return remote_path
 
-    def clean_blob(self, workflow_id, remote_path: Text):
+    def cleanup_project(self, workflow_id, remote_path: Text):
         pass
 

@@ -47,7 +47,7 @@ from notification_service.proto import notification_service_pb2_grpc
 from ai_flow.metadata_store.service.service import MetadataService
 from ai_flow.model_center.service.service import ModelCenterService
 from ai_flow.metric.service.metric_service import MetricService
-from ai_flow.scheduler.scheduler_service import SchedulerService, SchedulerConfig
+from ai_flow.scheduler.scheduler_service import SchedulerService, SchedulerServiceConfig
 
 sys.path.append(os.path.abspath(os.path.join(os.getcwd(), "../../..")))
 
@@ -70,7 +70,7 @@ class AIFlowServer(object):
                  start_model_center_service: bool = True,
                  start_metric_service: bool = True,
                  start_scheduler_service: bool = True,
-                 scheduler_config: Dict = None,
+                 scheduler_service_config: SchedulerServiceConfig = None,
                  enabled_ha: bool = False,
                  ha_manager=None,
                  ha_server_uri=None,
@@ -102,26 +102,29 @@ class AIFlowServer(object):
             metric_service_pb2_grpc.add_MetricServiceServicer_to_server(MetricService(db_uri=store_uri), self.server)
 
         if start_scheduler_service:
-            self._add_scheduler_service(notification_uri, scheduler_config, server_uri, start_default_notification)
+            self._add_scheduler_service(notification_uri, scheduler_service_config, server_uri, start_default_notification)
 
         if enabled_ha:
             self._add_ha_service(ha_manager, ha_server_uri, ha_storage, store_uri, ttl_ms)
 
         self.server.add_insecure_port('[::]:' + str(port))
 
-    def _add_scheduler_service(self, notification_uri, scheduler_config, server_uri, start_default_notification):
+    def _add_scheduler_service(self, notification_uri, scheduler_service_config, server_uri, start_default_notification):
         logging.info("start scheduler service.")
-        if scheduler_config is None:
+        if scheduler_service_config is None:
             raise Exception('scheduler config not set!')
-        real_config = SchedulerConfig()
-        if scheduler_config.get('notification_uri') is None:
+        real_config = SchedulerServiceConfig()
+        if 'scheduler_config' not in scheduler_service_config:
+            scheduler_service_config['scheduler_config'] = {}
+        if scheduler_service_config.get('scheduler_config').get('notification_uri') is None:
             nf_uri = server_uri if start_default_notification else notification_uri
-            real_config.set_notification_service_uri(nf_uri)
+            real_config.scheduler_config()['notification_uri'] = nf_uri
         else:
-            real_config.set_notification_service_uri(scheduler_config.get('notification_uri'))
-        real_config.set_properties(scheduler_config.get('properties'))
-        real_config.set_repository(scheduler_config.get('repository'))
-        real_config.set_scheduler_class_name(scheduler_config.get('scheduler_class_name'))
+            real_config.scheduler_config()['notification_uri'] \
+                = scheduler_service_config.get('scheduler_config').get('notification_uri')
+        real_config.set_scheduler_config(scheduler_service_config.get('scheduler_config'))
+        real_config.set_repository(scheduler_service_config.get('repository'))
+        real_config.set_scheduler_class_name(scheduler_service_config.get('scheduler_class_name'))
         self.scheduler_service = SchedulerService(real_config)
         scheduling_service_pb2_grpc.add_SchedulingServiceServicer_to_server(self.scheduler_service,
                                                                             self.server)

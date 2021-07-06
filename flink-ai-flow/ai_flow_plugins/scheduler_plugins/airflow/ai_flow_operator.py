@@ -20,7 +20,7 @@ from airflow.models.baseoperator import BaseOperator
 from airflow.utils.decorators import apply_defaults
 from ai_flow.common.module_load import import_string
 from ai_flow.plugin_interface.blob_manager_interface import BlobManagerFactory
-from ai_flow.plugin_interface.job_plugin_interface import JobController, JobHandler, JobExecutionContext
+from ai_flow.plugin_interface.job_plugin_interface import JobController, JobHandler, JobRuntimeEnv
 from ai_flow.plugin_interface.scheduler_interface import JobExecutionInfo, WorkflowExecutionInfo, WorkflowInfo
 from ai_flow.context.project_context import build_project_context
 from ai_flow.workflow.job import Job
@@ -44,16 +44,16 @@ class AIFlowOperator(BaseOperator):
         class_object = import_string('{}.{}'.format(module, name))
         self.job_controller: JobController = class_object()
         self.job_handler: JobHandler = None
-        self.job_context: JobExecutionContext = None
+        self.job_runtime_env: JobRuntimeEnv = None
 
     def context_to_job_info(self, project_name: Text, context: Any)->JobExecutionInfo:
         wi = WorkflowInfo(namespace=project_name, workflow_name=self.workflow.workflow_name)
         we = WorkflowExecutionInfo(workflow_execution_id=context.get('dag_run').run_id,
                                    workflow_info=wi,
-                                   state=context.get('dag_run').get_state())
+                                   status=context.get('dag_run').get_state())
         je = JobExecutionInfo(job_name=self.job.job_name,
                               job_execution_id=str(context.get('ti').try_number),
-                              state=context.get('ti').state,
+                              status=context.get('ti').status,
                               workflow_execution=we)
         return je
 
@@ -67,9 +67,9 @@ class AIFlowOperator(BaseOperator):
                 os.makedirs(local_repo)
             blob_manager = BlobManagerFactory.get_blob_manager(config)
             project_path: Text = blob_manager \
-                .download_blob(workflow_id=self.workflow.workflow_snapshot_id,
-                               remote_path=self.workflow.project_uri,
-                               local_path=local_repo)
+                .download_project(workflow_id=self.workflow.workflow_snapshot_id,
+                                  remote_path=self.workflow.project_uri,
+                                  local_path=local_repo)
         else:
             project_path = self.workflow.project_uri
         self.log.info("project_path:" + project_path)
@@ -77,25 +77,20 @@ class AIFlowOperator(BaseOperator):
 
         job_execution_info: JobExecutionInfo = self.context_to_job_info(project_context.project_name, context)
         root_working_dir = context['conf'].get('scheduler', 'working_dir')
-        job_runtime_env = prepare_job_runtime_env(self.workflow.workflow_snapshot_id,
-                                                  self.workflow.workflow_name,
-                                                  job_execution_info.job_name,
-                                                  project_context,
-                                                  root_working_dir)
-        self.job_context: JobExecutionContext \
-            = JobExecutionContext(job_runtime_env=job_runtime_env,
-                                  project_config=project_context.project_config,
-                                  workflow_config=self.workflow.workflow_config,
-                                  job_execution_info=job_execution_info)
+        self.job_runtime_env = prepare_job_runtime_env(workflow_snapshot_id=self.workflow.workflow_snapshot_id,
+                                                       workflow_name=self.workflow.workflow_name,
+                                                       project_context=project_context,
+                                                       job_execution_info=job_execution_info,
+                                                       root_working_dir=root_working_dir)
 
     def execute(self, context: Any):
         self.log.info("context:" + str(context))
-        self.job_handler: JobHandler = self.job_controller.submit_job(self.job, self.job_context)
-        self.job_handler.wait_finished()
+        self.job_handler: JobHandler = self.job_controller.submit_job(self.job, self.job_runtime_env)
+        self.job_handler.wait_until_finish()
         result = self.job_handler.get_result()
-        self.job_controller.cleanup_job(self.job_handler, self.job_context)
+        self.job_controller.cleanup_job(self.job_handler, self.job_runtime_env)
         return result
 
     def on_kill(self):
-        self.job_controller.stop_job(self.job_handler, self.job_context)
-        self.job_controller.cleanup_job(self.job_handler, self.job_context)
+        self.job_controller.stop_job(self.job_handler, self.job_runtime_env)
+        self.job_controller.cleanup_job(self.job_handler, self.job_runtime_env)

@@ -52,6 +52,9 @@ from ai_flow.context.project_context import ProjectContext
 
 
 class JobGenerator(ABC):
+    """
+    JobGenerator: Translate AISubGraph to Job
+    """
     def __init__(self) -> None:
         super().__init__()
 

@@ -20,14 +20,17 @@ import time
 from tempfile import NamedTemporaryFile, mkdtemp
 from typing import Text, Dict
 from subprocess import PIPE, STDOUT, Popen
+
+from ai_flow.translator.translator import JobGenerator
 from ai_flow.util import serialization_utils
 from ai_flow.workflow.job_config import JobConfig
 from ai_flow.ai_graph.ai_graph import AISubGraph
-from ai_flow.plugin_interface.job_plugin_interface import AbstractJobPlugin, JobHandler, JobExecutionContext
+from ai_flow.plugin_interface.job_plugin_interface import AbstractJobPluginFactory, JobHandler, JobRuntimeEnv, \
+    JobController
 from ai_flow.plugin_interface.scheduler_interface import JobExecutionInfo
 from ai_flow.workflow.job import Job
 from ai_flow_plugins.job_plugins.bash.bash_job_config import BashJobConfig
-from ai_flow_plugins.job_plugins.bash.bash_executor import BashExecutor
+from ai_flow_plugins.job_plugins.bash.bash_processor import BashProcessor
 
 
 class BashJob(Job):
@@ -48,7 +51,7 @@ class BashJobHandler(JobHandler):
     def get_result(self) -> object:
         return self.lines
 
-    def wait_finished(self):
+    def wait_until_finish(self):
         with open(self.sub_graph_path, 'rb') as f:
             executors: Dict = serialization_utils.deserialize(f.read())
         for k, v in executors.items():
@@ -69,7 +72,7 @@ class BashJobHandler(JobHandler):
             self.lines[k] = line
 
 
-class BashJobPlugin(AbstractJobPlugin):
+class BashJobPluginFactory(AbstractJobPluginFactory, JobGenerator, JobController):
 
     def __init__(self) -> None:
         super().__init__()
@@ -85,25 +88,25 @@ class BashJobPlugin(AbstractJobPlugin):
             fp.write(serialization_utils.serialize(executors))
         return job
 
-    def submit_job(self, job: Job, job_context: JobExecutionContext) -> JobHandler:
-        handler = BashJobHandler(job=job, job_execution=job_context.job_execution_info)
+    def submit_job(self, job: Job, job_runtime_env: JobRuntimeEnv) -> JobHandler:
+        handler = BashJobHandler(job=job, job_execution=job_runtime_env.job_execution_info)
         bash_job: BashJob = job
-        executor_file = os.path.join(job_context.job_runtime_env.generated_dir, bash_job.sub_graph_path)
+        executor_file = os.path.join(job_runtime_env.generated_dir, bash_job.sub_graph_path)
         with open(executor_file, 'rb') as f:
             executors: Dict = serialization_utils.deserialize(f.read())
         for k, v in executors.items():
-            executor: BashExecutor = v
+            executor: BashProcessor = v
             env = os.environ.copy()
             if 'env' in job.job_config.properties:
                 env.update(job.job_config.properties.get('env'))
             sub_process = self.submit_one_process(executor=executor,
                                                   env=env,
-                                                  working_dir=job_context.job_runtime_env.working_dir)
+                                                  working_dir=job_runtime_env.working_dir)
             handler.sub_process[k] = sub_process
         handler.sub_graph_path = executor_file
         return handler
 
-    def stop_job(self, job_handler: JobHandler, job_context: JobExecutionContext = None):
+    def stop_job(self, job_handler: JobHandler, job_runtime_env: JobRuntimeEnv = None):
         handler: BashJobHandler = job_handler
         executor_file = job_handler.sub_graph_path
         with open(executor_file, 'rb') as f:
@@ -119,13 +122,19 @@ class BashJobPlugin(AbstractJobPlugin):
                     except Exception:
                         time.sleep(1)
 
-    def cleanup_job(self, job_handler: JobHandler, job_context: JobExecutionContext = None):
+    def cleanup_job(self, job_handler: JobHandler, job_runtime_env: JobRuntimeEnv = None):
         pass
+
+    def get_job_generator(self) -> JobGenerator:
+        return self
+
+    def get_job_controller(self) -> JobController:
+        return self
 
     def job_type(self) -> Text:
         return "bash"
 
-    def submit_one_process(self, executor: BashExecutor, env, working_dir):
+    def submit_one_process(self, executor: BashProcessor, env, working_dir):
 
         def pre_exec():
             # Restore default signal disposition and invoke setsid

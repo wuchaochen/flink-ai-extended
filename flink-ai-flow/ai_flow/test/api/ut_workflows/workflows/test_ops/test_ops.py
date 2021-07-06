@@ -27,7 +27,7 @@ from ai_flow.meta.dataset_meta import DatasetMeta
 from ai_flow.meta.model_meta import ModelMeta
 from ai_flow.workflow.control_edge import ControlEdge, TaskAction, AIFlowInternalEventType
 from ai_flow.workflow.periodic_config import PeriodicConfig
-from ai_flow.workflow.state import State
+from ai_flow.workflow.status import Status
 
 
 _SQLITE_DB_FILE = 'aiflow.db'
@@ -71,7 +71,7 @@ class TestOps(unittest.TestCase):
     def test_user_define_operation(self):
         with job_config('task_1'):
             o = ops.user_define_operation(processor=None, a='a', name='1')
-            ops.user_define_operation(input_data=o, b='b', name='2')
+            ops.user_define_operation(input=o, b='b', name='2')
         self.assertEqual(2, len(current_graph().nodes))
         self.assertEqual(1, len(current_graph().edges))
         node_0 = list(current_graph().nodes.values())[0]
@@ -83,8 +83,8 @@ class TestOps(unittest.TestCase):
 
     def test_read_write_dataset(self):
         with job_config('task_1'):
-            o = ops.read_dataset(processor=None, dataset_info=DatasetMeta(name='source'))
-            ops.write_dataset(input_data=o, dataset_info=DatasetMeta(name='sink'))
+            o = ops.read_dataset(read_dataset_processor=None, dataset_info=DatasetMeta(name='source'))
+            ops.write_dataset(input=o, dataset_info=DatasetMeta(name='sink'))
         self.assertEqual(2, len(current_graph().nodes))
         self.assertEqual(1, len(current_graph().edges))
         node_list = list(current_graph().nodes.values())
@@ -97,17 +97,17 @@ class TestOps(unittest.TestCase):
 
     def test_transform(self):
         with job_config('task_1'):
-            o = ops.read_dataset(processor=None, dataset_info=DatasetMeta(name='dataset'))
-            t = ops.transform(input_data=o, processor=None)
-            ops.write_dataset(input_data=t, dataset_info=DatasetMeta(name='dataset'))
+            o = ops.read_dataset(read_dataset_processor=None, dataset_info=DatasetMeta(name='dataset'))
+            t = ops.transform(input=o, transform_processor=None)
+            ops.write_dataset(input=t, dataset_info=DatasetMeta(name='dataset'))
         self.assertEqual(3, len(current_graph().nodes))
         self.assertEqual(2, len(current_graph().edges))
 
     def test_train(self):
         with job_config('task_1'):
-            o = ops.read_dataset(processor=None, dataset_info=DatasetMeta(name='dataset'))
-            t = ops.train(input_data=o, processor=None, output_num=1, model_info=ModelMeta(name='model'), name='a')
-            ops.write_dataset(input_data=t, dataset_info=DatasetMeta(name='dataset'))
+            o = ops.read_dataset(read_dataset_processor=None, dataset_info=DatasetMeta(name='dataset'))
+            t = ops.train(input=o, training_processor=None, output_num=1, model_info=ModelMeta(name='model'), name='a')
+            ops.write_dataset(input=t, dataset_info=DatasetMeta(name='dataset'))
         self.assertEqual(3, len(current_graph().nodes))
         self.assertEqual(2, len(current_graph().edges))
         n = self.get_node_by_name('a')
@@ -115,10 +115,10 @@ class TestOps(unittest.TestCase):
 
     def test_predict(self):
         with job_config('task_1'):
-            o = ops.read_dataset(processor=None, dataset_info=DatasetMeta(name='dataset'))
-            t = ops.predict(input_data=o, processor=None,
+            o = ops.read_dataset(read_dataset_processor=None, dataset_info=DatasetMeta(name='dataset'))
+            t = ops.predict(input=o, prediction_processor=None,
                             model_info=ModelMeta(name='model'), name='a')
-            ops.write_dataset(input_data=t, dataset_info=DatasetMeta(name='dataset'))
+            ops.write_dataset(input=t, dataset_info=DatasetMeta(name='dataset'))
         self.assertEqual(3, len(current_graph().nodes))
         self.assertEqual(2, len(current_graph().edges))
         n = self.get_node_by_name('a')
@@ -126,8 +126,8 @@ class TestOps(unittest.TestCase):
 
     def test_evaluate(self):
         with job_config('task_1'):
-            o = ops.read_dataset(processor=None, dataset_info=DatasetMeta(name='dataset'))
-            t = ops.evaluate(input_data=o, processor=None,
+            o = ops.read_dataset(read_dataset_processor=None, dataset_info=DatasetMeta(name='dataset'))
+            t = ops.evaluate(input=o, evaluation_processor=None,
                              model_info=ModelMeta(name='model'), name='a')
         self.assertEqual(2, len(current_graph().nodes))
         self.assertEqual(1, len(current_graph().edges))
@@ -136,8 +136,8 @@ class TestOps(unittest.TestCase):
 
     def test_dataset_validate(self):
         with job_config('task_1'):
-            o = ops.read_dataset(processor=None, dataset_info=DatasetMeta(name='dataset'), name='a')
-            ops.dataset_validate(input_data=o, processor=None, name='b')
+            o = ops.read_dataset(read_dataset_processor=None, dataset_info=DatasetMeta(name='dataset'), name='a')
+            ops.dataset_validate(input=o, dataset_validation_processor=None, name='b')
         self.assertEqual(2, len(current_graph().nodes))
         self.assertEqual(1, len(current_graph().edges))
         n = self.get_node_by_name('a')
@@ -145,8 +145,8 @@ class TestOps(unittest.TestCase):
 
     def test_model_validate(self):
         with job_config('task_1'):
-            o = ops.read_dataset(processor=None, dataset_info=DatasetMeta(name='dataset'))
-            t = ops.model_validate(input_data=o, processor=None,
+            o = ops.read_dataset(read_dataset_processor=None, dataset_info=DatasetMeta(name='dataset'))
+            t = ops.model_validate(input=o, model_validation_processor=None,
                                    model_info=ModelMeta(name='model'), name='a')
         self.assertEqual(2, len(current_graph().nodes))
         self.assertEqual(1, len(current_graph().edges))
@@ -155,7 +155,7 @@ class TestOps(unittest.TestCase):
 
     def test_push_model(self):
         with job_config('task_1'):
-            ops.push_model(processor=None, model_info=ModelMeta(name='model'), name='a')
+            ops.push_model(pushing_model_processor=None, model_info=ModelMeta(name='model'), name='a')
         self.assertEqual(1, len(current_graph().nodes))
         n = self.get_node_by_name('a')
         self.assertEqual('model', n.node_config.get('model_info').name)
@@ -173,14 +173,14 @@ class TestOps(unittest.TestCase):
         self.assertEqual('a', edge.condition_config.event_key)
         self.assertEqual('a', edge.condition_config.event_value)
 
-    def test_action_on_state(self):
+    def test_action_on_status(self):
         with job_config('task_1'):
             o1 = ops.user_define_operation(processor=None, a='a', name='1')
         with job_config('task_2'):
             o2 = ops.user_define_operation(processor=None, b='b', name='2')
         ops.action_on_status(job_name='task_1',
                              upstream_job_name='task_2',
-                             upstream_job_status=State.FINISHED, action=TaskAction.START)
+                             upstream_job_status=Status.FINISHED, action=TaskAction.START)
         self.assertEqual(1, len(current_graph().edges))
         edge: ControlEdge = current_graph().edges.get('task_1')[0]
         self.assertEqual('task_1', edge.destination)

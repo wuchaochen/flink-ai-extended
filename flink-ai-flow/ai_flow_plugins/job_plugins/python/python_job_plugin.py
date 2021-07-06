@@ -18,23 +18,24 @@ import os
 import sys
 import signal
 import time
-from abc import ABC
-from tempfile import NamedTemporaryFile, mkdtemp
+from tempfile import NamedTemporaryFile
 from typing import Text, Any, Dict, List
 from subprocess import Popen
 
 from ai_flow.log import log_path_utils
 from ai_flow.ai_graph.ai_node import AINode
 from ai_flow.ai_graph.data_edge import DataEdge
+from ai_flow.translator.translator import JobGenerator
 from ai_flow.util import serialization_utils
 from ai_flow.util import json_utils
 from ai_flow.workflow.job_config import JobConfig
 from ai_flow.ai_graph.ai_graph import AISubGraph
-from ai_flow.plugin_interface.job_plugin_interface import AbstractJobPlugin, JobHandler, JobExecutionContext
+from ai_flow.plugin_interface.job_plugin_interface import AbstractJobPluginFactory, JobHandler, JobRuntimeEnv, \
+    JobController
 from ai_flow.plugin_interface.scheduler_interface import JobExecutionInfo
 from ai_flow.workflow.job import Job
 from ai_flow_plugins.job_plugins.python.python_job_config import PythonJobConfig
-from ai_flow_plugins.job_plugins.python.python_executor import PythonProcessor, ExecutionContext
+from ai_flow_plugins.job_plugins.python.python_processor import PythonProcessor, ExecutionContext
 
 
 class RunGraph(json_utils.Jsonable):
@@ -104,7 +105,7 @@ class PythonJobHandler(JobHandler):
         self.sub_process = None
         self.run_args_file = None
 
-    def wait_finished(self):
+    def wait_until_finish(self):
         self.log.info('Output:')
         self.sub_process.wait()
         self.log.info('Command exited with return code %s', self.sub_process.returncode)
@@ -114,7 +115,7 @@ class PythonJobHandler(JobHandler):
         return None
 
 
-class PythonJobPlugin(AbstractJobPlugin, ABC):
+class PythonJobPluginFactory(AbstractJobPluginFactory, JobGenerator, JobController):
 
     def __init__(self) -> None:
         super().__init__()
@@ -169,24 +170,24 @@ class PythonJobPlugin(AbstractJobPlugin, ABC):
             fp.write(serialization_utils.serialize(run_graph))
         return job
 
-    def submit_job(self, job: Job, job_context: JobExecutionContext = None) -> JobHandler:
-        run_args: RunArgs = RunArgs(working_dir=job_context.job_runtime_env.working_dir,
-                                    job_execution_info=job_context.job_execution_info)
+    def submit_job(self, job: Job, job_runtime_env: JobRuntimeEnv = None) -> JobHandler:
+        run_args: RunArgs = RunArgs(working_dir=job_runtime_env.working_dir,
+                                    job_execution_info=job_runtime_env.job_execution_info)
 
-        with NamedTemporaryFile(mode='w+b', dir=job_context.job_runtime_env.generated_dir,
+        with NamedTemporaryFile(mode='w+b', dir=job_runtime_env.generated_dir,
                                 prefix='{}_run_args_'.format(job.job_name), delete=False) as fp:
             run_args_file = fp.name
             fp.write(serialization_utils.serialize(run_args))
-        handler = PythonJobHandler(job=job, job_execution=job_context.job_execution_info)
+        handler = PythonJobHandler(job=job, job_execution=job_runtime_env.job_execution_info)
         python_job: PythonJob = job
-        run_graph_file = os.path.join(job_context.job_runtime_env.generated_dir, python_job.run_graph_file)
+        run_graph_file = os.path.join(job_runtime_env.generated_dir, python_job.run_graph_file)
 
         env = os.environ.copy()
         if 'env' in job.job_config.properties:
             env.update(job.job_config.properties.get('env'))
         # Add PYTHONEPATH
         copy_path = sys.path.copy()
-        copy_path.insert(0, job_context.job_runtime_env.python_dep_dir)
+        copy_path.insert(0, job_runtime_env.python_dep_dir)
         env['PYTHONPATH'] = ':'.join(copy_path)
 
         current_path = os.path.dirname(__file__)
@@ -194,21 +195,21 @@ class PythonJobPlugin(AbstractJobPlugin, ABC):
         python3_location = sys.executable
         bash_command = [python3_location, script_path, run_graph_file, run_args_file]
 
-        stdout_log = log_path_utils.stdout_log_path(job_context.job_runtime_env.log_dir, job.job_name)
-        stderr_log = log_path_utils.stderr_log_path(job_context.job_runtime_env.log_dir, job.job_name)
-        if not os.path.exists(job_context.job_runtime_env.log_dir):
-            os.makedirs(job_context.job_runtime_env.log_dir)
+        stdout_log = log_path_utils.stdout_log_path(job_runtime_env.log_dir, job.job_name)
+        stderr_log = log_path_utils.stderr_log_path(job_runtime_env.log_dir, job.job_name)
+        if not os.path.exists(job_runtime_env.log_dir):
+            os.makedirs(job_runtime_env.log_dir)
 
         sub_process = self.submit_python_process(bash_command=bash_command,
                                                  env=env,
-                                                 working_dir=job_context.job_runtime_env.working_dir,
+                                                 working_dir=job_runtime_env.working_dir,
                                                  stdout_log=stdout_log,
                                                  stderr_log=stderr_log)
         handler.sub_process = sub_process
         handler.run_args_file = run_args_file
         return handler
 
-    def stop_job(self, job_handler: JobHandler, job_context: Any = None):
+    def stop_job(self, job_handler: JobHandler, job_runtime_env: Any = None):
         handler: PythonJobHandler = job_handler
         self.log.info('Output:')
         sub_process = handler.sub_process
@@ -220,12 +221,18 @@ class PythonJobPlugin(AbstractJobPlugin, ABC):
                 except Exception:
                     time.sleep(1)
 
-    def cleanup_job(self, job_handler: JobHandler, job_context: Any = None):
+    def cleanup_job(self, job_handler: JobHandler, job_runtime_env: Any = None):
         if os.path.exists(job_handler.run_args_file):
             os.remove(job_handler.run_args_file)
 
     def job_type(self) -> Text:
         return "python"
+
+    def get_job_generator(self) -> JobGenerator:
+        return self
+
+    def get_job_controller(self) -> JobController:
+        return self
 
     def submit_python_process(self, bash_command: List, env, working_dir, stdout_log, stderr_log):
 

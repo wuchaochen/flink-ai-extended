@@ -14,11 +14,14 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from enum import Enum
 
 
-class BashExecutor(object):
-    def __init__(self,
-                 bash_command: str,
-                 output_encoding: str = 'utf-8'):
-        self.bash_command = bash_command
-        self.output_encoding = output_encoding
+class Status(str, Enum):
+    INIT = 'INIT'  # The scheduler create the job/workflow and do not scheduling it.
+    STARTING = 'STARTING'  # The scheduler scheduling the job/workflow.
+    RUNNING = 'RUNNING'  # The job/workflow is running.
+    FINISHED = 'FINISHED'  # The job/workflow is finished without exceptions.
+    FAILED = 'FAILED'  # The job/workflow is finished with exceptions.
+    KILLING = 'KILLING'  # The scheduler receive kill signal and kill the job/workflow.
+    KILLED = 'KILLED'  # When the job/workflow is running then the scheduler receive kill signal and kill it.

@@ -71,10 +71,10 @@ class TestTranslator(unittest.TestCase):
 
     def test_translate_ai_graph_to_workflow(self):
         init_workflow_config(os.path.join(os.path.dirname(__file__), 'workflow_1.yaml'))
-        project_desc = ProjectContext()
-        project_desc.project_path = '/tmp'
-        project_desc.project_config = ProjectConfig()
-        project_desc.project_config.set_project_name('test_project')
+        project_context = ProjectContext()
+        project_context.project_path = '/tmp'
+        project_context.project_config = ProjectConfig()
+        project_context.project_config.set_project_name('test_project')
         graph: AIGraph = build_ai_graph(9, 3)
         splitter = GraphSplitter()
         split_graph = splitter.split(graph)
@@ -86,7 +86,7 @@ class TestTranslator(unittest.TestCase):
         self.assertTrue('AINode_4' in sub_graph.edges)
         constructor = WorkflowConstructor()
         constructor.register_job_generator('mock', MockJobGenerator())
-        workflow = constructor.build_workflow(split_graph, project_desc)
+        workflow = constructor.build_workflow(split_graph, project_context)
         self.assertEqual(3, len(workflow.nodes))
         job = workflow.jobs.get('job_0')
         self.assertEqual(1, len(job.input_dataset_list))

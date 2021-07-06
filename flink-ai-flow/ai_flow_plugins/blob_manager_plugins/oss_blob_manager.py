@@ -38,17 +38,17 @@ class OssBlobManager(BlobManager):
         self.repo_name = config.get('repo_name', '')
         self._local_repo = config.get('local_repository', None)
 
-    def upload_blob(self, workflow_id: Text, prj_pkg_path: Text) -> Text:
+    def upload_project(self, workflow_id: Text, project_path: Text) -> Text:
         with tempfile.TemporaryDirectory() as temp_dir:
             zip_file_name = 'workflow_{}_project.zip'.format(workflow_id)
             temp_dir_path = Path(temp_dir)
             zip_file_path = temp_dir_path / zip_file_name
-            make_dir_zipfile(prj_pkg_path, zip_file_path)
+            make_dir_zipfile(project_path, zip_file_path)
             object_key = self.repo_name + '/' + zip_file_name
             self.bucket.put_object_from_file(key=object_key, filename=str(zip_file_path))
         return object_key
 
-    def download_blob(self, workflow_id, remote_path: Text, local_path: Text = None) -> Text:
+    def download_project(self, workflow_id, remote_path: Text, local_path: Text = None) -> Text:
         local_zip_file_name = 'workflow_{}_project'.format(workflow_id)
         oss_object_key = remote_path
         if local_path is not None:

@@ -19,24 +19,24 @@ from typing import List
 from ai_flow.endpoint.server import stringValue
 from ai_flow.protobuf.message_pb2 import WorkflowProto, WorkflowExecutionProto, StateProto, JobProto
 from ai_flow.plugin_interface.scheduler_interface import WorkflowInfo, WorkflowExecutionInfo, JobExecutionInfo
-from ai_flow.workflow.state import State
+from ai_flow.workflow.status import Status
 
 
 def proto_to_state(state):
     if state == StateProto.INIT:
-        return State.INIT
+        return Status.INIT
     elif state == StateProto.STARTING:
-        return State.STARTING
+        return Status.STARTING
     elif state == StateProto.RUNNING:
-        return State.RUNNING
+        return Status.RUNNING
     elif state == StateProto.FINISHED:
-        return State.FINISHED
+        return Status.FINISHED
     elif state == StateProto.FAILED:
-        return State.FAILED
+        return Status.FAILED
     elif state == StateProto.KILLING:
-        return State.KILLING
+        return Status.KILLING
     elif state == StateProto.KILLED:
-        return State.KILLED
+        return Status.KILLED
 
 
 def workflow_to_proto(workflow: WorkflowInfo) -> WorkflowProto:
@@ -72,10 +72,10 @@ def proto_to_workflow_list(proto_list: List[WorkflowProto]) -> List[WorkflowInfo
 def workflow_execution_to_proto(workflow_execution: WorkflowExecutionInfo) -> WorkflowExecutionProto:
     if workflow_execution is None:
         return None
-    if workflow_execution.state is None:
-        state = State.INIT
+    if workflow_execution.status is None:
+        state = Status.INIT
     else:
-        state = workflow_execution.state
+        state = workflow_execution.status
     wp = WorkflowExecutionProto(execution_id=workflow_execution.workflow_execution_id,
                                 execution_state=StateProto.Value(state),
                                 workflow=workflow_to_proto(workflow_execution.workflow_info))
@@ -89,7 +89,7 @@ def proto_to_workflow_execution(proto: WorkflowExecutionProto) -> WorkflowExecut
         return None
     else:
         return WorkflowExecutionInfo(workflow_execution_id=proto.execution_id,
-                                     state=proto_to_state(proto.execution_state),
+                                     status=proto_to_state(proto.execution_state),
                                      workflow_info=proto_to_workflow(proto.workflow),
                                      properties=dict(proto.properties))
 
@@ -110,10 +110,10 @@ def proto_to_workflow_execution_list(proto_list: List[WorkflowExecutionProto]) -
 
 
 def job_to_proto(job: JobExecutionInfo) -> JobProto:
-    if job.state is None:
-        state = State.INIT
+    if job.status is None:
+        state = Status.INIT
     else:
-        state = job.state
+        state = job.status
     return JobProto(name=job.job_name,
                     job_id=stringValue(job.job_execution_id),
                     job_state=StateProto.Value(state),
@@ -127,7 +127,7 @@ def proto_to_job(proto: JobProto) -> JobExecutionInfo:
     else:
         return JobExecutionInfo(job_name=proto.name,
                                 job_execution_id=proto.job_id.value,
-                                state=proto_to_state(proto.job_state),
+                                status=proto_to_state(proto.job_state),
                                 properties=proto.properties,
                                 workflow_execution=proto_to_workflow_execution(proto.workflow_execution))
 
