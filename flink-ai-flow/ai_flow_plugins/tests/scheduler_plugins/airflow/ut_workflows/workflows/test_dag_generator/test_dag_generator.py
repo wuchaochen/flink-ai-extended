@@ -74,7 +74,8 @@ class TestDagGenerator(unittest.TestCase):
         w = af.workflow_operation.submit_workflow(workflow_name='test_dag_generator')
         code = w.properties.get('code')
         self.assertTrue(".subscribe_event('a', 'a', 'default', 'task_1')" in code)
-        self.assertTrue(".subscribe_event('test_dag_generator', 'JOB_STATUS_CHANGED', 'test_project', 'task_2')" in code)
+        # Now do not support the event_type equals JOB_STATUS_CHANGED event.
+        # self.assertTrue(".subscribe_event('test_dag_generator', 'JOB_STATUS_CHANGED', 'test_project', 'task_2')" in code)
         self.assertTrue(".set_events_handler(AIFlowHandler(configs_op_" in code)
 
     def test_periodic_cron_task(self):
