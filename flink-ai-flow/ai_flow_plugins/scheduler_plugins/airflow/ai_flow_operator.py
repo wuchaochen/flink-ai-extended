@@ -19,6 +19,7 @@ import os
 from airflow.models.baseoperator import BaseOperator
 from airflow.utils.decorators import apply_defaults
 from ai_flow.common.module_load import import_string
+from ai_flow.util.time_utils import datetime_to_int64
 from ai_flow.plugin_interface.blob_manager_interface import BlobManagerFactory
 from ai_flow.plugin_interface.job_plugin_interface import JobController, JobHandler, JobRuntimeEnv
 from ai_flow.plugin_interface.scheduler_interface import JobExecutionInfo, WorkflowExecutionInfo, WorkflowInfo
@@ -46,14 +47,18 @@ class AIFlowOperator(BaseOperator):
         self.job_handler: JobHandler = None
         self.job_runtime_env: JobRuntimeEnv = None
 
-    def context_to_job_info(self, project_name: Text, context: Any)->JobExecutionInfo:
+    def context_to_job_info(self, project_name: Text, context: Any) -> JobExecutionInfo:
         wi = WorkflowInfo(namespace=project_name, workflow_name=self.workflow.workflow_name)
         we = WorkflowExecutionInfo(workflow_execution_id=context.get('dag_run').run_id,
                                    workflow_info=wi,
+                                   start_date=str(datetime_to_int64(context.get('dag_run').start_date)),
+                                   end_date=str(datetime_to_int64(context.get('dag_run').end_date)),
                                    status=context.get('dag_run').get_state())
         je = JobExecutionInfo(job_name=self.job.job_name,
                               job_execution_id=str(context.get('ti').try_number),
-                              status=context.get('ti').status,
+                              status=context.get('ti').state,
+                              start_date=str(datetime_to_int64(context.get('ti').start_date)),
+                              end_date=str(datetime_to_int64(context.get('ti').end_date)),
                               workflow_execution=we)
         return je
 
@@ -76,7 +81,12 @@ class AIFlowOperator(BaseOperator):
         project_context = build_project_context(project_path)
 
         job_execution_info: JobExecutionInfo = self.context_to_job_info(project_context.project_name, context)
-        root_working_dir = context['conf'].get('scheduler', 'working_dir')
+        if context['conf'].has_option('scheduler', 'working_dir'):
+            root_working_dir = context['conf'].get('scheduler', 'working_dir')
+        else:
+            root_working_dir = os.path.join(project_context.project_path, 'temp')
+        self.log.info('working dir: {}'.format(root_working_dir))
+
         self.job_runtime_env = prepare_job_runtime_env(workflow_snapshot_id=self.workflow.workflow_snapshot_id,
                                                        workflow_name=self.workflow.workflow_name,
                                                        project_context=project_context,

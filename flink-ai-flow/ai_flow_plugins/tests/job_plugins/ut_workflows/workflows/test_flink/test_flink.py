@@ -88,19 +88,19 @@ class Sink(flink.FlinkPythonProcessor):
 class TestFlink(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        config_file = os.path.dirname(project_path) + '/master.yaml'
+        config_file = project_path + '/master.yaml'
         cls.master = AIFlowServerRunner(config_file=config_file)
         cls.master.start()
 
     @classmethod
     def tearDownClass(cls) -> None:
         cls.master.stop()
-        # generated = '{}/generated'.format(project_path)
-        # if os.path.exists(generated):
-        #     shutil.rmtree(generated)
-        # temp = '{}/temp'.format(project_path)
-        # if os.path.exists(temp):
-        #     shutil.rmtree(temp)
+        generated = '{}/generated'.format(project_path)
+        if os.path.exists(generated):
+            shutil.rmtree(generated)
+        temp = '{}/temp'.format(project_path)
+        if os.path.exists(temp):
+            shutil.rmtree(temp)
 
     def setUp(self):
         self.master._clear_db()

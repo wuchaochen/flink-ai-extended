@@ -40,7 +40,6 @@ from pytz import timezone
 from airflow.models.dag import DAG
 from ai_flow_plugins.scheduler_plugins.airflow.event_handler import AIFlowHandler
 from ai_flow_plugins.scheduler_plugins.airflow.ai_flow_operator import AIFlowOperator
-from ai_flow.context.project_context import build_project_context
 from ai_flow.util import json_utils
 
 """
@@ -152,29 +151,35 @@ op_{0} = AIFlowOperator(task_id='{2}', job=job_{0}, workflow=workflow, dag=dag)
                 upstream_configs = []
                 for edge in edges:
                     condition_config: ConditionConfig = edge.condition_config
-
-                    def reset_met_config():
-                        if condition_config.sender is None or '' == condition_config.sender:
-                            target_node_id = edge.source
-                            if target_node_id is not None and '' != target_node_id:
-                                target_job: Job = workflow.jobs.get(target_node_id)
-                                if target_job.job_name is not None:
-                                    condition_config.sender = target_job.job_name
-                            else:
-                                condition_config.sender = '*'
-                    reset_met_config()
-
-                    if edge.source in task_map:
-                        from_op_name = task_map[edge.source]
+                    if AIFlowInternalEventType.JOB_STATUS_CHANGED == condition_config.event_type:
+                        upstream_configs.append(condition_config)
                     else:
-                        from_op_name = ''
-                    code = self.generate_event_deps(op_name, from_op_name, condition_config)
-                    code_text += code
-                    configs.append(condition_config)
+                        def reset_met_config():
+                            if condition_config.sender is None or '' == condition_config.sender:
+                                target_node_id = edge.source
+                                if target_node_id is not None and '' != target_node_id:
+                                    target_job: Job = workflow.jobs.get(target_node_id)
+                                    if target_job.job_name is not None:
+                                        condition_config.sender = target_job.job_name
+                                else:
+                                    condition_config.sender = '*'
+                        reset_met_config()
+
+                        if edge.source in task_map:
+                            from_op_name = task_map[edge.source]
+                        else:
+                            from_op_name = ''
+                        code = self.generate_event_deps(op_name, from_op_name, condition_config)
+                        code_text += code
+                        configs.append(condition_config)
 
                 if len(configs) > 0:
                     code = self.generate_handler(op_name, configs)
                     code_text += code
+
+                if len(upstream_configs) > 0:
+                    for c in upstream_configs:
+                        code_text += """{}.set_upstream({})\n""".format(op_name, task_map[c.sender])
 
         return code_text
 

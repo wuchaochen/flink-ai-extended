@@ -47,7 +47,7 @@ class PyProcessor2(python.PythonProcessor):
 class TestPython(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        config_file = os.path.dirname(project_path) + '/master.yaml'
+        config_file = project_path + '/master.yaml'
         cls.master = AIFlowServerRunner(config_file=config_file)
         cls.master.start()
 

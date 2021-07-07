@@ -27,11 +27,7 @@ def prepare_job_runtime_env(workflow_snapshot_id,
                             project_context: ProjectContext,
                             job_execution_info: JobExecutionInfo,
                             root_working_dir=None) -> JobRuntimeEnv:
-    if root_working_dir is None:
-        temp_path = os.path.join(project_context.project_path, 'temp')
-    else:
-        temp_path = root_working_dir
-    working_dir = os.path.join(temp_path,
+    working_dir = os.path.join(root_working_dir,
                                workflow_name,
                                job_execution_info.job_name,
                                str(time.strftime("%Y%m%d%H%M%S", time.localtime())))

@@ -16,7 +16,7 @@
 # under the License.
 from typing import List
 
-from ai_flow.endpoint.server import stringValue
+from ai_flow.endpoint.server import stringValue, int64Value
 from ai_flow.protobuf.message_pb2 import WorkflowProto, WorkflowExecutionProto, StateProto, JobProto
 from ai_flow.plugin_interface.scheduler_interface import WorkflowInfo, WorkflowExecutionInfo, JobExecutionInfo
 from ai_flow.workflow.status import Status
@@ -76,8 +76,20 @@ def workflow_execution_to_proto(workflow_execution: WorkflowExecutionInfo) -> Wo
         state = Status.INIT
     else:
         state = workflow_execution.status
+    if workflow_execution.start_date is None:
+        start_date = '0'
+    else:
+        start_date = workflow_execution.start_date
+
+    if workflow_execution.end_date is None:
+        end_date = '0'
+    else:
+        end_date = workflow_execution.end_date
+
     wp = WorkflowExecutionProto(execution_id=workflow_execution.workflow_execution_id,
                                 execution_state=StateProto.Value(state),
+                                start_time=int64Value(int(start_date)),
+                                end_time=int64Value(int(end_date)),
                                 workflow=workflow_to_proto(workflow_execution.workflow_info))
     for k, v in workflow_execution.properties.items():
         wp.properties[k] = v
@@ -90,6 +102,8 @@ def proto_to_workflow_execution(proto: WorkflowExecutionProto) -> WorkflowExecut
     else:
         return WorkflowExecutionInfo(workflow_execution_id=proto.execution_id,
                                      status=proto_to_state(proto.execution_state),
+                                     start_date=str(proto.start_time.value),
+                                     end_date=str(proto.end_time.value),
                                      workflow_info=proto_to_workflow(proto.workflow),
                                      properties=dict(proto.properties))
 
@@ -114,10 +128,23 @@ def job_to_proto(job: JobExecutionInfo) -> JobProto:
         state = Status.INIT
     else:
         state = job.status
+
+    if job.start_date is None:
+        start_date = '0'
+    else:
+        start_date = job.start_date
+
+    if job.end_date is None:
+        end_date = '0'
+    else:
+        end_date = job.end_date
+
     return JobProto(name=job.job_name,
                     job_id=stringValue(job.job_execution_id),
                     job_state=StateProto.Value(state),
-                    properties=job.properties,
+                    start_time=int64Value(int(start_date)),
+                    end_time=int64Value(int(end_date)),
+                    properties=dict(job.properties),
                     workflow_execution=workflow_execution_to_proto(job.workflow_execution))
 
 
@@ -128,7 +155,9 @@ def proto_to_job(proto: JobProto) -> JobExecutionInfo:
         return JobExecutionInfo(job_name=proto.name,
                                 job_execution_id=proto.job_id.value,
                                 status=proto_to_state(proto.job_state),
-                                properties=proto.properties,
+                                start_date=str(proto.start_time.value),
+                                end_date=str(proto.end_time.value),
+                                properties=dict(proto.properties),
                                 workflow_execution=proto_to_workflow_execution(proto.workflow_execution))
 
 
