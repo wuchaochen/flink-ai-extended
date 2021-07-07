@@ -18,7 +18,7 @@
 
 class EmptyGraphException(Exception):
     """
-    When submit workflow, if current_graph() is empty, then raise the exception.
+    When submitting an empty ai_graph, throw this exception.
     """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, *kwargs)

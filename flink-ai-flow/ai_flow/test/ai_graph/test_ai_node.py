@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import unittest
-from ai_flow.ai_graph.ai_node import AINode, IONode
+from ai_flow.ai_graph.ai_node import AINode, ReadDatasetNode, WriteDatasetNode
 from ai_flow.meta.dataset_meta import DatasetMeta
 
 
@@ -26,14 +26,13 @@ class TestAINode(unittest.TestCase):
         self.assertEqual('arg1_v', node.node_config['arg1'])
         self.assertEqual('arg2_v', node.node_config['arg2'])
 
-    def test_io_node_creation(self):
-        node = IONode(dataset=DatasetMeta(name='source'), is_source=True)
+    def test_read_node_creation(self):
+        node = ReadDatasetNode(dataset=DatasetMeta(name='source'))
         self.assertEqual('source', node.node_config['dataset'].name)
-        self.assertEqual(True, node.node_config['is_source'])
 
-        node = IONode(dataset=DatasetMeta(name='sink'), is_source=False)
+    def test_write_node_creation(self):
+        node = WriteDatasetNode(dataset=DatasetMeta(name='sink'))
         self.assertEqual('sink', node.node_config['dataset'].name)
-        self.assertEqual(False, node.node_config['is_source'])
 
 
 if __name__ == '__main__':

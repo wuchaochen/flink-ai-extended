@@ -68,9 +68,9 @@ class TestDagGenerator(unittest.TestCase):
         with af.job_config('task_3'):
             af.user_define_operation(processor=None)
         af.action_on_event(job_name='task_3', event_key='a', event_type='a', event_value='a', sender='task_1')
-        af.action_on_status(job_name='task_3', upstream_job_name='task_2',
-                            upstream_job_status=Status.FINISHED,
-                            action=TaskAction.START)
+        af.action_on_job_status(job_name='task_3', upstream_job_name='task_2',
+                                upstream_job_status=Status.FINISHED,
+                                action=TaskAction.START)
         w = af.workflow_operation.submit_workflow(workflow_name='test_dag_generator')
         code = w.properties.get('code')
         self.assertTrue(".subscribe_event('a', 'a', 'default', 'task_1')" in code)

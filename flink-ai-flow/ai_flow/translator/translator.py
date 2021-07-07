@@ -39,9 +39,7 @@ from typing import Dict, Text
 import copy
 import time
 import os
-import shutil
-
-from ai_flow.ai_graph.ai_node import IONode
+from ai_flow.ai_graph.ai_node import ReadDatasetNode, WriteDatasetNode
 from ai_flow.context.workflow_config_loader import current_workflow_config
 from ai_flow.workflow.workflow import Workflow
 from ai_flow.workflow.job import Job
@@ -141,11 +139,10 @@ class WorkflowConstructor(object):
 
             # set input output dataset
             for node in sub.nodes.values():
-                if isinstance(node, IONode):
-                    if node.is_source():
-                        job.input_dataset_list.append(node.dataset())
-                    else:
-                        job.output_dataset_list.append(node.dataset())
+                if isinstance(node, ReadDatasetNode):
+                    job.input_dataset_list.append(node.dataset())
+                elif isinstance(node, WriteDatasetNode):
+                    job.output_dataset_list.append(node.dataset())
 
             workflow.add_job(job)
 

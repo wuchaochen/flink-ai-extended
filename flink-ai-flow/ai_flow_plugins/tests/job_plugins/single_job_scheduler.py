@@ -17,7 +17,7 @@
 from typing import Text, List, Optional, Dict
 
 from ai_flow.common.module_load import import_string
-from ai_flow.plugin_interface.job_plugin_interface import JobController, JobHandler
+from ai_flow.plugin_interface.job_plugin_interface import JobController, JobHandle
 from ai_flow.plugin_interface.scheduler_interface import AbstractScheduler, JobExecutionInfo, WorkflowExecutionInfo, \
     WorkflowInfo
 from ai_flow.context.project_context import ProjectContext
@@ -33,7 +33,7 @@ class SingleJobScheduler(AbstractScheduler):
         self.workflow: Workflow = None
         self.project_context: ProjectContext = None
         self.job_controller: JobController = None
-        self.job_handler: JobHandler = None
+        self.job_handler: JobHandle = None
         self.job_runtime_env: JobRuntimeEnv = None
 
     def submit_workflow(self, workflow: Workflow, project_context: ProjectContext) -> WorkflowInfo:
@@ -93,8 +93,7 @@ class SingleJobScheduler(AbstractScheduler):
 
     def get_job_executions(self, job_name: Text, execution_id: Text) -> List[JobExecutionInfo]:
         try:
-            self.job_handler.wait_until_finish()
-            result = self.job_handler.get_result()
+            result = self.job_controller.get_result(job_handle=self.job_handler)
             print(result)
             self.job_controller.cleanup_job(self.job_handler, self.job_runtime_env)
         except Exception as e:

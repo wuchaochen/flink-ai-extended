@@ -20,13 +20,20 @@ import unittest
 from typing import Text
 
 from ai_flow.ai_graph.ai_graph import AISubGraph
-from ai_flow.plugin_interface.job_plugin_interface import AbstractJobPluginFactory, \
-    register_job_plugin_factory, get_registered_job_plugin_factory_list, JobHandler, JobRuntimeEnv, JobController
+from ai_flow.plugin_interface.job_plugin_interface import JobPluginFactory, \
+    register_job_plugin_factory, get_registered_job_plugin_factory_list, JobHandle, JobRuntimeEnv, JobController
 from ai_flow.translator.translator import JobGenerator
 from ai_flow.workflow.job import Job
+from ai_flow.workflow.status import Status
 
 
-class MockJobPluginFactory1(AbstractJobPluginFactory, JobGenerator, JobController):
+class MockJobPluginFactory1(JobPluginFactory, JobGenerator, JobController):
+
+    def get_result(self, job_handle: JobHandle, blocking: bool = True):
+        pass
+
+    def get_job_status(self, job_handle: JobHandle) -> Status:
+        pass
 
     def get_job_generator(self) -> JobGenerator:
         return self
@@ -40,17 +47,23 @@ class MockJobPluginFactory1(AbstractJobPluginFactory, JobGenerator, JobControlle
     def generate(self, sub_graph: AISubGraph, resource_dir: Text = None) -> Job:
         pass
 
-    def submit_job(self, job: Job, job_runtime_env: JobRuntimeEnv) -> JobHandler:
+    def submit_job(self, job: Job, job_runtime_env: JobRuntimeEnv) -> JobHandle:
         pass
 
-    def stop_job(self, job_handler: JobHandler, job_runtime_env: JobRuntimeEnv):
+    def stop_job(self, job_handle: JobHandle, job_runtime_env: JobRuntimeEnv):
         pass
 
-    def cleanup_job(self, job_handler: JobHandler, job_runtime_env: JobRuntimeEnv):
+    def cleanup_job(self, job_handle: JobHandle, job_runtime_env: JobRuntimeEnv):
         pass
 
 
-class MockJobPluginFactory2(AbstractJobPluginFactory, JobGenerator, JobController):
+class MockJobPluginFactory2(JobPluginFactory, JobGenerator, JobController):
+
+    def get_result(self, job_handle: JobHandle, blocking: bool = True):
+        pass
+
+    def get_job_status(self, job_handle: JobHandle) -> Status:
+        pass
 
     def get_job_generator(self) -> JobGenerator:
         return self
@@ -64,13 +77,13 @@ class MockJobPluginFactory2(AbstractJobPluginFactory, JobGenerator, JobControlle
     def generate(self, sub_graph: AISubGraph, resource_dir: Text = None) -> Job:
         pass
 
-    def submit_job(self, job: Job, job_runtime_env: JobRuntimeEnv) -> JobHandler:
+    def submit_job(self, job: Job, job_runtime_env: JobRuntimeEnv) -> JobHandle:
         pass
 
-    def stop_job(self, job_handler: JobHandler, job_runtime_env: JobRuntimeEnv):
+    def stop_job(self, job_handle: JobHandle, job_runtime_env: JobRuntimeEnv):
         pass
 
-    def cleanup_job(self, job_handler: JobHandler, job_runtime_env: JobRuntimeEnv):
+    def cleanup_job(self, job_handle: JobHandle, job_runtime_env: JobRuntimeEnv):
         pass
 
 

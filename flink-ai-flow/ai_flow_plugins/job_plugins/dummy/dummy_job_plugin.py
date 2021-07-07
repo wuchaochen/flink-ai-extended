@@ -18,13 +18,14 @@ from abc import ABC
 from typing import Text
 
 from ai_flow.ai_graph.ai_graph import AISubGraph
-from ai_flow.plugin_interface.job_plugin_interface import AbstractJobPluginFactory, JobHandler, JobRuntimeEnv, \
+from ai_flow.plugin_interface.job_plugin_interface import JobPluginFactory, JobHandle, JobRuntimeEnv, \
     JobController
 from ai_flow.translator.translator import JobGenerator
 from ai_flow.workflow.job import Job
+from ai_flow.workflow.status import Status
 
 
-class DummyJobPluginFactory(AbstractJobPluginFactory, JobGenerator, JobController):
+class DummyJobPluginFactory(JobPluginFactory, JobGenerator, JobController):
 
     def __init__(self) -> None:
         super().__init__()
@@ -33,13 +34,13 @@ class DummyJobPluginFactory(AbstractJobPluginFactory, JobGenerator, JobControlle
         job = Job(job_config=sub_graph.config)
         return job
 
-    def submit_job(self, job: Job, job_runtime_env: JobRuntimeEnv) -> JobHandler:
-        return JobHandler(job=job, job_execution=job_runtime_env.job_execution_info)
+    def submit_job(self, job: Job, job_runtime_env: JobRuntimeEnv) -> JobHandle:
+        return JobHandle(job=job, job_execution=job_runtime_env.job_execution_info)
 
-    def stop_job(self, job_handler: JobHandler, job_runtime_env: JobRuntimeEnv):
+    def stop_job(self, job_handle: JobHandle, job_runtime_env: JobRuntimeEnv):
         pass
 
-    def cleanup_job(self, job_handler: JobHandler, job_runtime_env: JobRuntimeEnv):
+    def cleanup_job(self, job_handle: JobHandle, job_runtime_env: JobRuntimeEnv):
         pass
 
     def job_type(self) -> Text:
@@ -51,3 +52,8 @@ class DummyJobPluginFactory(AbstractJobPluginFactory, JobGenerator, JobControlle
     def get_job_controller(self) -> JobController:
         return self
 
+    def get_result(self, job_handle: JobHandle, blocking: bool = True) -> object:
+        pass
+
+    def get_job_status(self, job_handle: JobHandle) -> Status:
+        pass

@@ -19,8 +19,8 @@ from typing import Text, Dict, Optional, List
 from ai_flow.runtime.job_runtime_env import JobRuntimeEnv
 
 from ai_flow.ai_graph.ai_graph import AISubGraph
-from ai_flow.plugin_interface.job_plugin_interface import AbstractJobPluginFactory, register_job_plugin_factory, \
-    JobHandler, JobController
+from ai_flow.plugin_interface.job_plugin_interface import JobPluginFactory, register_job_plugin_factory, \
+    JobHandle, JobController
 from ai_flow.translator.translator import JobGenerator
 from ai_flow.workflow.job import Job
 from ai_flow.plugin_interface.blob_manager_interface import BlobManager
@@ -43,7 +43,13 @@ class MockBlobManger(BlobManager):
         return remote_path
 
 
-class MockJobFactory(AbstractJobPluginFactory, JobGenerator, JobController):
+class MockJobFactory(JobPluginFactory, JobGenerator, JobController):
+
+    def get_result(self, job_handle: JobHandle, blocking: bool = True):
+        pass
+
+    def get_job_status(self, job_handle: JobHandle) -> Status:
+        pass
 
     def get_job_generator(self) -> JobGenerator:
         return self
@@ -57,13 +63,13 @@ class MockJobFactory(AbstractJobPluginFactory, JobGenerator, JobController):
     def generate(self, sub_graph: AISubGraph, resource_dir: Text = None) -> Job:
         return Job(job_config=sub_graph.config)
 
-    def submit_job(self, job: Job, job_runtime_env: JobRuntimeEnv) -> JobHandler:
+    def submit_job(self, job: Job, job_runtime_env: JobRuntimeEnv) -> JobHandle:
         pass
 
-    def stop_job(self, job_handler: JobHandler, job_runtime_env: JobRuntimeEnv):
+    def stop_job(self, job_handle: JobHandle, job_runtime_env: JobRuntimeEnv):
         pass
 
-    def cleanup_job(self, job_handler: JobHandler, job_runtime_env: JobRuntimeEnv):
+    def cleanup_job(self, job_handle: JobHandle, job_runtime_env: JobRuntimeEnv):
         pass
 
 

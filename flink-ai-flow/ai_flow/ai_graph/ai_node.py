@@ -65,23 +65,34 @@ class AINode(Node):
         return self.node_config.get('name')
 
 
-class IONode(AINode):
+class ReadDatasetNode(AINode):
     def __init__(self,
                  dataset: DatasetMeta,
-                 is_source: bool = True,
                  processor: object = None,
                  name: Text = None,
-                 output_num: int = 1,
                  config: JobConfig = None,
-                 node_type: Text = 'AINode', **kwargs) -> None:
-        super().__init__(processor, name, output_num, config, node_type, **kwargs)
+                 node_type: Text = 'ReadDataNode', **kwargs) -> None:
+        super().__init__(processor, name, 1, config, node_type, **kwargs)
         if dataset is None:
             raise Exception('dataset can not be None!')
         self.node_config['dataset'] = dataset
-        self.node_config['is_source'] = is_source
 
     def dataset(self):
         return self.node_config.get('dataset')
 
-    def is_source(self) -> bool:
-        return self.node_config['is_source']
+
+class WriteDatasetNode(AINode):
+    def __init__(self,
+                 dataset: DatasetMeta,
+                 processor: object = None,
+                 name: Text = None,
+                 config: JobConfig = None,
+                 node_type: Text = 'WriteDataNode', **kwargs) -> None:
+        super().__init__(processor, name, 0, config, node_type, **kwargs)
+        if dataset is None:
+            raise Exception('dataset can not be None!')
+        self.node_config['dataset'] = dataset
+
+    def dataset(self):
+        return self.node_config.get('dataset')
+

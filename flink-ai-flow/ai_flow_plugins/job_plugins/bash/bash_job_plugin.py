@@ -25,10 +25,11 @@ from ai_flow.translator.translator import JobGenerator
 from ai_flow.util import serialization_utils
 from ai_flow.workflow.job_config import JobConfig
 from ai_flow.ai_graph.ai_graph import AISubGraph
-from ai_flow.plugin_interface.job_plugin_interface import AbstractJobPluginFactory, JobHandler, JobRuntimeEnv, \
+from ai_flow.plugin_interface.job_plugin_interface import JobPluginFactory, JobHandle, JobRuntimeEnv, \
     JobController
 from ai_flow.plugin_interface.scheduler_interface import JobExecutionInfo
 from ai_flow.workflow.job import Job
+from ai_flow.workflow.status import Status
 from ai_flow_plugins.job_plugins.bash.bash_job_config import BashJobConfig
 from ai_flow_plugins.job_plugins.bash.bash_processor import BashProcessor
 
@@ -39,7 +40,7 @@ class BashJob(Job):
         self.sub_graph_path = None
 
 
-class BashJobHandler(JobHandler):
+class BashJobHandle(JobHandle):
 
     def __init__(self, job: Job,
                  job_execution: JobExecutionInfo):
@@ -48,7 +49,7 @@ class BashJobHandler(JobHandler):
         self.sub_graph_path = None
         self.lines = {}
 
-    def get_result(self) -> object:
+    def try_get_result(self) -> object:
         return self.lines
 
     def wait_until_finish(self):
@@ -72,8 +73,7 @@ class BashJobHandler(JobHandler):
             self.lines[k] = line
 
 
-class BashJobPluginFactory(AbstractJobPluginFactory, JobGenerator, JobController):
-
+class BashJobPluginFactory(JobPluginFactory, JobGenerator, JobController):
     def __init__(self) -> None:
         super().__init__()
 
@@ -88,8 +88,8 @@ class BashJobPluginFactory(AbstractJobPluginFactory, JobGenerator, JobController
             fp.write(serialization_utils.serialize(executors))
         return job
 
-    def submit_job(self, job: Job, job_runtime_env: JobRuntimeEnv) -> JobHandler:
-        handler = BashJobHandler(job=job, job_execution=job_runtime_env.job_execution_info)
+    def submit_job(self, job: Job, job_runtime_env: JobRuntimeEnv) -> JobHandle:
+        handler = BashJobHandle(job=job, job_execution=job_runtime_env.job_execution_info)
         bash_job: BashJob = job
         executor_file = os.path.join(job_runtime_env.generated_dir, bash_job.sub_graph_path)
         with open(executor_file, 'rb') as f:
@@ -106,9 +106,9 @@ class BashJobPluginFactory(AbstractJobPluginFactory, JobGenerator, JobController
         handler.sub_graph_path = executor_file
         return handler
 
-    def stop_job(self, job_handler: JobHandler, job_runtime_env: JobRuntimeEnv = None):
-        handler: BashJobHandler = job_handler
-        executor_file = job_handler.sub_graph_path
+    def stop_job(self, job_handle: JobHandle, job_runtime_env: JobRuntimeEnv = None):
+        handler: BashJobHandle = job_handle
+        executor_file = job_handle.sub_graph_path
         with open(executor_file, 'rb') as f:
             executors: Dict = serialization_utils.deserialize(f.read())
         for k, v in executors.items():
@@ -122,7 +122,7 @@ class BashJobPluginFactory(AbstractJobPluginFactory, JobGenerator, JobController
                     except Exception:
                         time.sleep(1)
 
-    def cleanup_job(self, job_handler: JobHandler, job_runtime_env: JobRuntimeEnv = None):
+    def cleanup_job(self, job_handle: JobHandle, job_runtime_env: JobRuntimeEnv = None):
         pass
 
     def get_job_generator(self) -> JobGenerator:
@@ -154,3 +154,29 @@ class BashJobPluginFactory(AbstractJobPluginFactory, JobGenerator, JobController
             preexec_fn=pre_exec,
         )
         return sub_process
+
+    def get_result(self, job_handle: JobHandle, blocking: bool = True) -> object:
+        handle: BashJobHandle = job_handle
+        if blocking:
+            with open(handle.sub_graph_path, 'rb') as f:
+                executors: Dict = serialization_utils.deserialize(f.read())
+            for k, v in executors.items():
+                self.log.info('{} Output:'.format(k))
+                sub_process = handle.sub_process.get(k)
+                line = ''
+                for raw_line in iter(sub_process.stdout.readline, b''):
+                    line = raw_line.decode(v.output_encoding).rstrip()
+                    self.log.info("%s", line)
+
+                sub_process.wait()
+
+                self.log.info('Command exited with return code %s', sub_process.returncode)
+
+                if sub_process.returncode != 0:
+                    raise Exception('Bash command failed. The command returned a non-zero exit code {}.'
+                                    .format(sub_process.returncode))
+                handle.lines[k] = line
+        return handle.lines
+
+    def get_job_status(self, job_handle: JobHandle) -> Status:
+        pass

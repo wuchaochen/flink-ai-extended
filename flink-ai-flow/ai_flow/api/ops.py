@@ -20,7 +20,7 @@ from typing import Union, Text, Tuple, Optional, List
 from notification_service.base_notification import UNDEFINED_EVENT_TYPE, ANY_CONDITION
 from ai_flow.workflow.periodic_config import PeriodicConfig
 from ai_flow.client.ai_flow_client import get_ai_flow_client
-from ai_flow.ai_graph.ai_node import AINode, IONode
+from ai_flow.ai_graph.ai_node import AINode, ReadDatasetNode, WriteDatasetNode
 from ai_flow.util import json_utils
 from ai_flow.graph.channel import Channel
 from ai_flow.workflow.control_edge import ControlEdge, \
@@ -31,49 +31,6 @@ from ai_flow.meta.model_meta import ModelMeta, ModelVersionMeta
 from ai_flow.context.project_context import current_project_config
 from ai_flow.context.workflow_config_loader import current_workflow_config
 from ai_flow.workflow.status import Status
-
-
-def io_operation(
-        dataset: DatasetMeta,
-        is_source: bool = True,
-        processor=None,
-        input_data: Union[None, Channel, List[Channel]] = None,
-        output_num=1,
-        name: Text = None,
-        operation_type: Text = 'user_define_operation') -> Union[None, Channel, Tuple[Channel]]:
-    """
-    IO operator.
-    :param dataset: Information about the dataset. Its type is py:class:`ai_flow.meta.dataset_meta.DatasetMeta`.
-    :param is_source: If the operation read data, the param is_source is True.
-                      If the operation write date, the param is_source is False.
-    :param operation_type: The type of the operation.
-    :param processor: The user defined function in operator. User can write their own logic here.
-    :param input_data: List of input data. It contains multiple channels from the operators which generate data.
-    :param output_num: The output number of the operator. The default value is 1.
-    :param name: Name of this operator.
-    :return: None or Channel or Tuple[Channel].
-    """
-    node = IONode(name=name,
-                  processor=processor,
-                  properties=None,
-                  output_num=output_num,
-                  node_type=operation_type,
-                  dataset=dataset,
-                  is_source=is_source)
-    add_ai_node_to_graph(node, inputs=input_data)
-    outputs = node.outputs()
-    if 0 == output_num:
-        return None
-    else:
-        if 1 == len(outputs):
-            output: Channel = outputs[0]
-            return output
-        else:
-            output: List[Channel] = []
-            for i in outputs:
-                tmp: Channel = i
-                output.append(tmp)
-            return tuple(output)
 
 
 def read_dataset(dataset_info: Union[DatasetMeta, Text, int],
@@ -97,12 +54,15 @@ def read_dataset(dataset_info: Union[DatasetMeta, Text, int],
     else:
         dataset_meta = get_ai_flow_client().get_dataset_by_id(dataset_info)
 
-    return io_operation(dataset=dataset_meta,
-                        is_source=True,
-                        processor=read_dataset_processor,
-                        output_num=1,
-                        name=name,
-                        operation_type='read_dataset')
+    node = ReadDatasetNode(name=name,
+                           processor=read_dataset_processor,
+                           properties=None,
+                           node_type='read_dataset',
+                           dataset=dataset_meta)
+    add_ai_node_to_graph(node, inputs=None)
+    outputs = node.outputs()
+    output: Channel = outputs[0]
+    return output
 
 
 def write_dataset(input: Channel,
@@ -129,13 +89,13 @@ def write_dataset(input: Channel,
     else:
         dataset_meta = get_ai_flow_client().get_dataset_by_id(dataset_info)
 
-    return io_operation(input_data=input,
-                        dataset=dataset_meta,
-                        is_source=False,
-                        processor=write_dataset_processor,
-                        name=name,
-                        output_num=0,
-                        operation_type='write_dataset')
+    node = WriteDatasetNode(name=name,
+                            processor=write_dataset_processor,
+                            properties=None,
+                            node_type='write_dataset',
+                            dataset=dataset_meta)
+    add_ai_node_to_graph(node, inputs=input)
+    return None
 
 
 def transform(input: Union[Channel, List[Channel]],
@@ -556,10 +516,10 @@ def action_on_dataset_event(job_name: Text,
                     )
 
 
-def action_on_status(job_name: Text,
-                     upstream_job_name: Text,
-                     upstream_job_status: Status = Status.FINISHED,
-                     action: TaskAction = TaskAction.START):
+def action_on_job_status(job_name: Text,
+                         upstream_job_name: Text,
+                         upstream_job_status: Status = Status.FINISHED,
+                         action: TaskAction = TaskAction.START):
     """
     Trigger job by upstream job status changed.
     :param job_name: The job name

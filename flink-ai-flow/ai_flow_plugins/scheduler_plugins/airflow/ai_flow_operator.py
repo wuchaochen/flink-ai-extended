@@ -21,7 +21,7 @@ from airflow.utils.decorators import apply_defaults
 from ai_flow.common.module_load import import_string
 from ai_flow.util.time_utils import datetime_to_int64
 from ai_flow.plugin_interface.blob_manager_interface import BlobManagerFactory
-from ai_flow.plugin_interface.job_plugin_interface import JobController, JobHandler, JobRuntimeEnv
+from ai_flow.plugin_interface.job_plugin_interface import JobController, JobHandle, JobRuntimeEnv
 from ai_flow.plugin_interface.scheduler_interface import JobExecutionInfo, WorkflowExecutionInfo, WorkflowInfo
 from ai_flow.context.project_context import build_project_context
 from ai_flow.workflow.job import Job
@@ -44,7 +44,7 @@ class AIFlowOperator(BaseOperator):
         module, name = plugins.get(self.job.job_config.job_type)
         class_object = import_string('{}.{}'.format(module, name))
         self.job_controller: JobController = class_object()
-        self.job_handler: JobHandler = None
+        self.job_handler: JobHandle = None
         self.job_runtime_env: JobRuntimeEnv = None
 
     def context_to_job_info(self, project_name: Text, context: Any) -> JobExecutionInfo:
@@ -95,9 +95,8 @@ class AIFlowOperator(BaseOperator):
 
     def execute(self, context: Any):
         self.log.info("context:" + str(context))
-        self.job_handler: JobHandler = self.job_controller.submit_job(self.job, self.job_runtime_env)
-        self.job_handler.wait_until_finish()
-        result = self.job_handler.get_result()
+        self.job_handler: JobHandle = self.job_controller.submit_job(self.job, self.job_runtime_env)
+        result = self.job_controller.get_result(job_handle=self.job_handler, blocking=True)
         self.job_controller.cleanup_job(self.job_handler, self.job_runtime_env)
         return result
 

@@ -18,7 +18,7 @@
 #
 import unittest
 from ai_flow.meta.dataset_meta import DatasetMeta
-from ai_flow.ai_graph.ai_node import AINode, IONode
+from ai_flow.ai_graph.ai_node import AINode, ReadDatasetNode, WriteDatasetNode
 from ai_flow.workflow.control_edge import ConditionConfig
 from ai_flow.workflow.job_config import JobConfig
 from ai_flow.project.project_config import ProjectConfig
@@ -32,16 +32,16 @@ def build_ai_graph(node_number, job_number) -> AIGraph:
         j = i % job_number
         config = JobConfig(job_name='job_{}'.format(j), job_type='mock')
         if 0 == i:
-            ai_node = IONode(dataset=DatasetMeta(name='source'), is_source=True)
+            ai_node = ReadDatasetNode(dataset=DatasetMeta(name='source'))
         elif 3 == i:
-            ai_node = IONode(dataset=DatasetMeta(name='source'), is_source=False)
+            ai_node = WriteDatasetNode(dataset=DatasetMeta(name='sink'))
         else:
             ai_node = AINode()
         ai_node.config = config
         graph.nodes[ai_node.node_id] = ai_node
 
-    add_data_edge(graph=graph, to_='AINode_4', from_='IONode_0')
-    add_data_edge(graph=graph, to_='AINode_4', from_='IONode_1')
+    add_data_edge(graph=graph, to_='AINode_4', from_='ReadDatasetNode_0')
+    add_data_edge(graph=graph, to_='AINode_4', from_='WriteDatasetNode_1')
     add_control_edge(graph, 'job_2', 'job_0')
     add_control_edge(graph, 'job_2', 'job_1')
 

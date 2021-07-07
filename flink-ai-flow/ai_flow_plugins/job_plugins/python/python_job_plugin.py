@@ -30,10 +30,11 @@ from ai_flow.util import serialization_utils
 from ai_flow.util import json_utils
 from ai_flow.workflow.job_config import JobConfig
 from ai_flow.ai_graph.ai_graph import AISubGraph
-from ai_flow.plugin_interface.job_plugin_interface import AbstractJobPluginFactory, JobHandler, JobRuntimeEnv, \
+from ai_flow.plugin_interface.job_plugin_interface import JobPluginFactory, JobHandle, JobRuntimeEnv, \
     JobController
 from ai_flow.plugin_interface.scheduler_interface import JobExecutionInfo
 from ai_flow.workflow.job import Job
+from ai_flow.workflow.status import Status
 from ai_flow_plugins.job_plugins.python.python_job_config import PythonJobConfig
 from ai_flow_plugins.job_plugins.python.python_processor import PythonProcessor, ExecutionContext
 
@@ -97,7 +98,7 @@ class PythonJob(Job):
         self.run_graph_file: Text = None
 
 
-class PythonJobHandler(JobHandler):
+class PythonJobHandle(JobHandle):
 
     def __init__(self, job: Job,
                  job_execution: JobExecutionInfo):
@@ -105,18 +106,8 @@ class PythonJobHandler(JobHandler):
         self.sub_process = None
         self.run_args_file = None
 
-    def wait_until_finish(self):
-        self.log.info('Output:')
-        self.sub_process.wait()
-        self.log.info('Command exited with return code %s', self.sub_process.returncode)
 
-        if self.sub_process.returncode != 0:
-            raise Exception('python returned a non-zero exit code {}.'.format(self.sub_process.returncode))
-        return None
-
-
-class PythonJobPluginFactory(AbstractJobPluginFactory, JobGenerator, JobController):
-
+class PythonJobPluginFactory(JobPluginFactory, JobGenerator, JobController):
     def __init__(self) -> None:
         super().__init__()
 
@@ -170,7 +161,7 @@ class PythonJobPluginFactory(AbstractJobPluginFactory, JobGenerator, JobControll
             fp.write(serialization_utils.serialize(run_graph))
         return job
 
-    def submit_job(self, job: Job, job_runtime_env: JobRuntimeEnv = None) -> JobHandler:
+    def submit_job(self, job: Job, job_runtime_env: JobRuntimeEnv = None) -> JobHandle:
         run_args: RunArgs = RunArgs(working_dir=job_runtime_env.working_dir,
                                     job_execution_info=job_runtime_env.job_execution_info)
 
@@ -178,7 +169,7 @@ class PythonJobPluginFactory(AbstractJobPluginFactory, JobGenerator, JobControll
                                 prefix='{}_run_args_'.format(job.job_name), delete=False) as fp:
             run_args_file = fp.name
             fp.write(serialization_utils.serialize(run_args))
-        handler = PythonJobHandler(job=job, job_execution=job_runtime_env.job_execution_info)
+        handler = PythonJobHandle(job=job, job_execution=job_runtime_env.job_execution_info)
         python_job: PythonJob = job
         run_graph_file = os.path.join(job_runtime_env.generated_dir, python_job.run_graph_file)
 
@@ -209,8 +200,8 @@ class PythonJobPluginFactory(AbstractJobPluginFactory, JobGenerator, JobControll
         handler.run_args_file = run_args_file
         return handler
 
-    def stop_job(self, job_handler: JobHandler, job_runtime_env: Any = None):
-        handler: PythonJobHandler = job_handler
+    def stop_job(self, job_handle: JobHandle, job_runtime_env: Any = None):
+        handler: PythonJobHandle = job_handle
         self.log.info('Output:')
         sub_process = handler.sub_process
         self.log.info('Sending SIGTERM signal to python process group')
@@ -221,9 +212,9 @@ class PythonJobPluginFactory(AbstractJobPluginFactory, JobGenerator, JobControll
                 except Exception:
                     time.sleep(1)
 
-    def cleanup_job(self, job_handler: JobHandler, job_runtime_env: Any = None):
-        if os.path.exists(job_handler.run_args_file):
-            os.remove(job_handler.run_args_file)
+    def cleanup_job(self, job_handle: JobHandle, job_runtime_env: Any = None):
+        if os.path.exists(job_handle.run_args_file):
+            os.remove(job_handle.run_args_file)
 
     def job_type(self) -> Text:
         return "python"
@@ -254,3 +245,18 @@ class PythonJobPluginFactory(AbstractJobPluginFactory, JobGenerator, JobControll
                 preexec_fn=pre_exec,
             )
         return sub_process
+
+    def get_result(self, job_handle: JobHandle, blocking: bool = True) -> object:
+        handle: PythonJobHandle = job_handle
+        if blocking:
+            handle.sub_process.wait()
+            self.log.info('Command exited with return code %s', handle.sub_process.returncode)
+
+            if handle.sub_process.returncode != 0:
+                raise Exception('python returned a non-zero exit code {}.'.format(handle.sub_process.returncode))
+            return None
+        else:
+            return None
+
+    def get_job_status(self, job_handle: JobHandle) -> Status:
+        pass

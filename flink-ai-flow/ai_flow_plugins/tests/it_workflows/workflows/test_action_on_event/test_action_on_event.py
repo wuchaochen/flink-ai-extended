@@ -88,7 +88,7 @@ class TestActionOnEvent(unittest.TestCase):
                 af.user_define_operation(processor=bash.BashProcessor(bash_command='echo "Xiao ming hello world!"'))
             with af.job_config('task_2'):
                 af.user_define_operation(processor=bash.BashProcessor(bash_command='echo "Xiao li hello world!"'))
-            af.action_on_status('task_2', 'task_1', Status.FINISHED, TaskAction.START)
+            af.action_on_job_status('task_2', 'task_1', Status.FINISHED, TaskAction.START)
             workflow_info = af.workflow_operation.submit_workflow(
                 workflow_name=af.current_workflow_config().workflow_name)
             workflow_execution = af.workflow_operation.start_new_workflow_execution(

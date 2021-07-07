@@ -17,7 +17,7 @@
 
 import unittest
 import os
-from ai_flow.ai_graph.ai_node import AINode
+from ai_flow.ai_graph.ai_node import AINode, ReadDatasetNode, WriteDatasetNode
 from ai_flow.api import ops
 from ai_flow.ai_graph.ai_graph import current_graph
 from ai_flow.api.ai_flow_context import init_ai_flow_context
@@ -89,9 +89,9 @@ class TestOps(unittest.TestCase):
         self.assertEqual(1, len(current_graph().edges))
         node_list = list(current_graph().nodes.values())
         for node in node_list:
-            if node.is_source():
+            if isinstance(node, ReadDatasetNode):
                 self.assertEqual('source', node.node_config.get('dataset').name)
-            else:
+            elif isinstance(node, WriteDatasetNode):
                 self.assertEqual('sink', node.node_config.get('dataset').name)
             self.assertEqual('mock', node.config.job_type)
 
@@ -178,9 +178,9 @@ class TestOps(unittest.TestCase):
             o1 = ops.user_define_operation(processor=None, a='a', name='1')
         with job_config('task_2'):
             o2 = ops.user_define_operation(processor=None, b='b', name='2')
-        ops.action_on_status(job_name='task_1',
-                             upstream_job_name='task_2',
-                             upstream_job_status=Status.FINISHED, action=TaskAction.START)
+        ops.action_on_job_status(job_name='task_1',
+                                 upstream_job_name='task_2',
+                                 upstream_job_status=Status.FINISHED, action=TaskAction.START)
         self.assertEqual(1, len(current_graph().edges))
         edge: ControlEdge = current_graph().edges.get('task_1')[0]
         self.assertEqual('task_1', edge.destination)
