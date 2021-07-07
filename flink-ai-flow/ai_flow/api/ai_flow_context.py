@@ -23,8 +23,7 @@ from ai_flow.client.ai_flow_client import get_ai_flow_client
 
 def init_ai_flow_context():
     """
-    Init project description, project config, workflow config.
-    If workflow_entry_file is None, it means this function is called in workflow definition file.
+    Init project context, project config, workflow config.
     :return: None
     """
     stack = traceback.extract_stack()
