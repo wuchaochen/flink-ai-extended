@@ -558,10 +558,10 @@ def action_on_dataset_event(job_name: Text,
 
 def action_on_status(job_name: Text,
                      upstream_job_name: Text,
-                     upstream_job_status: Status,
-                     action: TaskAction):
+                     upstream_job_status: Status = Status.FINISHED,
+                     action: TaskAction = TaskAction.START):
     """
-    Trigger job by upstream job state changed.
+    Trigger job by upstream job status changed.
     :param job_name: The job name
     :param upstream_job_name: The upstream job name
     :param upstream_job_status: The upstream job status, type: ai_flow.workflow.status.Status
