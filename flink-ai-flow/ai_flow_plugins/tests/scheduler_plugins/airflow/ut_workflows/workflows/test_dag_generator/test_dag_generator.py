@@ -99,11 +99,12 @@ class TestDagGenerator(unittest.TestCase):
     def test_periodic_cron_workflow(self):
         workflow_config_ = af.current_workflow_config()
         workflow_config_.periodic_config = PeriodicConfig(trigger_config={'start_date': "2020,1,1,,,,Asia/Chongqing",
-                                                                          'cron': "* * * * * * *"})
+                                                                          'cron': "*/5 * * * * * *"})
         with af.job_config('task_1'):
             af.user_define_operation(processor=None)
         w = af.workflow_operation.submit_workflow(workflow_name='test_dag_generator')
         code = w.properties.get('code')
+        print(code)
         self.assertTrue('op_0 = AIFlowOperator' in code)
         self.assertTrue('datetime' in code)
         self.assertTrue('schedule_interval' in code)

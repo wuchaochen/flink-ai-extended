@@ -43,7 +43,7 @@ def start_scheduler(file_path, port=50051, executor=None):
 
 def run_ai_flow_workflow(dag_id, test_function: Callable[[NotificationClient], None], port=50051, executor=None):
     def run_test_fun():
-        time.sleep(3)
+        time.sleep(5)
         client = NotificationClient(server_uri="localhost:{}".format(port),
                                     default_namespace="test")
         try:

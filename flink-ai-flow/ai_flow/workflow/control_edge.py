@@ -81,10 +81,12 @@ class ControlEdge(Edge):
 
     def __init__(self,
                  destination: Text,
-                 condition_config: ConditionConfig
+                 condition_config: ConditionConfig,
+                 extra_information: Jsonable = None
                  ) -> None:
         super().__init__(condition_config.sender, destination)
         self.condition_config = condition_config
+        self.extra_information = extra_information
 
 
 class AIFlowInternalEventType(object):

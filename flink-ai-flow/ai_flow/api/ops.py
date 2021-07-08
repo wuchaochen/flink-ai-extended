@@ -17,6 +17,8 @@
 # under the License.
 #
 from typing import Union, Text, Tuple, Optional, List
+
+from ai_flow.util.json_utils import Jsonable
 from notification_service.base_notification import UNDEFINED_EVENT_TYPE, ANY_CONDITION
 from ai_flow.workflow.periodic_config import PeriodicConfig
 from ai_flow.client.ai_flow_client import get_ai_flow_client
@@ -429,6 +431,7 @@ def action_on_event(job_name: Text,
                     action: TaskAction = TaskAction.START,
                     life: EventLife = EventLife.ONCE,
                     value_condition: MetValueCondition = MetValueCondition.EQUALS,
+                    extra_information: Jsonable = None
                     ):
     """
        Add user defined control logic.
@@ -446,6 +449,7 @@ def action_on_event(job_name: Text,
                                equals to the event value under the specific event key, while update means src channel
                                will start or restart when in the the condition that the notification service has a update
                                operation on the event key which event value belongs to.
+       :param extra_information: Maybe pass some edge's extra information to the scheduler.
        :return:None.
        """
     control_edge = ControlEdge(destination=job_name,
@@ -458,7 +462,8 @@ def action_on_event(job_name: Text,
                                    life=life,
                                    value_condition=value_condition,
                                    namespace=namespace,
-                                   sender=sender)
+                                   sender=sender),
+                               extra_information=extra_information
                                )
     current_graph().add_edge(job_name, control_edge)
 
@@ -553,7 +558,8 @@ def periodic_run(job_name: Text,
                     event_key=current_workflow_config().workflow_name,
                     event_type=AIFlowInternalEventType.PERIODIC_ACTION,
                     sender=ANY_CONDITION,
-                    event_value=json_utils.dumps(periodic_config),
+                    event_value='',
                     action=action,
                     condition=ConditionType.SUFFICIENT,
-                    namespace=current_project_config().get_project_name())
+                    namespace=current_project_config().get_project_name(),
+                    extra_information=periodic_config)

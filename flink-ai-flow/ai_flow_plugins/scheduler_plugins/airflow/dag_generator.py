@@ -56,7 +56,7 @@ workflow = json_utils.loads(workflow_json)
 
     DAG_DEFINE = """dag = DAG(dag_id='{0}', default_args=default_args)\n"""
 
-    PERIODIC_CONFIG = """op_{0}.executor_config = {{'periodic_config': {1}}}\n"""
+    PERIODIC_CONFIG = """{0}.executor_config = {{'periodic_config': {1}}}\n"""
 
     UPSTREAM_OP = """{0}.set_upstream({1})\n"""
 
@@ -127,22 +127,6 @@ op_{0} = AIFlowOperator(task_id='{2}', job=job_{0}, workflow=workflow, dag=dag)
             op_name, code = self.generate_op_code(job)
             code_text += code
             task_map[job.job_name] = op_name
-            # add periodic
-            if name in workflow.control_edges:
-                edges = workflow.control_edges.get(name)
-                for edge in edges:
-                    if AIFlowInternalEventType.PERIODIC_ACTION == edge.condition_config.event_type:
-                        periodic_config: PeriodicConfig = json_utils.loads(edge.condition_config.event_value)
-                        if periodic_config.trigger_config.get('cron') is not None:
-                            code_text += \
-                                DAGTemplate.PERIODIC_CONFIG.format(self.op_count,
-                                                                   str({'cron': periodic_config.trigger_config.get('cron')}))
-                        elif periodic_config.trigger_config.get('interval') is not None:
-                            code_text += DAGTemplate.\
-                                PERIODIC_CONFIG.format(self.op_count,
-                                                       str({'interval': periodic_config.trigger_config.get('interval')}))
-                        else:
-                            raise Exception('periodic_config must set one of interval config or cron config!')
 
         for job_name, edges in workflow.control_edges.items():
             if job_name in task_map:
@@ -153,6 +137,20 @@ op_{0} = AIFlowOperator(task_id='{2}', job=job_{0}, workflow=workflow, dag=dag)
                     condition_config: ConditionConfig = edge.condition_config
                     if AIFlowInternalEventType.JOB_STATUS_CHANGED == condition_config.event_type:
                         upstream_configs.append(condition_config)
+                    elif AIFlowInternalEventType.PERIODIC_ACTION == edge.condition_config.event_type:
+                        periodic_config: PeriodicConfig = edge.extra_information
+                        if periodic_config.trigger_config.get('cron') is not None:
+                            code_text += \
+                                DAGTemplate.PERIODIC_CONFIG.format(op_name,
+                                                                   str({'cron': periodic_config.trigger_config.get(
+                                                                       'cron')}))
+                        elif periodic_config.trigger_config.get('interval') is not None:
+                            code_text += DAGTemplate. \
+                                PERIODIC_CONFIG.format(op_name,
+                                                       str({'interval': ','.join(
+                                                           ['0', periodic_config.trigger_config.get('interval')])}))
+                        else:
+                            raise Exception('periodic_config must set one of interval config or cron config!')
                     else:
                         def reset_met_config():
                             if condition_config.sender is None or '' == condition_config.sender:
@@ -201,11 +199,12 @@ op_{0} = AIFlowOperator(task_id='{2}', job=job_{0}, workflow=workflow, dag=dag)
                                                                               stat_date_items[4],
                                                                               stat_date_items[5],
                                                                               stat_date_items[6])
-
+        else:
+            exec_args['start_date'] = 'datetime.utcnow()'
         if periodic_config.trigger_config.get('cron') is not None:
             cron_items = periodic_config.get_cron_items()
             # airflow cron: minutes hours days months years weeks seconds
-            cron_airflow = ' '.join([cron_items[1], cron_items[2], cron_items[3], cron_items[4],
+            cron_airflow = ' '.join([cron_items[1], cron_items[2], cron_items[4],
                                      cron_items[6], cron_items[5], cron_items[0]])
             exec_args['schedule_interval'] = """'{}'""".format(cron_airflow)
         elif periodic_config.trigger_config.get('interval') is not None:

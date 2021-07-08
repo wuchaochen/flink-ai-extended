@@ -23,6 +23,7 @@ from typing import List
 from ai_flow.workflow.control_edge import TaskAction
 from airflow.models.dagrun import DagRun
 from airflow.models.taskinstance import TaskInstance
+from airflow.models.taskexecution import TaskExecution
 from airflow.utils.session import create_session
 from airflow.utils.state import State
 from notification_service.client import NotificationClient
@@ -137,6 +138,37 @@ class TestActionOnEvent(unittest.TestCase):
         run_ai_flow_workflow(dag_id=get_dag_id(af.current_project_config().get_project_name(),
                                                af.current_workflow_config().workflow_name),
                              test_function=run_workflow)
+
+    def run_periodic_task(self, trigger_config):
+        def run_workflow(client: NotificationClient):
+            with af.job_config('task_1'):
+                af.user_define_operation(processor=bash.BashProcessor(bash_command='echo "Xiao ming hello world!"'))
+            af.periodic_run(job_name='task_1',
+                            periodic_config=af.PeriodicConfig(trigger_config=trigger_config))
+            workflow_info = af.workflow_operation.submit_workflow(
+                workflow_name=af.current_workflow_config().workflow_name)
+            workflow_execution = af.workflow_operation.start_new_workflow_execution(
+                workflow_name=af.current_workflow_config().workflow_name)
+            while True:
+                with create_session() as session:
+                    tes = session.query(TaskExecution)\
+                        .filter(TaskExecution.dag_id == 'test_project.{}'
+                                .format(af.current_workflow_config().workflow_name),
+                                TaskExecution.task_id == 'task_1').all()
+                    if len(tes) == 2:
+                        break
+                    else:
+                        time.sleep(1)
+
+        run_ai_flow_workflow(dag_id=get_dag_id(af.current_project_config().get_project_name(),
+                                               af.current_workflow_config().workflow_name),
+                             test_function=run_workflow)
+
+    def test_periodic_cron_task(self):
+        self.run_periodic_task(trigger_config={'cron': '*/5 * * * * * *'})
+
+    def test_periodic_interval_task(self):
+        self.run_periodic_task(trigger_config={'interval': '0,0,0,5'})
 
 
 if __name__ == '__main__':
