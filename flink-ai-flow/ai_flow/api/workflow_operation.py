@@ -123,7 +123,7 @@ def start_new_workflow_execution(workflow_name: Text) -> WorkflowExecutionInfo:
     return proto_to_workflow_execution(get_ai_flow_client().start_new_workflow_execution(namespace, workflow_name))
 
 
-def kill_all_workflow_executions(workflow_name: Text) -> List[WorkflowExecutionInfo]:
+def stop_all_workflow_executions(workflow_name: Text) -> List[WorkflowExecutionInfo]:
     """
     Stop all instances of the workflow.
     :param workflow_name: The ai flow workflow identify.
@@ -133,7 +133,7 @@ def kill_all_workflow_executions(workflow_name: Text) -> List[WorkflowExecutionI
     return proto_to_workflow_execution_list(get_ai_flow_client().kill_all_workflow_executions(namespace, workflow_name))
 
 
-def kill_workflow_execution(execution_id: Text) -> WorkflowExecutionInfo:
+def stop_workflow_execution(execution_id: Text) -> WorkflowExecutionInfo:
     """
     Stop the instance of the workflow.
     :param execution_id: The ai flow workflow execution identify.

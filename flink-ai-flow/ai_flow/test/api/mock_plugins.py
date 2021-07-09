@@ -24,7 +24,7 @@ from ai_flow.plugin_interface.job_plugin_interface import JobPluginFactory, regi
 from ai_flow.translator.translator import JobGenerator
 from ai_flow.workflow.job import Job
 from ai_flow.plugin_interface.blob_manager_interface import BlobManager
-from ai_flow.plugin_interface.scheduler_interface import AbstractScheduler, JobExecutionInfo, WorkflowExecutionInfo, \
+from ai_flow.plugin_interface.scheduler_interface import Scheduler, JobExecutionInfo, WorkflowExecutionInfo, \
     WorkflowInfo
 
 from ai_flow.context.project_context import ProjectContext
@@ -73,7 +73,7 @@ class MockJobFactory(JobPluginFactory, JobGenerator, JobController):
         pass
 
 
-class MockScheduler(AbstractScheduler):
+class MockScheduler(Scheduler):
 
     def submit_workflow(self, workflow: Workflow, project_context: ProjectContext) -> WorkflowInfo:
         return WorkflowInfo(namespace=project_context.project_name, workflow_name=workflow.workflow_name)
@@ -87,11 +87,11 @@ class MockScheduler(AbstractScheduler):
     def start_new_workflow_execution(self, project_name: Text, workflow_name: Text) -> Optional[WorkflowExecutionInfo]:
         return WorkflowExecutionInfo(workflow_execution_id='1', status=Status.RUNNING)
 
-    def kill_all_workflow_execution(self, project_name: Text, workflow_name: Text) -> List[WorkflowExecutionInfo]:
+    def stop_all_workflow_execution(self, project_name: Text, workflow_name: Text) -> List[WorkflowExecutionInfo]:
         return [WorkflowExecutionInfo(workflow_execution_id='1', status=Status.RUNNING),
                 WorkflowExecutionInfo(workflow_execution_id='2', status=Status.RUNNING)]
 
-    def kill_workflow_execution(self, execution_id: Text) -> Optional[WorkflowExecutionInfo]:
+    def stop_workflow_execution(self, execution_id: Text) -> Optional[WorkflowExecutionInfo]:
         return WorkflowExecutionInfo(workflow_execution_id='1', status=Status.RUNNING)
 
     def get_workflow_execution(self, execution_id: Text) -> Optional[WorkflowExecutionInfo]:

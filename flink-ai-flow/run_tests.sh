@@ -52,6 +52,7 @@ function run_test_class() {
 
 mvn verify
 
+run_tests 'ai_flow/test/common/'
 run_tests 'ai_flow/test/graph'
 run_tests 'ai_flow/test/workflow'
 run_tests 'ai_flow/test/project'
@@ -63,14 +64,9 @@ run_tests 'ai_flow/test/plugin_interface'
 run_tests 'ai_flow/test/scheduler'
 run_tests 'ai_flow/test/api'
 
-#run_tests 'ai_flow/test/common/'
-#run_tests 'ai_flow/test/store/'
-#run_tests 'ai_flow/test/model_center/'
-#run_tests 'ai_flow/test/endpoint/server/'
-#
-#run_test_class 'ai_flow/test/endpoint/' 'test_client.TestAIFlowClientSqlite'
-#run_test_class 'ai_flow/test/endpoint/' 'test_mysql_client.TestAIFlowClientMySQL'
-#run_test_class 'ai_flow/test/endpoint/' 'test_high_availability.TestHighAvailableAIFlowServer'
-
-
-
+run_tests 'ai_flow/test/store/'
+run_tests 'ai_flow/test/model_center/'
+run_tests 'ai_flow/test/endpoint/server/'
+run_test_class 'ai_flow/test/endpoint/' 'test_client.TestAIFlowClientSqlite'
+run_test_class 'ai_flow/test/endpoint/' 'test_mysql_client.TestAIFlowClientMySQL'
+run_test_class 'ai_flow/test/endpoint/' 'test_high_availability.TestHighAvailableAIFlowServer'

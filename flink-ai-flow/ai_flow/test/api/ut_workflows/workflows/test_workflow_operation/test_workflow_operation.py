@@ -91,12 +91,12 @@ class TestWorkflowOperation(unittest.TestCase):
 
     def test_kill_all_workflow_execution(self):
 
-        ws = workflow_operation.kill_all_workflow_executions(workflow_name='workflow_1')
+        ws = workflow_operation.stop_all_workflow_executions(workflow_name='workflow_1')
         self.assertEqual(2, len(ws))
 
     def test_kill_workflow_execution(self):
 
-        w = workflow_operation.kill_workflow_execution(execution_id='1')
+        w = workflow_operation.stop_workflow_execution(execution_id='1')
         self.assertEqual('1', w.workflow_execution_id)
 
     def test_get_workflow_execution(self):

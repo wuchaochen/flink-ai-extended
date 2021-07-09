@@ -18,7 +18,6 @@
 #
 import os
 
-from ai_flow.api.configuration import set_project_config_file, project_config
 from ai_flow.util import path_util
 
 DEFAULT_MYSQL_USERNAME = ''

@@ -42,7 +42,7 @@ class TestAIFlowClientMySQL(test_client.TestAIFlowClientSqlite):
         cls.engine.execute('DROP DATABASE IF EXISTS %s' % cls.db_name)
         cls.engine.execute('CREATE DATABASE IF NOT EXISTS %s' % cls.db_name)
         cls.store_uri = '%s/%s' % (db_server_url, cls.db_name)
-        cls.server = AIFlowServer(store_uri=cls.store_uri, port=_PORT)
+        cls.server = AIFlowServer(store_uri=cls.store_uri, port=_PORT, start_scheduler_service=False)
         cls.server.run()
         test_client.client = AIFlowClient(server_uri='localhost:' + _PORT)
         test_client.client1 = AIFlowClient(server_uri='localhost:' + _PORT)

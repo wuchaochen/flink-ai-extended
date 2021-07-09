@@ -17,12 +17,12 @@
 from typing import Dict
 
 from ai_flow.common.module_load import import_string
-from ai_flow.plugin_interface.scheduler_interface import AbstractScheduler
+from ai_flow.plugin_interface.scheduler_interface import Scheduler
 
 
 class SchedulerFactory(object):
 
     @classmethod
-    def create_scheduler(cls, class_name, config: Dict) -> AbstractScheduler:
+    def create_scheduler(cls, class_name, config: Dict) -> Scheduler:
         class_object = import_string(class_name)
         return class_object(config)

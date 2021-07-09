@@ -176,7 +176,8 @@ class AIFlowClient(MetadataClient, ModelCenterClient, NotificationClient, Metric
                 try:
                     return current_func(*args, **kwargs)
                 except grpc.RpcError:
-                    logging.error("Exception thrown when calling rpc, change the connection.",
+                    logging.error("Exception thrown when calling rpc server uri {}, change the connection."
+                                  .format(current_func.server_uri),
                                   exc_info=True)
                     with self.aiflow_ha_change_lock:
                         # check the current_uri to ensure thread safety
@@ -196,6 +197,7 @@ class AIFlowClient(MetadataClient, ModelCenterClient, NotificationClient, Metric
                                                        current_func.__name__).inner_func
                                 self.current_aiflow_uri = next_uri
                                 found_new_member = True
+                                logging.error('Found living server {}'.format(next_uri))
                             if not found_new_member:
                                 logging.error("No available living members currently. Sleep and retry.")
                                 failed_members.clear()
