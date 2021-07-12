@@ -68,8 +68,8 @@ def _set_job_plugins(workflow: Workflow):
 def submit_workflow(workflow_name: Text = None) -> WorkflowInfo:
     """
     Submit the ai flow workflow to the scheduler.
-    :param workflow_name: The ai flow workflow identify.
-    :return: The result of the submit action.
+    :param workflow_name: The name of the workflow(ai_flow.workflow.workflow.Workflow).
+    :return: The information of the workflow.
     """
     if current_graph().is_empty():
         raise EmptyGraphException("Cannot submit empty graph")
@@ -96,8 +96,8 @@ def _apply_full_info_to_workflow(entry_module_path, workflow):
 def pause_workflow_scheduling(workflow_name: Text = None) -> WorkflowInfo:
     """
     Pause the ai flow workflow from the scheduler.
-    :param workflow_name: The ai flow workflow identify.
-    :return: The result of the action.
+    :param workflow_name: The name of the workflow(ai_flow.workflow.workflow.Workflow).
+    :return: The information of the workflow.
     """
     namespace = current_project_config().get_project_name()
     return proto_to_workflow(get_ai_flow_client().pause_workflow_scheduling(namespace, workflow_name))
@@ -106,8 +106,8 @@ def pause_workflow_scheduling(workflow_name: Text = None) -> WorkflowInfo:
 def resume_workflow_scheduling(workflow_name: Text = None) -> WorkflowInfo:
     """
     Resume the ai flow workflow from the scheduler.
-    :param workflow_name: The ai flow workflow identify.
-    :return: The result of the action.
+    :param workflow_name: The name of the workflow(ai_flow.workflow.workflow.Workflow).
+    :return: The information of the workflow.
     """
     namespace = current_project_config().get_project_name()
     return proto_to_workflow(get_ai_flow_client().resume_workflow_scheduling(namespace, workflow_name))
@@ -116,8 +116,8 @@ def resume_workflow_scheduling(workflow_name: Text = None) -> WorkflowInfo:
 def start_new_workflow_execution(workflow_name: Text) -> WorkflowExecutionInfo:
     """
     Run the project under the current project path.
-    :param workflow_name: The ai flow workflow identify.
-    :return: The result of the run action.
+    :param workflow_name: The name of the workflow(ai_flow.workflow.workflow.Workflow).
+    :return: The information of a execution of workflow.
     """
     namespace = current_project_config().get_project_name()
     return proto_to_workflow_execution(get_ai_flow_client().start_new_workflow_execution(namespace, workflow_name))
@@ -126,8 +126,8 @@ def start_new_workflow_execution(workflow_name: Text) -> WorkflowExecutionInfo:
 def stop_all_workflow_executions(workflow_name: Text) -> List[WorkflowExecutionInfo]:
     """
     Stop all instances of the workflow.
-    :param workflow_name: The ai flow workflow identify.
-    :return: The result of the action.
+    :param workflow_name: The name of the workflow(ai_flow.workflow.workflow.Workflow).
+    :return: The information of executions of workflow.
     """
     namespace = current_project_config().get_project_name()
     return proto_to_workflow_execution_list(get_ai_flow_client().kill_all_workflow_executions(namespace, workflow_name))
@@ -137,7 +137,7 @@ def stop_workflow_execution(execution_id: Text) -> WorkflowExecutionInfo:
     """
     Stop the instance of the workflow.
     :param execution_id: The ai flow workflow execution identify.
-    :return: The result of the action.
+    :return: The information of a execution of workflow.
     """
     return proto_to_workflow_execution(get_ai_flow_client().kill_workflow_execution(execution_id))
 
@@ -145,15 +145,15 @@ def stop_workflow_execution(execution_id: Text) -> WorkflowExecutionInfo:
 def get_workflow_execution(execution_id: Text) -> WorkflowExecutionInfo:
     """
     Get the WorkflowExecutionInfo from scheduler.
-    :param execution_id:
-    :return: WorkflowExecutionInfo
+    :param execution_id: The workflow identity of one execution.
+    :return: The information of a execution of workflow.
     """
     return proto_to_workflow_execution(get_ai_flow_client().get_workflow_execution(execution_id))
 
 
 def list_workflow_executions(workflow_name: Text) -> List[WorkflowExecutionInfo]:
     """
-    :param workflow_name: The ai flow workflow identify.
+    :param workflow_name: The name of the workflow(ai_flow.workflow.workflow.Workflow).
     :return: All workflow executions of the workflow.
     """
     namespace = current_project_config().get_project_name()
@@ -165,8 +165,8 @@ def start_job_execution(job_name: Text,
     """
     Start a job defined in the ai flow workflow.
     :param job_name: The job name which task defined in workflow.
-    :param execution_id: The ai flow workflow execution identify.
-    :return: The result of the action.
+    :param execution_id: The workflow identity of one execution.
+    :return: Information about one execution of the job.
     """
     return proto_to_job(get_ai_flow_client().start_job(job_name, execution_id))
 
@@ -176,8 +176,8 @@ def stop_job_execution(job_name: Text,
     """
     Stop a job defined in the ai flow workflow.
     :param job_name: The job name which task defined in workflow.
-    :param execution_id: The ai flow workflow execution identify.
-    :return: The result of the action.
+    :param execution_id: The workflow identity of one execution.
+    :return: Information about one execution of the job.
     """
     return proto_to_job(get_ai_flow_client().stop_job(job_name, execution_id))
 
@@ -187,8 +187,8 @@ def restart_job_execution(job_name: Text,
     """
     Restart a task defined in the ai flow workflow.
     :param job_name: The job name which task defined in workflow.
-    :param execution_id: The ai flow workflow execution identify.
-    :return: The result of the action.
+    :param execution_id: The workflow identity of one execution.
+    :return: Information about one execution of the job.
     """
     return proto_to_job(get_ai_flow_client().restart_job(job_name, execution_id))
 
@@ -197,9 +197,9 @@ def get_job_execution(job_name: Text,
                       execution_id: Text) -> JobExecutionInfo:
     """
     Get job information by job name.
-    :param job_name:
-    :param execution_id:
-    :return:
+    :param job_name: The job name which task defined in workflow.
+    :param execution_id: The workflow identity of one execution.
+    :return: Information about one execution of the job.
     """
     return proto_to_job(get_ai_flow_client().get_job(job_name, execution_id))
 
@@ -207,7 +207,7 @@ def get_job_execution(job_name: Text,
 def list_job_executions(execution_id: Text) -> List[JobExecutionInfo]:
     """
     List the jobs of the workflow execution.
-    :param execution_id:
-    :return:
+    :param execution_id: The workflow identity of one execution.
+    :return: Information about executions of the job in the workflow.
     """
     return proto_to_job_list(get_ai_flow_client().list_jobs(execution_id))

@@ -23,8 +23,12 @@ from ai_flow.client.ai_flow_client import get_ai_flow_client
 
 def init_ai_flow_context():
     """
-    Init project context, project config, workflow config.
-    :return: None
+    When defining the ai flow program,
+    you need to call this function to initialize the project and workflow environment information.
+    This function has three functions:
+    1. Init project context
+    2. Init project configuration
+    3. Init workflow configuration.
     """
     stack = traceback.extract_stack()
     workflow_entry_file = stack[-2].filename

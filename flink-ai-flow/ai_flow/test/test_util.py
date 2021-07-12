@@ -47,11 +47,6 @@ def get_workflow_config_file():
     return os.path.dirname(os.path.abspath(__file__)) + "/workflow_config.yaml"
 
 
-def set_project_config(main_file):
-    set_project_config_file(get_project_config_file())
-    project_config()['entry_module_path'] = path_util.get_module_name(main_file)
-
-
 def get_mysql_server_url():
     db_username = os.environ.get('MYSQL_TEST_USERNAME') if 'MYSQL_TEST_USERNAME' in os.environ \
         else DEFAULT_MYSQL_USERNAME

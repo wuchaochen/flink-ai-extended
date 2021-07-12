@@ -26,7 +26,7 @@ from ai_flow.ai_graph.ai_node import AINode, ReadDatasetNode, WriteDatasetNode
 from ai_flow.util import json_utils
 from ai_flow.graph.channel import Channel
 from ai_flow.workflow.control_edge import ControlEdge, \
-    TaskAction, EventLife, MetValueCondition, ConditionType, DEFAULT_NAMESPACE, AIFlowInternalEventType, ConditionConfig
+    TaskAction, EventLife, ValueCondition, ConditionType, DEFAULT_NAMESPACE, AIFlowInternalEventType, ConditionConfig
 from ai_flow.ai_graph.ai_graph import current_graph, add_ai_node_to_graph
 from ai_flow.meta.dataset_meta import DatasetMeta
 from ai_flow.meta.model_meta import ModelMeta, ModelVersionMeta
@@ -427,10 +427,10 @@ def action_on_event(job_name: Text,
                     event_type: Text = UNDEFINED_EVENT_TYPE,
                     sender: Text = None,
                     namespace: Text = DEFAULT_NAMESPACE,
-                    condition: ConditionType = ConditionType.NECESSARY,
+                    condition_type: ConditionType = ConditionType.NECESSARY,
                     action: TaskAction = TaskAction.START,
                     life: EventLife = EventLife.ONCE,
-                    value_condition: MetValueCondition = MetValueCondition.EQUALS,
+                    value_condition: ValueCondition = ValueCondition.EQUALS,
                     extra_information: Jsonable = None
                     ):
     """
@@ -441,7 +441,7 @@ def action_on_event(job_name: Text,
        :param event_value: The value of the event.
        :param event_type: The type of the event.
        :param sender: The event sender identity,which value uses the name of the job. If sender is None, the sender will be dependency.
-       :param condition: The event condition. Sufficient or Necessary.
+       :param condition_type: The event condition type. Sufficient or Necessary.
        :param action: The action act on the src channel. Start or Restart.
        :param life: The life of the event. Once or Repeated.
        :param value_condition: The event value condition. Equal or Update. Equal means the src channel will start or
@@ -457,7 +457,7 @@ def action_on_event(job_name: Text,
                                    event_key=event_key,
                                    event_value=event_value,
                                    event_type=event_type,
-                                   condition=condition,
+                                   condition_type=condition_type,
                                    action=action,
                                    life=life,
                                    value_condition=value_condition,
@@ -491,8 +491,8 @@ def action_on_model_version_event(job_name: Text,
                     event_type=model_version_event_type,
                     action=action,
                     life=EventLife.ONCE,
-                    value_condition=MetValueCondition.UPDATED,
-                    condition=ConditionType.SUFFICIENT,
+                    value_condition=ValueCondition.UPDATED,
+                    condition_type=ConditionType.SUFFICIENT,
                     namespace=namespace,
                     sender=ANY_CONDITION)
 
@@ -540,7 +540,7 @@ def action_on_job_status(job_name: Text,
                     event_value=upstream_job_status,
                     action=action,
                     namespace=current_project_config().get_project_name(),
-                    condition=ConditionType.SUFFICIENT
+                    condition_type=ConditionType.SUFFICIENT
                     )
 
 
@@ -560,6 +560,6 @@ def periodic_run(job_name: Text,
                     sender=ANY_CONDITION,
                     event_value='',
                     action=action,
-                    condition=ConditionType.SUFFICIENT,
+                    condition_type=ConditionType.SUFFICIENT,
                     namespace=current_project_config().get_project_name(),
                     extra_information=periodic_config)
