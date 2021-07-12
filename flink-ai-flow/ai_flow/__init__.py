@@ -22,6 +22,7 @@ from ai_flow.api.ops import read_dataset, write_dataset, transform, train, predi
 from ai_flow.context.project_context import current_project_context, current_project_config
 from ai_flow.context.workflow_config_loader import current_workflow_config
 from ai_flow.context.job_context import job_config
+from ai_flow.ai_graph.ai_graph import current_graph
 from ai_flow.endpoint.server.server_runner import AIFlowServerRunner
 
 # ai_flow.client
